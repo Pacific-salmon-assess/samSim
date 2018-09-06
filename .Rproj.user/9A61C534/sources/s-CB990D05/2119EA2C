@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1534799939365.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1787898516",
+    "id" : "2119EA2C",
+    "lastKnownWriteTime" : 1533848010,
+    "last_content_update" : 1533848010,
+    "path" : "C:/github/plotsurv/R/plot_survey.R",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "12,46",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

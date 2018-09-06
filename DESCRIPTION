@@ -1,0 +1,32 @@
+Package: samSim
+Type: Package
+Title: Closed-loop salmon dynamics simulator
+Version: 0.0.0.9
+Authors@R: person("Cameron", "Freshwater", email = "cameron.freshwater@dfo-mpo.gc.ca", role = c("aut", "cre"))
+Description: samSim is intended to evaluate management strategies for Pacific salmon stocks while accounting for a range of uncertainties.
+License: GPL-3
+Depends: R (>= 3.3.0)
+Encoding: UTF-8
+LazyData: true
+ByteCompile: true
+Imports: 
+    dplyr,
+    ggplot2,
+    gsl,
+    here,
+    mvtnorm,
+    plyr,
+    Rcpp,
+    RcppArmadillo,
+    scales,
+    sensitivity,
+    sn,
+    synchrony,
+    viridis,
+    zoo
+RoxygenNote: 6.1.0
+Suggests: 
+    knitr,
+    rmarkdown,
+    testthat
+VignetteBuilder: knitr

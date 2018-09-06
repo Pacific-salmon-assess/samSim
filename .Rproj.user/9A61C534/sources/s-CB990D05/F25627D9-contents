@@ -1,0 +1,12 @@
+#' QCS Survey Sets for Petrale Sole
+#'
+#' A dataset containing the Queen Charlotte Sound survey sets for Petrale Sole.
+#'
+#' @format A data frame
+#' \describe{
+#'   \item{year}{The survey year}
+#'   \item{longitude}{The set longitude}
+#'   \item{latitude}{The set latitude}
+#'   \item{density_kgpm2}{Petrale Sole density per meter squared}
+#' }
+"survey_dat"

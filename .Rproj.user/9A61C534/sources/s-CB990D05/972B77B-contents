@@ -1,0 +1,1050 @@
+#*************************************************************************************
+# Functions needed to run ExtinctionSimModel.r and additional MSE scripts
+# Authors: C. Holt, B. Davis, C. Freshwater
+# Date Revised: ONGOING
+# Revised 5 Jan 2017 (log-normal bias correction in RickerAR1.MVT)
+# Revised 6 Nov 2017 (new Ricker function added adapted from Peterman et al. 2003)
+# Revised 2 Jan 2018 (added odd/even helper function for pink cycle lines)
+#
+#*************************************************************************************
+
+sourceCpp(here("scripts/func/cpp/fastLm.cpp")) #external scripts for C++ functions
+
+#___________________________________________________________________________________________________________
+# This function calculates proporations at age with multivariate logistic error (Schnute and Richards 1995, eqns.S.9 and S.10)
+ppnAgeErr<-function(ppnAgeVec,nAges,tau,error){
+	ppnAgeVec[is.na(ppnAgeVec)] <- 0 # NAs produced when dividing 0 by 0 for proportion of recruits at age; replace w/ 0s 
+	ages<-nAges
+	p<-0
+	if(ppnAgeVec[1]==1){ #if species is pink than all are age 2
+		p[1]<-1
+		for (k in 2:ages)  {p[k] <- 0}
+	} else{
+		ppnAgeVec[ppnAgeVec==0] <- 0.0000001 #change 0s to very small values to calc ppn
+		dum<-0.
+		x<-0.
+		for (i in 1:ages)  {dum[i]<-log(ppnAgeVec[i])+tau*qnorm(error[i],0,1)}
+		for (j in 1:ages)  {x[j]<-log(ppnAgeVec[j])+tau*qnorm(error[j],0,1)-(1/ages)*sum(dum)}
+		for (k in 1:ages)  {p[k]<-exp(x[k])/sum(exp(x))}
+	}
+	return(p)
+}
+
+
+# Modified version of above intended to estimate observed catches
+ppnCatchErr<-function(ppnCatchVec,nCU,tau){
+	ppnCatchVec[is.na(ppnCatchVec)] <- 0 # NAs produced when dividing 0 by 0 for proportion of recruits at age; replace w/ 0s 
+	CUs<-nCU
+	error<-runif(nCU,0.0001,0.9999) #can be estimated internally because don't need to align multiple years
+	p<-0
+	ppnCatchVec[ppnCatchVec==0] <- 0.0000001 #change 0s to very small values to calc ppn
+	dum<-0.
+	x<-0.
+	for (i in 1:CUs)  {dum[i]<-log(ppnCatchVec[i])+tau*qnorm(error[i],0,1)}
+	for (j in 1:CUs)  {x[j]<-log(ppnCatchVec[j])+tau*qnorm(error[j],0,1)-(1/CUs)*sum(dum)}
+	for (k in 1:CUs)  {p[k]<-exp(x[k])/sum(exp(x))}
+	return(p)
+}
+#___________________________________________________________________________________________________________
+
+
+# This function calculates recruitment from Ricker curve with AR(1) process (according to Peterman et al. 2003)
+# Using parameters from arima.mle (ln(a), -b, sig, rho)
+
+# This function uses multivariate normally distrubuted errors 
+# Modified to use Peterman's more recent parameterization of Ricker
+# RickerAR1.MVT<-function(S,utminus1,a,b,cv,rho,error){  		# where a,b,cv are in lognormal space 	
+#   err.1 <- error#qnorm(error,0,cv)
+#   err <- utminus1*rho+err.1
+#   if(a>=0){
+#     if(b!=0&S>0) {
+#       R<-S*exp(a-b*S)*exp(-cv^2/2)*exp(err)# same as adding -cv^2/2 to err line above
+#       err.next<-log(R/S)-(a-b*S)+cv^2/2
+#     }
+#     if(b==0&S>0) {
+#       R<-S*exp(err)
+#       err.next<-log(R/S)-0
+#     }
+#   }
+#   if(a<0&S>0) {
+#     R<-S*exp(a)*exp(err)*exp(-cv^2/2)
+#     err.next<-log(R/S)-0+cv^2/2
+#   }
+#   if(S==0){R<-0; err.next<-err}
+#   return(list(R,err.next))
+# }
+
+# Modified Ricker that doesn't multiply AR error by sigma when calculating recruits
+modRickerAR1.MVT<-function(S,utminus1,a,b,rho,error){ # where a,b are in lognormal space;	utminus 1 is previous yrs error
+  err <- utminus1*rho+error
+  if(a>=0){
+    if(b!=0&S>0) {
+      R<-S*exp(a-b*S)*exp(err)
+      err.next<-log(R/S)-(a-b*S)+error
+    }
+    if(b==0&S>0) {
+      R<-S*exp(err)
+      err.next<-log(R/S)-0
+    }
+  }
+  if(a<0&S>0) {
+    R<-S*exp(a)*exp(error)
+    err.next<-log(R/S)-0+error
+  }
+  if(S==0){R<-0; err.next<-err}
+  return(list(R,err.next))
+}
+
+## Current specification for model
+Ricker.MVT<-function(S,a,b,error){			# where a,b,cv are in lognormal space
+  N<-length(a)
+  R<-NA
+  if(a>=0){
+    if(b!=0) R <- S*exp(a-b*S)*exp(error)
+    if(b==0) R <- S*exp(error)
+  }
+  if(a<0)R<-S*exp(a)*exp(error)*exp(error)
+  
+  return(R)
+}
+
+
+# This function calculates recruitment from Larkin model
+
+# Note, the log-normal bias correction has not been fixed for the Larkin model
+
+# Simplified version without possibility for depensation and w/ all betas included by default
+Larkin<-function(S,Sm1,Sm2,Sm3,a,b,b1,b2,b3,error){
+	# err<-error
+	# err<-err*cv #redundant given calculated outside of function and passed
+	R<-(S*exp(a-b*S-b1*Sm1-b2*Sm2-b3*Sm3))*exp(error)
+	return(R)
+}
+
+
+# Experimental auto-reg version of Larkin (NOTE not sure if this is defensible)
+modLarkinAR1.MVT<-function(S,utminus1,Sm1,Sm2,Sm3,a,b,b1,b2,b3,rho,error){  		# where a,b,cv are in lognormal space 	
+  err <- utminus1*rho+error
+  if(a>=0){
+    if(b!=0&S>0) {
+      R<-(S*exp(a-b*S-b1*Sm1-b2*Sm2-b3*Sm3))*exp(err)
+      err.next<-log(R/S)-(a-b*S-b1*Sm1-b2*Sm2-b3*Sm3)+error
+    }
+    if(b==0&S>0) {
+      R<-S*exp(err)
+      err.next<-log(R/S)-0
+    }
+  }
+  if(a<0&S>0) {
+    R<-S*exp(a)*exp(error)
+    err.next<-log(R/S)-0+error
+  }
+  if(S==0){R<-0; err.next<-err}
+  return(list(R,err.next))
+}
+#___________________________________________________________________________________________________________
+
+
+# This function calculates exploitation rate based on exponential harvest rules
+ExpRate<-function(R,maxM,PL,b){
+	#PL<-1
+	predER<-maxM*(1-exp(b*(PL-R)))
+	
+	if(predER<=0.) 
+		{
+		predER=0.00000001;
+		}
+	if(predER>1) 
+		{
+		predER=0.9999;
+		}
+	return(predER)
+	}
+#___________________________________________________________________________________________________________
+
+
+# This function calculates exploitation rate based on a hockey stick rule (R versus U)
+	HRrule<-function(R, Slower, Supper, Flower, Fbottom)
+	{
+		Ubottom<- 1 - exp(-Fbottom)
+		Ulower<- 1 - exp(-Flower)
+		Rlower<-Slower/(1-Ubottom)
+		Rupper<-Supper/(1-Ulower)
+		if (R<=Rlower) U<-Ubottom
+		if (R>=Rupper) U<-Ulower
+		YI<-((-(Ulower-Ubottom)/(Rupper-Rlower))*Rlower + Ubottom)
+		if (R>Rlower & R<Rupper) U<-YI+R*(Ulower-Ubottom)/(Rupper-Rlower)
+		return(U)
+	}
+#___________________________________________________________________________________________________________
+
+	
+# This function calculates ppn of spawners that are effective females
+# Assuming a beta distribution, with shape parameters beta1 and beta2 calculated to give a mean=ppnfem and SD=ppnfem.sig
+
+ppnfemale<-function(ppnfem,ppnfem.sig, error.type, error)
+{
+	dum<-ppnfem
+	if(error.type=="TRUE"){
+		beta1<-((1-dum)/(dum*ppnfem.sig^2*((1-dum)/dum+1)^2)-1)/((1-dum)/dum+1)
+		if(beta1<=0){beta1<-0.0000001}
+		beta2<-beta1*(1-dum)/dum
+		if(beta2<=0){beta2<-0.000001}
+		rb<-rbeta(1,beta1,beta2)
+		rb<-beta.draw(beta1,beta2,error)
+		return(rb)
+		}
+	else(return(dum))
+}
+#_________________________________________________________________________________________________________________________________
+
+
+# This function calculates random draws from a beta distribution of parameters a and b 
+# from randon uniform distribution between 0 and 1
+
+of<-function(x,a,b,rand){(pbeta(x,a,b)-rand)^2}	
+#pbeta calculates the cdf of the beta distribution at x (given the parameters a and b)
+
+beta.draw<-function(a,b,error){
+	rand<-error#runif(1,0,1)
+	dum<-optimize(f=of, interval=c(0,1), a=a, b=b, rand=rand)$minimum
+	#dum<-uniroot(of,interval=c(0,1),a=a,b=b,rand=rand)$root
+	
+	return(dum)
+	}
+#___________________________________________________________________________________________________________
+
+
+#Calculate  running mean of a vector, vec, over generation length, gen
+Gen.mean<-function(vec,gen){
+	running.mean<-NA
+	for (i in gen:length(vec)){
+		running.mean[i]<-(prod(vec[(i-gen+1):i]))^(1/gen)
+		}
+	return(running.mean)
+	}
+#___________________________________________________________________________________________________________
+
+	
+
+# Identify S lower benchmarks
+
+	# S.lower.1: S at 50% of R@MSY
+
+	Roptim <- function (s, theta, R.msy.half)
+	{
+		a=theta[1]; b=theta[2]; sig=exp(theta[3])
+		prt=s*exp(a-b*s)
+		epsilon=log(R.msy.half)-log(prt)	#residuals
+		nloglike=sum(dnorm(epsilon,0,sig, log=T))	#
+		if(is.na(sum(dnorm(epsilon,0,sig, log=T)))==TRUE) print(c("Problem with S.lower.1",s, round(theta,2)))
+		#if(s>b*(0.5-0.07*a)) {nloglike=nloglike-1000}
+		if(s>(b*exp(a-1))/a) {nloglike=nloglike-1000}
+		#print(c(s,nloglike))
+		return(list(prt=prt, epsilon=epsilon, nloglike=nloglike, s=s))#actually returns postive loglikelihood
+	}
+	fn.r <- function(s,theta, R.msy.half) -1.0*Roptim(s, theta, R.msy.half)$nloglike	#gives the min Ricker LL, dd is a dummy
+	solver.r <- function(theta, R.msy.half) 
+	{
+		
+		#fit=optimize(f=fn.r,interval=c(0, (theta[2]*exp(theta[1]-1))/theta[1]), theta=theta, R.msy.half=R.msy.half)	
+		fit=optimize(f=fn.r,interval=c(0, (theta[2]*(0.5-0.07*theta[1]))), theta=theta, R.msy.half=R.msy.half)	
+		#fit=optimize(f=fn.r,interval=c(0, S.msy[m]), theta=theta, R.msy.half=R.msy.half)	
+		return(list(fit=fit$minimum))
+	}
+
+	#S.lower.2: S at 50% of maximum R (Mace 1994)
+	# First calculate maximum R
+	# Second calculate S at that R
+	Roptim2 <- function (s, theta, maxR.50)
+	{
+		if(theta[1]<0)print(c("Ric.a is <0", theta[1]))
+		a=theta[1]; b=theta[2]; sig=exp(theta[3])
+		prt=s*exp(a-b*s)
+		epsilon=log(maxR.50)-log(prt)	#residuals
+		nloglike=sum(dnorm(epsilon,0,sig, log=T))	#
+		if(is.na(sum(dnorm(epsilon,0,sig, log=T)))==TRUE) print(c("Problem aiwh S.lower.2",s))
+		if(theta[1]<0)print(c("Ric.a is <0", theta[1], nloglike))
+		return(list(prt=prt, epsilon=epsilon, nloglike=nloglike, s=s))#actually returns postive loglikelihood
+	}
+	fn.r2 <- function(s, theta, maxR.50) -1.0*Roptim2(s, theta, maxR.50)$nloglike	#gives the min Ricker LL, dd is a dummy
+	solver.r2 <- function(theta, maxR.50) 
+	{
+		#fit=optim(par=s,fn=fn.r2, theta=theta, maxR.50=maxR.50, method="Nelder-Mead")	
+		#if(fit$convergence!=0)print("Non-convergence for benchmark S.lower.2")
+		#interval search betweeen 0 and SMSY (derived from a and b for this case)
+		fit=optimize(f=fn.r2, interval=c(0.0001, (theta[2]*(0.5-0.07*theta[1]))), theta=theta, maxR.50=maxR.50 )#, doen't work. needs to find where f = 0, not minimize	
+		#fit=optimize(f=fn.r2, interval=c(0.0001, S.msy[m]), theta=theta, maxR.50=maxR.50 )#, doen't work. needs to find where f = 0, not minimize	
+		return(list(fit=fit$minimum))
+	}
+
+	# S.lower.3: Sgen: Spawner abundances that would result in recovery to Smsy within one generation
+	
+	## NOTE SMSY estimate needs to be updated to reflect change to Scheuerell 2016 calc
+	Sgen.optim <- function (s, theta, s.msy) {
+	  # Add warning and adjustment for non-zero spawner abundances
+	  # if(any(s < 0.00001)){
+	  # 	s[s < 0.00001] <- 0.0001
+	  # 	# print(c("s abundance must be > 0. Negative values replaced w/ small positive"))
+	  # }
+	  
+	  # if(any(s.msy < 0.00001)){
+	  # 	s.msy[s.msy < 0.00001] <- 0.0001
+	  # 	# print(c("s.msy must be > 0. Negative values replaced w/ small positive"))
+	  # }
+	  
+	  a = theta[1]; b = theta[2]; sig = exp(theta[3])
+	  prt = s * exp(a - b * s) 
+	  epsilon = log(s.msy) - log(prt)	#residuals. R at Sgen= S at MSY!
+	  nloglike = sum(dnorm(epsilon, 0, sig, log = T))	#
+	  # if(is.na(sum(dnorm(epsilon,0,sig, log=T)))==TRUE) print(c("problem with Sgen.optim", s))
+	  
+	  return(list(prt = prt, epsilon = epsilon, nloglike = nloglike, s = s))#actually returns postive loglikelihood
+	}
+	fn.sgen <- function(s, theta, s.msy) -1.0*Sgen.optim(s, theta, s.msy)$nloglike	#gives the min Ricker LL, dd is a dummy
+	solver.sgen <- function(s, theta, s.msy) 
+	{
+	  #fit=optimize(f=fn.sgen,interval=c(0,S.msy[m]), theta=theta, s.msy=s.msy)	
+	  fit = optimize(f = fn.sgen,interval = c(0, ((theta[1] / theta[2]) * (0.5 - 0.07 * theta[1]))), 
+	                 theta = theta, s.msy = s.msy)         
+	  #if(fit$convergence!=0)print("Non-convergence for benchmark S.lower.3")
+	  return(list(fit = fit$minimum))
+  }
+#___________________________________________________________________________________________________________
+
+	
+#MCMC functions for slope estimate
+tr.inits <- function(trs,ty){#in log units
+  options(warn=-1)
+ 	b0=lm(trs~ty)$coefficients[1]   #intercept of the line  trs ~ ty
+	b1=lm(trs~ty)$coefficients[2]   #slope
+  sig=log(0.8)                    #sigma; 0.8 is just an init.value
+  return(list(b0.init=b0,b1.init=b1,sig.init=sig))
+  options(warn=-1)
+}
+
+lin.model <- function(theta,trs,ty){
+  options(warn=-1)
+	b0=theta[1]; b1=theta[2]; sig=exp(theta[3])
+	log.pst = b0+b1*ty
+	nobs = length(trs)
+	sq = 0    #sq is the squared (observed - predicted)
+	for (j in 1:nobs) {sq[j]<-(trs[j]-log.pst[j])^2}
+	epsilon = trs-log.pst		# Residuals
+	ss = sum(sq, na.rm=T)   #sum of squares
+	loglike = -(nobs*log(sig) + (1/(2*sig^2))*ss)
+  prior <- dunif(x=b1,min=u.min, max=u.max, log=T)
+	return(list(log.pst=log.pst, theta=theta, epsilon=epsilon, loglike=loglike+prior))  #NB: loglike + prior! becomes the new loglike
+  options(warn=1)
+}
+
+
+fn2 <- function(theta,trs,ty) 1.0*lin.model(theta,trs,ty)$loglike
+
+
+#u.max<-3*gen*log(5+1)#+500%, converted to log-units: slope=3gens*loge(ppnal change+1)= 3*gen*log(5+1)= (for gen=4)= 21.50111
+#u.min<-3*gen*log(-0.99+1)# -99% converted to log units:slope=3gens*loge(ppnal change+1)= 3*gen*log(-0.99+1)= (for gen=4)= -55.26204
+
+mcmc.fun <- function(fn=fn2, theta, trs, ty, n=4000, burnin=1000, itune=1.5, ithin=20){   #itune of vector of length #pars: how much to scale covar matrix
+  post.samp <- MCMCmetrop1R(fn, theta.init=theta, trs=trs, ty=ty, thin=ithin,
+                    mcmc=n, burnin=burnin, tune=itune, verbose=0, logfun=TRUE)
+  return(post.samp)
+}
+
+
+# #Running example of mcmc: 
+# ps<-NA
+# ty<-c(1:12)
+# trs<-log(S[80:91])#runif(12,0,100)
+# etheta<-tr.inits(trs,ty)
+
+# ps<-mcmc.fun(theta=etheta, trs=trs, ty=ty)		
+# #  MCMC acceptance rate should be between 0.2 and 0.5 according to MCMCpack pdf
+
+# g <-try(geweke.diag(ps[,2]), silent=TRUE)[1]
+# g <- abs(as.numeric(g))#if gweke <2, then convergence has occured
+# nMC<-length(ps[,2])
+# ac<-cor(ps[1:(nMC-1),2],ps[2:nMC,2])
+# if(g<2&ac<0.1) {
+# 	prob.COS[j,n]<-sort(ps[,2])[round(nmC*0.3,0)]
+# 	prob.WSP[j,n]<-sort(ps[,2])[round(nmC*0.25,0)]
+# }
+
+boot.CIs<-function(y,R,S){# function used to calculate bootstrapped estiamtes of Sgen, SMSY40% and SMSY80%
+  coef<-lm(log(R[y]/S[y])~S[y])$coef[1:2]
+  a<-coef[1];  b<--a/coef[2]# Seq
+  slope<-coef[2]
+  Smsy<-b*(0.5-0.07*a); Smsy.40<-0.4*b*(0.5-0.07*a); Smsy.80<-0.8*b*(0.5-0.07*a)
+  Sgen<-as.numeric(solver.sgen(theta=c(a, b, 0.75),s.msy=Smsy)) 
+  return(c(Sgen, Smsy.40, Smsy.80,a,(-1/slope),b))
+}
+#___________________________________________________________________________________________________________
+
+
+#Simple function to determine whether values are odd or even
+is.even <- function(x){
+  x %% 2 == 0	
+} 
+#___________________________________________________________________________________________________________
+
+
+vec <- c(1, 5, 10, 2)
+modeFunc <- function(vec) {
+  vec2 <- sort(vec)
+  if (length(vec2) %% 2 == 0) {
+    midPt <- length(vec2) / 2
+    mode <- vec2[midPt]
+  } else {
+    midPt1 <- round(length(vec2) / 2)
+    midPt2 <- midPt1 + 1
+    mode <- mean(vec2[midPt1], vec2[midPt2])
+  }
+  return(mode)
+}
+
+
+#This function samples appropriate SR parameters based on arguments passed from simPar.csv and
+#a datafile containing Ricker and/or Larkin parameters; if alphaOnly = TRUE, betas and sigmas are 
+#set at median values
+getSRPars <- function(pars, alphaOnly = TRUE, highP = 0.9, lowP = 0.1, stks = NULL) {
+  srLow <- NULL
+  srMed <- NULL
+  srHigh <- NULL
+  if (is.null(stks) == FALSE) {
+    pars <- pars[pars$stk %in% stks, ]
+  }
+  stkKey <- unique(pars$stk)
+  perc <- pars %>%
+    group_by(stk) %>%
+    summarise(alphaHigh = quantile(alpha, probs = highP, na.rm = TRUE),
+              alphaMed = quantile(alpha, probs = 0.5, na.rm = TRUE),
+              alphaLow = quantile(alpha, probs = lowP, na.rm = TRUE)
+    ) 
+  
+  if (alphaOnly == TRUE) { #calculate alpha percentiles and other pars medians
+    meds <- pars %>%
+      dplyr::select(-c(alpha)) %>% #need dplyr because select sometimes masked by other packages
+      group_by(stk) %>%
+      summarise_all(median)
+    srLow <- merge(perc[, c("stk", "alphaLow")], meds, by = "stk")
+    srMed <- merge(perc[, c("stk", "alphaMed")], meds, by = "stk")
+    srHigh <- merge(perc[, c("stk", "alphaHigh")], meds, by = "stk")
+  }
+  
+  if (alphaOnly == FALSE) { #calculate alpha percentiles and sample other pars accordingly
+    for (k in seq_along(stkKey)) {
+      d <- subset(pars, stk == stkKey[k])
+      dLow <- d[which.min(abs(d$alpha - perc$alphaLow[k])), ] #ID and pull row for each stock that most closely matches percentile  
+      dMed <- d[which.min(abs(d$alpha - perc$alphaMed[k])), ]
+      dHigh <- d[which.min(abs(d$alpha - perc$alphaHigh[k])), ]
+      srLow <- rbind(srLow, dLow)
+      srMed <- rbind(srMed, dMed)
+      srHigh <- rbind(srHigh, dHigh)
+    }
+  }
+  srList <- list(srLow, srMed, srHigh)
+  names(srList) <- c("pLow", "pMed", "pHigh")
+  srList <- lapply(srList, function (x) {
+    names(x)[2] <- "alpha"
+    x
+    })
+  return(srList)
+}
+#___________________________________________________________________________________________________________
+
+
+#Generate a vector representing cycle lines based on length of priming period, last observation date, 
+#and total simulation length
+check.integer <- function(x) {
+  x == round(x)
+}
+
+genCycle <- function(firstObs, simLength){
+  if(check.integer((firstObs-1900)/4)){
+    cycle <- rep(c(4,1,2,3), length.out=simLength)
+  }
+  if(check.integer((firstObs+1-1900)/4)){
+    cycle <- rep(c(3,4,1,2), length.out=simLength)
+  }
+  if(check.integer((firstObs+2-1900)/4)){
+    cycle <- rep(c(2,3,4,1), length.out=simLength)
+  }
+  if(check.integer((firstObs+3-1900)/4)){
+    cycle <- rep(c(1,2,3,4), length.out=simLength)
+  }
+
+  return(cycle)
+}
+#___________________________________________________________________________________________________________
+
+
+#Infilling function used to generate estimates of recBY to prime simulation 
+GeoMean <- function(x){
+  xx <- x[which(is.na(x)==F)]
+  exp(mean(log(xx)))
+}
+
+infill <- function(mat){
+  tsLength <- max(25, nrow(mat))
+  meanAbund <- apply(mat[(nrow(mat)-tsLength):nrow(mat),], 2, GeoMean)
+  ppnAbund <- matrix(meanAbund/sum(meanAbund), nrow=nrow(mat), ncol=ncol(mat), byrow=T)
+  present <- ifelse(is.na(mat), 0, 1)
+  ppnPresent <- ppnAbund*present
+  expansion <- apply(ppnPresent, 1, function(x) 1/sum(x))
+  expandedTotal <- apply(mat, 1, function(x) sum(x, na.rm=TRUE))*expansion
+  infillMat <- ppnAbund*expandedTotal
+  return(infillMat)
+}
+#___________________________________________________________________________________________________________
+
+
+#Function to run loop until condition is met (used to draw a CU for plotting that has estimated BMs and SR pars)
+findCU <- function(dataMatrix){
+	counter <- 1
+	repeat{
+		i <- sample(ncol(dataMatrix), 1)
+		counter <- counter + 1
+		if(all(is.na(dataMatrix[,i]))==FALSE) break
+		if(counter > 10000){
+			stop("No CUs with estimated SR parameters")
+		}
+	}
+	return(c(i, counter))
+}
+#___________________________________________________________________________________________________________
+
+
+#Function to calculate expansion factor
+calcExpFactor <- function(obsSMat, nSamplePops, gen){
+  startYr <- gen + 3 #equal to obsLag + 1 which is the start of second loop
+  endYr <- gen * 2
+  ratioVec <- NULL
+  for (i in seq(from = startYr, to = endYr, by = 1)) {
+    ratio <- sum(obsSMat[i, ]) / sum(obsSMat[i, 1:nSamplePops]) #calculate the ratio of total sampled abundance to actual
+    ratioVec <- c(ratioVec, ratio)
+  }
+  return(mean(ratioVec))
+}
+#___________________________________________________________________________________________________________
+
+
+#Function that cleans input data then uses Rcpp to provide faster lm estimates
+quickLm <- function(xVec, yVec){
+  #C++ won't accept mix of NAs so trim and convert to matrix w/ 1s for intercept
+  xVec2 <- xVec[!is.na(xVec + yVec)]
+  xMat <- matrix(c(rep(1, length(xVec2)), xVec2), ncol = 2)
+  yMat <- yVec[!is.na(xVec + yVec)]
+  mod <- fastLm(yMat, xMat)
+  
+  return(mod$coefficients)
+}
+#___________________________________________________________________________________________________________
+
+
+#Helper function for TAM rule calculations
+#Assesses whether TAC should be constrained based on whether the abundance of MUs with adjacent run 
+#timings are above their upper FRP
+constrain <- function(forecast, highFRP, manAdjustment, manUnit, muName) {
+  nCU <- length(forecast)
+  nMU <- length(unique(manUnit))
+  muAboveFRP <- rep(0, nCU)
+  conFinal <- rep(0, nCU)
+  # Check 1: what is forecast relative to reference point after adjusting downwards w/ pMA
+  for (k in 1:nCU) { 
+    if (forecast[k] * (1 - manAdjustment[k]) > highFRP[k]) {
+      muAboveFRP[k] <- 1
+    }
+  }
+  # Split into single MU value
+  eStuAbove <- unique(muAboveFRP[which(manUnit %in% "EStu")])
+  eSummAbove <- unique(muAboveFRP[which(manUnit %in% "ESumm")])
+  summAbove <- unique(muAboveFRP[which(manUnit %in% "Summ")])
+  lateAbove <- unique(muAboveFRP[which(manUnit %in% "Lat")])
+  
+  # Check 2: should each MU be constrained based on neighboring MUs status
+  for (m in 1:nMU) {
+    if (muName[m] == "EStu") {
+      conFinal[which(manUnit %in% muName[m])] <- ifelse(eSummAbove == 1, 0, 1)
+    }
+    if (muName[m] == "ESumm") {
+      conFinal[which(manUnit %in% muName[m])] <- ifelse(eStuAbove == 1 & summAbove == 1, 0, 1)
+    }
+    if (muName[m] == "Summ") {
+      conFinal[which(manUnit %in% muName[m])] <- ifelse(eSummAbove == 1 & lateAbove == 1, 0, 1)
+    }
+    if (muName[m] == "Lat") {
+      conFinal[which(manUnit %in% muName[m])] <- ifelse(summAbove == 1, 0, 1)
+    }
+  }  
+  constraintList <- list(muAboveFRP, conFinal)
+  names(constraintList) <- c("muAboveFRP", "muConstrained")
+  return(constraintList)
+}
+#___________________________________________________________________________________________________________
+
+
+#Function to calculate total allowable catch (i.e. canCatch + singCatch) based on status, followed
+#by harvest ra)tes (w/ outcome uncertainty based on TACs)
+calcTAC <- function(foreRec, canER, harvContRule, amER, ppnMix, species = NULL, manAdjustment = NULL,
+                    lowRef = NULL, highRef = NULL,  minER = NULL, maxER = NULL, overlapConstraint = NULL) {
+  if (species == "sockeye") {
+    if (harvContRule == "fixedER") {
+      totalTAC <- foreRec * canER 
+    }
+    if (harvContRule == "TAM") {
+      if (foreRec < lowRef) { #if forecast below lower RP, en route mort not accounted for; minEr used
+        totalTAC <- minER * foreRec
+      } 
+      if ((foreRec > lowRef) & (foreRec < highRef)) { #if stock is between ref points, ERs are either scaled to adjusted forecast or minER
+        escTarget <- lowRef
+        adjTarget <- escTarget * (1 + manAdjustment) # escapement goal is adjusted up based on pMA and forecast (equivalent to esc target + MA)
+        calcER <- ifelse(foreRec > adjTarget, (foreRec - adjTarget) / foreRec, 0) 
+        #if forecast greater than adjusted target, potential TAC = difference between the two (converted to er for next line)
+        tacER <- ifelse(calcER > minER, calcER, minER)
+        totalTAC <- tacER * foreRec
+      }
+      if (foreRec > highRef) { #if stock is above upper reference point, ERs set to max ()
+        escTarget <- ((1 - maxER) * foreRec) #escapement target increases w/ abundance (i.e. constant ER)
+        adjTarget <- escTarget * (1 + manAdjustment)
+        calcER <- ifelse(foreRec > adjTarget, (foreRec - adjTarget) / foreRec, 0)
+        tacER <- ifelse(calcER > minER, calcER, minER)
+        totalTAC <- tacER * foreRec
+      }
+    }
+    amTAC <- amER * totalTAC 
+    canTAC <- totalTAC - amTAC
+  } else { #sockeye is odd in that Americans get a proportion of total TAC, not total escapement; all other fisheries simplify by taking simultaneously
+    amTAC <- amER * foreRec
+    canTAC <- canER * foreRec
+  }
+  mixTAC <- canTAC * ppnMix
+  singTAC <- canTAC * (1 -  ppnMix)
+  if (foreRec > lowRef & overlapConstraint == 1) { #apply overlap constraints to marine fisheries based on min ER and overlap constraints
+    amTAC <- 0.75 * amTAC
+    mixTAC <- 0.75 * mixTAC
+  }
+  tacList <- list(amTAC, mixTAC, singTAC, totalTAC)
+  names(tacList) <- c("amTAC", "mixTAC", "singTAC", "totalTAC")
+  return(tacList)
+}
+
+
+calcHarvRate <- function(trueRec, amTAC, mixTAC, singTAC, mixOutErr, singOutErr) {
+  amHR <- pmin(0.95, (amTAC / trueRec) * (1 + mixOutErr))
+  mixTargetHR <- mixTAC / (trueRec - amTAC)
+  mixHR <- pmin(0.95, mixTargetHR * (1 + mixOutErr))
+  singTargetHR <- singTAC / (trueRec - amTAC - mixTAC)
+  singHR <- pmin(0.95, singTargetHR * (1 + singOutErr))
+  hrList <- list(amHR, mixHR, mixTargetHR, singHR, singTargetHR)
+  temp <- lapply(hrList, function (x) { #replace nonsensible values
+    x[x < 0] <- 0
+    x[x == Inf] <- 0
+    x[is.na(x)] <- 0
+    return(x)
+  })
+  names(temp) <- c('am', "mix", "targetMix", "sing", "targetSing")
+  return(temp)
+  # return(hrList)
+}
+#___________________________________________________________________________________________________________
+
+
+#This function returns a vector of observed catches based on a CU's TRUE abundance relative
+#to MU total, observation error and tau catch
+calcObsCatch <- function(catchVec, recVec, manUnitVec, tauCatch, stkID, catchObsErr, 
+                         extinctThresh) {
+  d <- data.frame(stkID = stkID,
+                  mu = manUnitVec, 
+                  catch = catchVec,
+                  rec = recVec, 
+                  obsErr = catchObsErr)
+  d2 <- d %>%
+    group_by(mu) %>%
+    summarize(catchMU = sum(catch),
+              recMU = sum(rec), 
+              n = length(rec))
+  d3 <- merge(d, d2, by = "mu") %>%
+    mutate(ppn = catch/catchMU,
+           obsCatchOut = NA)
+  muIndex <- unique(d2$mu)
+  for (j in seq_along(muIndex)) {
+    d4 <- subset(d3, mu == muIndex[j])
+    ppnErr <- ppnCatchErr(d4$ppn, nrow(d4), tauCatch)
+    d3$obsCatchOut[which(d3$mu %in% d4$mu)] <- ppnErr * d4$catchMU * d4$obsErr
+  }
+  d3$obsCatchOut[which(d3$obsCatchOut < 0.1 * extinctThresh)] <- 0.1 * extinctThresh
+  d3 <- with(d3, d3[order(stkID), ]) #reorder so output same as input
+  return(d3$obsCatchOut)
+}
+#___________________________________________________________________________________________________________
+
+
+#This function generates random values from a truncated normal distribution; so far only used to generate
+#forecast error (which can't be negative, but is represented by normal)
+rtnorm <- function(n, mean = 0, sd = 1, min = 0, max = 1) {
+  bounds <- pnorm(c(min, max), mean, sd)
+  u <- runif(n, bounds[1], bounds[2])
+  qnorm(u, mean, sd)
+}
+#___________________________________________________________________________________________________________
+
+
+#Caculates coefficient of variation from vector
+cv <- function(x){
+  cv <- sd(x, na.rm=TRUE)/mean(x, na.rm=TRUE)
+}
+#___________________________________________________________________________________________________________
+
+
+#Calculates means across 3rd dimension (e.g. trials) then second dimension (e.g. years)
+arrayMean <- function(y) {
+  nCU <- dim(y)[2]
+  datOut <- rep(NA, length.out = nCU)
+  for (i in 1:nCU) {
+    trialMeans <- apply(y[ , i, ], 1, mean)
+    datOut[i] <- mean(trialMeans, na.rm = TRUE)
+  }
+  return(datOut)
+}
+#___________________________________________________________________________________________________________
+
+
+#This function calculates an abundance weighted and aggregate CV for metapopulations or communities;
+#based off of Thibault and Connolly 2013 Ecology Letters
+wtdCV <- function(recMat){ #eq. 4 in Thib and Conn 2013
+  aggAbund <- sum(apply(recMat, 2, function(x) mean(x, na.rm = TRUE))) #temporal mean of aggregate abundance
+  sum(apply(recMat, 2, function(x) (mean(x) / aggAbund) * (sqrt(var(x)) / mean(x))), 
+  	na.rm = TRUE)
+}
+
+cvAgg <- function(recMat){ #eq. 3 in Thib and Conn 2013
+  sqrt(community.sync(recMat)$obs) * wtdCV(recMat)
+}
+#___________________________________________________________________________________________________________
+
+
+#This function determines whether a population has gone extinct based on generation length and a matrix of
+#abundance
+extinctionCheck <- function(y, gen, extinctThresh, spwnMat){
+  nPops <- ncol(spwnMat)
+  extVec <- rep(0, length.out = nPops)
+  for (k in 1:nPops) {  
+    if (gen == 2) {
+      if (spwnMat[y, k] < extinctThresh & spwnMat[y - 1, k] < extinctThresh) {
+        extVec[k] <- 1
+      }
+    }
+    if (gen == 3) {
+      if (spwnMat[y, k] < extinctThresh & spwnMat[y - 1, k] < extinctThresh 
+          & spwnMat[y-2, k] < extinctThresh) {
+        extVec[k] <- 1
+      }
+    }
+    if (gen == 4) {
+      if (spwnMat[y, k] < extinctThresh & spwnMat[y - 1, k] < extinctThresh 
+          & spwnMat[y-2, k] < extinctThresh & spwnMat[y - 3, k] < extinctThresh) {
+        extVec[k] <- 1
+      }
+    }
+    if (gen == 5) {
+      if (spwnMat[y, k] < extinctThresh & spwnMat[y - 1, k] < extinctThresh 
+          & spwnMat[y-2, k] < extinctThresh & spwnMat[y - 3, k] < extinctThresh 
+          & spwnMat[y - 4, k] < extinctThresh) {
+        extVec[k] <- 1
+      }
+    }
+    if (gen == 6) {
+      if (spwnMat[y, k] < extinctThresh & spwnMat[y - 1, k] < extinctThresh 
+          & spwnMat[y-2, k] < extinctThresh & spwnMat[y - 3, k] < extinctThresh 
+          & spwnMat[y - 4, k] < extinctThresh & spwnMat[y - 5, k] < extinctThresh) {
+        extVec[k] <- 1
+      }
+    }
+  }
+  return(extVec)
+}
+#___________________________________________________________________________________________________________
+
+
+
+##### DEPRECATED FUNCTIONS #####
+
+
+#Clean-up function to calculate sector-specific catches and enroute mortality when MP is ER (i.e. no forecast)
+# mortCalc <- function(recs, amF, canF, singF, migMort, mixOutSig, migMSig, singOutSig){
+#   amC <- recs*amF*(1+mixOutSig)
+#   amC <- ifelse(amC<0.00001, 0, amC)
+#   amC <- ifelse(amC>(0.99*recs), 0.99*recs, amC)
+#   canC <- (recs-amC)*canF*(1+mixOutSig)
+#   canC <- ifelse(canC<0.00001, 0, canC)
+#   canC <- ifelse(canC>(0.99*(recs-amC)), 0.99*(recs-amC), canC)
+#   migM <- (recs-amC-canC)*migMort*(1+migMSig)
+#   migM <- ifelse(migM<0.00001, 0, migM)
+#   migM <- ifelse(migM>(0.99*(recs-amC-canC)), 0.99*(recs-amC-canC), migM) 			
+#   singC <- (recs-amC-canC-migM)*singF*(1+singOutSig)
+#   singC <- ifelse(singC<0.00001, 0, singC)
+#   singC <- ifelse(singC>(0.99*(recs-amC-canC-migM)), 0.99*(recs-amC-canC), singC) 
+# 	
+# 	return(list(amC, canC, migM, singC))
+# }
+# 
+# recs<-recRY[y,]
+# amF<- amER
+# canF<-0.2
+# singF<-0.2
+# migMort<- -1*enRouteMR
+# mixOutSig<-mixOutErr
+# migMSig<-migMortErr
+# singOutSig<-singOutErr
+#___________________________________________________________________________________________________________
+
+
+#Function to calculate what total allowable mortality (i.e. canCatch + singCatch) should be when
+#status is above  lower benchmark; here, manage to fixed escapement = lower BM
+# Edit May 15: tamERCalc now used at all TAM status levels to assign proportional catches to
+# single stock and mixed CU fisheries; also shuffled the order in whcih US ER and en route MR is accounted for
+# tamERCalc <- function(forecastR, lowRef, highRef, amExpRate, medMort, minExpRate, maxER = 0.6, 
+#                       ppnMix) {
+#   if (forecastR < lowRef) {
+#     tamCatch <- minExpRate * forecastR #if stock is below lower ref point, catches equal minER
+#     if (tamCatch < 0.001) {
+#       tamCatch <- 0
+#     }
+#     tamCanER <- (ppnMix * tamCatch) / forecastR
+#     tamSingER <- ((1 - ppnMix) * tamCatch) / forecastR
+#   }
+#   
+#   if ((forecastR > lowRef) & (forecastR < highRef)) { #if stock is between ref points, ERs are either scaled to adjusted forecast or minER
+#     adjForecastR <- forecastR * (1 - medMort) - lowRef #adjust forecast down to allow for en route M and minimum escapement
+#     tamCatch <- adjForecastR - (amExpRate * adjForecastR)
+#     if (tamCatch < 0.001) {
+#       tamCatch <- 0
+#     }
+#     slidingER <- (ppnMix * tamCatch) / forecastR
+#     minER <- ppnMix * minExpRate
+#     tamCanER <- max(slidingER, minER)
+#     tamSingER <- ifelse(slidingER > minER, 
+#                         ((1 - ppnMix) * tamCatch) / forecastR, 
+#                         (1 - ppnMix) * minExpRate)
+#   }
+#   
+#   if (forecastR > highRef) { #if stock is above upper reference point, ERs set to max ()
+#     if (forecastR * (1 - medMort) > highRef) { #if stock is above upper after accounting for ER mortality, set to max
+#       adjForecastR <- forecastR * (1 - medMort)
+#       tamCatch <- maxER * adjForecastR
+#     } else { #if not adjust down accordingly
+#       adjForecastR <- forecastR * (1 - medMort) - lowRef
+#       tamCatch <- adjForecastR - (amExpRate * adjForecastR)
+#     }
+#     if (tamCatch < 0.001) {
+#       tamCatch <- 0
+#     }
+#     slidingER <- (ppnMix * tamCatch) / forecastR
+#     minER <- ppnMix * minExpRate
+#     tamCanER <- max(slidingER, minER)
+#     tamSingER <- ifelse(slidingER > minER, 
+#                         ((1 - ppnMix) * tamCatch) / forecastR, 
+#                         (1 - ppnMix) * minExpRate)
+#   }
+#  
+#   return(list(tamCanER, tamSingER))
+# }
+# 
+#_________________________________________________________________________
+
+
+
+## UNUSED STOCK RECRUIT FUNCTIONS
+# 
+# # Note, the log-normal bias correction has not been fixed for models with depensation
+# RickerAR1.Dep.MVT<-function(S,utminus1,a,b,cv,rho,Sthresh,error){			# where a,b,cv are in lognormal space 	
+#   err.1<-error#qnorm(error,0,cv)
+#   err<-utminus1*rho+err.1
+#   if(a>=0){
+#     if(b!=0&S>0) {
+#       R<-S*exp(a-b*S)*exp(err)
+#       err.next<-log(R/S)-(a*(1-S/b))
+#     }
+#     if(b==0&S>0) {
+#       R<-S*exp(err)
+#       err.next<-log(R/S)-0
+#     }
+#   }
+#   if(a<0&S>0) {
+#     R<-S*exp(a)*exp(err)
+#     err.next<-log(R/S)-0
+#   }
+#   #if(S<Sthresh){R<-R*(1-((Sthresh-S)/Sthresh)^0.5)}
+#   if(S<Sthresh&S>=0){R<-R*(0.5*(1-cos((pi*S)/Sthresh)))}
+#   #  	if(S>3*b) {# Prevent extremely high recruitments much greater than carrying capacity
+#   #   		err.rep<-rnorm(100,0,cv)
+#   #   		R.rep<-S*exp(a-b*S)*exp(err.rep)
+#   #   		R<-R.rep[which(R.rep<3*b)[1]]
+#   #   		}
+#   if(S==0){R<-0; err.next<-err}
+#   return(list(R,err.next))
+# }
+# 
+# RickerAR1.Dep.MAT<-function(S,utminus1,a,b,cv,rho,Sthresh,error){			# where a,b,cv are in lognormal space 	
+#   err.1<-qnorm(error,0,cv)
+#   err<-utminus1*rho+err.1
+#   N<-length(a)
+#   R<-NA
+#   err.next<-NA
+#   for (i in 1:N){
+#     if(a[i]>=0&S[i]>0){
+#       if(b[i]!=0) {
+#         R[i]<-S[i]*exp(a[i]-b[i]*S[i])*exp(err[i])
+#         err.next[i]<-log(R[i]/S[i])-(a[i]-b[i]*S[i])
+#       }
+#       if(b[i]==0&S[i]>0) {
+#         R[i]<-S[i]*exp(err[i])
+#         err.next[i]<-log(R[i]/S[i])-0
+#       }
+#     }
+#     if(a[i]<0&S[i]>0) {
+#       R[i]<-S[i]*exp(a[i])*exp(err[i])
+#       err.next[i]<-log(R[i]/S[i])-0
+#     }
+#     #if(S<Sthresh){R<-R*(1-((Sthresh-S)/Sthresh)^0.5)}
+#     if(S[i]<Sthresh&S[i]>0){R[i]<-R[i]*(0.5*(1-cos((pi*S[i])/Sthresh)))}
+#     if(S[i]==0){R[i]<-0; err.next[i]<-err[i]}
+#     #  	if(S>3*b) {# Prevent extremely high recruitments much greater than carrying capacity
+#     #   		err.rep<-rnorm(100,0,cv)
+#     #   		R.rep<-S*exp(a-b*S)*exp(err.rep)
+#     #   		R<-R.rep[which(R.rep<3*b)[1]]
+#     #   		}
+#   }# end of i pops (nCU)
+#   return(list(R,err.next))
+# }
+# 
+# # Note, the log-normal bias correction has not been fixed for these models
+# Ricker<-function(S,a,b,cv,error){			# where a,b,cv are in lognormal space 	
+#   #cv<-sqrt(log(1+cv^2))
+#   #err<-rnorm(1,-cv^2/2,cv)
+#   err<-qnorm(error,0,cv)
+#   if(a>=0){
+#     if(b!=0) R<-S*exp(a-b*S)*exp(err)
+#     if(b==0)R<-S*exp(err)
+#   }
+#   if(a<0)R<-S*exp(a)*exp(err)
+#   
+#   return(R)
+# }
+# 
+# Ricker.MAT<-function(S,a,b,cv,error){			# where a,b,cv are in lognormal space 	
+#   #cv<-sqrt(log(1+cv^2))
+#   err<-rnorm(1,-cv^2/2,cv)
+#   # err<-qnorm(error,0,cv)
+#   N<-length(a)
+#   R<-NA
+#   for (i in 1:N){# for all i populations
+#     if(a[i]>=0){
+#       if(b[i]!=0) R[i]<-S[i]*exp(a[i]*(1-S[i]/b[i]))*exp(err[i])
+#       if(b[i]==0)R[i]<-S[i]*exp(err[i])
+#     }
+#     if(a[i]<0)R[i]<-S[i]*exp(a[i])*exp(err[i])
+#   }
+#   return(R)
+# }
+# 
+# Ricker.MAT.MVT<-function(S,a,b,cv,error){			# where a,b,cv are in lognormal space
+#   #cv<-sqrt(log(1+cv^2))
+#   #err<-rnorm(1,-cv^2/2,cv)
+#   # err<-qnorm(error,0,cv)
+#   N<-length(a)
+#   R<-NA
+#   for (i in 1:N){# for all i populations
+#     if(a[i]>=0){
+#       if(b[i]!=0) R[i]<-S[i]*exp(a[i]-b[i]*S[i])*exp(error[i])
+#       if(b[i]==0) R[i]<-S[i]*exp(error[i])
+#     }
+#     if(a[i]<0)R[i]<-S[i]*exp(a[i])*exp(error[i])
+#   }
+#   return(R)
+# }
+# 
+# Ricker.dep<-function(S,a,b,cv, Sthresh, error){			# where a,b,cv are in lognormal space 	
+#   #cv<-sqrt(log(1+cv^2))
+#   #err<-rnorm(1,-cv^2/2,cv)
+#   err<-qnorm(error,0,cv)
+#   if(a>=0){
+#     if(b!=0) R<-S*exp(a-b*S)*exp(err)
+#     if(b==0)R<-S*exp(err)
+#   }
+#   if(a<0)R<-S*exp(a)*exp(err)
+#   
+#   #if(S<Sthresh){R<-R*(1-((Sthresh-S)/Sthresh)^0.5)}#As in Holt et al. 2008 (thesis)
+#   if(S<Sthresh){R<-R*(0.5*(1-cos((pi*S)/Sthresh)))}
+#   return(R)
+# }
+# 
+# LarkinDep<-function(S,Sm1,Sm2,Sm3,b0,b1,b2,b3,cv,degree,dep,Sthresh, error){
+#   #cv<-sqrt(log(1+cv^2))	
+#   #err<-rnorm(1,+cv^2/2,1)
+#   err<-qnorm(error,0,1)
+#   err<-err*cv
+#   if(dep=="FALSE"){
+#     if(degree==3){R<-(S*exp(b0+b1*S+b2*Sm1+b3*Sm2))*exp(err)}
+#     if(degree==2){R<-(S*exp(b0+b1*S+b2*Sm1))*exp(err)}
+#     if(degree==1){R<-(S*exp(b0+b1*S))*exp(err)}
+#   }
+#   if(dep=="TRUE"){
+#     if(degree==3){R<-(S*exp(b0+b1*S+b2*Sm1+b3*Sm2))*exp(err)}
+#     if(degree==2){R<-(S*exp(b0+b1*S+b2*Sm1))*exp(err)}
+#     if(degree==1){R<-(S*exp(b0+b1*S))*exp(err)}
+#     #if(S<=Sthresh){R<-R*(1-((Sthresh-S)/Sthresh)^0.5)}
+#     if(S<Sthresh){R<-R*(0.5*(1-cos((pi*S)/Sthresh)))}
+#     
+#   }
+#   #  	if(S>2*b) {# Prevent extremely high recruitments much greater than carrying capacity
+#   #   		err.rep<-rnorm(100,0,cv)
+#   #   		R.rep<-S*exp(a-b*S)*exp(err)
+#   #   		R<-R.rep[which(R.rep<2*b)[1]]
+#   #   		}
+#   
+#   return(R)
+# }
+
+# BevertonHolt<-function(S,a,b,cv, error){
+#   err<-qnorm(error,0,1)
+#   err<-err*cv
+#   R=S/(a*S+b)*exp(err)
+#   return(R)
+# }	
+# ________________________________________________________________________
+
+
+# Estimate parameters or Ricker model. Not implemented
+# inits <- function(R,S){
+#   lin<-lm(log(R/S)~S)
+#   yi.init<-lin$coefficients[1]   #Ricker a #y-intercept
+#   sl.init<-lin$coefficients[2]   #Ricker b # slope
+#   sig.init<-log(sd(resid(lin)))
+#   return(list(a.init=as.numeric(yi.init), b.init=-as.numeric(sl.init), sig.init=as.numeric(sig.init)))
+# }
+# Ricker.model <- function(theta,R,S){
+#   a <- as.numeric(theta[1])
+#   a <- exp(as.numeric((theta[1])))
+#   b <- (as.numeric(theta[2]))
+#   sig <- exp(as.numeric(theta[3]))
+#   PR=a*S*exp(-b*S)
+#   epsilon.wna=log(R)-log(PR)	#residuals
+#   epsilon=as.numeric(na.omit(epsilon.wna))
+#   nloglike=sum(dnorm(epsilon,0,sig, log=T))
+#   return(list(PR=PR, epsilon=epsilon, nloglike=nloglike)) #actually returns postive loglikelihood
+# }
+# 
+# fn.1 <- function(theta, R,S){  -1.0*Ricker.model(theta, R,S)$nloglike }
+# 
+# Ricker.solver <- function(R,S){
+#   init.vals<-c(inits(R,S)[1], 1,inits(R,S)[3])#use 1 as initial value for log(b), and the slope of lm won't always be positive!
+#   SRfit=optim(par=init.vals,fn=fn.1,R=R,S=S, method="BFGS", hessian=T)	#CH: hessian=2nd derivative, optim good for up to 40 parameters
+#   SRfit$par[1]  <- exp(SRfit$par[1])  # back-transform Ricker-a, which was exponentiated in Ricker( )
+#   SRfit$par[2]  <- (SRfit$par[2])  # back-transform Ricker-b, which was exponentiated in Ricker( )
+#   V=solve(SRfit$hessian) #covariance matrix
+#   std=sqrt(abs(diag(V)))
+#   X=V/(std%o%std)	#outer product of standard dev matrix (CH comment)
+#   return(list(SRfit=SRfit, etheta=SRfit$par, V=V, X=X))
+# }
+# #___________________________________________________________________________________________________________

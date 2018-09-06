@@ -1,0 +1,832 @@
+#*************************************************************************************
+# runModelRobustOM_synch.R
+# Date revised: ONGOING
+# Inputs: recoverySim.R
+# Outputs: pdf plots
+# Explainer: Runs closed loop simulation model with different OMs and constant MP;
+# basically equivalent to runModel.R, but with subset of plotting outputs;
+# FOCUSED ON SYNCHRONY
+#*************************************************************************************
+
+
+# Check if required packages are installed and run
+listOfPackages <- c("plyr", "here", "parallel", "doParallel", "foreach", "reshape2", "tidyr",
+                    "gsl", "tictoc", "stringr", "dplyr", "synchrony", "zoo", "Rcpp", 
+                    "RcppArmadillo", "sn", "sensitivity", "mvtnorm", "forcats",
+                    "ggpubr")
+
+newPackages <- listOfPackages[!(listOfPackages %in% installed.packages()[ , "Package"])]
+if(length(newPackages)) install.packages(newPackages)
+lapply(listOfPackages, require, character.only = TRUE)
+
+source(here("scripts/func/postProcessing.R"))
+source(here("scripts/recoverySim.R"))
+source(here("scripts/func/simUtilityFunc.R"))
+
+simPar <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorr.csv"), stringsAsFactors = F)
+cuPar <- read.csv(here("data/fraserCUpars.csv"), stringsAsFactors = F)
+srDat <- read.csv(here("data/fraserRecDatTrim.csv"), stringsAsFactors = F)
+catchDat <- read.csv(here("data/fraserCatchDatTrim.csv"), stringsAsFactors = F)
+ricPars <- read.csv(here("data/fraserDat/rickerMCMCPars.csv"), stringsAsFactors = F)
+larkPars <- read.csv(here("data/fraserDat/larkinMCMCPars.csv"), stringsAsFactors = F)
+tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors = F)
+cuCustomCorrMat <- read.csv(here("data/fraserDat/prodCorrMatrix.csv"), stringsAsFactors=F)
+# simPar <- read.csv(here("data/opModelScenarios/nassOMInputs_varyCorr.csv"), stringsAsFactors = F)
+# cuPar <- read.csv(here("data/nassCUpars.csv"), stringsAsFactors = F)
+# srDat <- read.csv(here("data/nassRecDatTrim.csv"), stringsAsFactors = F)
+# catchDat <- read.csv(here("data/nassCatchDatTrim.csv"), stringsAsFactors = F)
+# ricPars <- read.csv(here("data/northCoastDat/nassChumMCMCPars.csv"), stringsAsFactors = F)
+
+
+### SET UP MODEL RUN -----------------------------------------------------
+
+## Define simulations to be run
+nTrials <- 250
+
+## General robustness runs
+simParTrim <- subset(simPar,
+                     scenario == "lowSig" | scenario == "medSig" | scenario == "highSig" |
+                     scenario == "lowSigSkew" | scenario == "medSigSkew" | scenario == "highSigSkew" |
+                     scenario == "lowSigLowA" | scenario == "medSigLowA" | scenario == "highSigLowA"
+)
+scenNames <- unique(simParTrim$scenario)
+dirNames <- sapply(scenNames, function(x) paste(x, unique(simParTrim$species), sep = "_"))
+
+# for (h in 16:18) {
+#   recoverySim(simParTrim[18,], cuPar, catchDat = catchDat, srDat = srDat, variableCU = FALSE,
+#                     ricPars, larkPars = larkPars, tamFRP = tamFRP,
+#                     dirName = dirNames[6],
+#                     nTrials = 5, multipleMPs = FALSE)
+# }
+# recoverySim(simParTrim[7,], cuPar, catchDat = catchDat, srDat = srDat, variableCU = FALSE,
+#                   ricPars, larkPars = larkPars, tamFRP = tamFRP, cuCustomCorrMat = cuCustomCorrMat,
+#                   dirName = dirNames[6], nTrials = 250, multipleMPs = FALSE)
+
+for (i in seq_along(dirNames)) {
+  dirName <- dirNames[i]
+  d <- subset(simParTrim, scenario == scenNames[i])
+  simsToRun <- split(d, seq(nrow(d)))
+  Ncores <- detectCores()
+  cl <- makeCluster(Ncores - 2) #save two cores
+  registerDoParallel(cl)
+  clusterEvalQ(cl, c(library(MASS),
+                  library(here),
+                  library(sensitivity),
+                  library(mvtnorm),
+                  library(scales), #shaded colors for figs
+                  library(here), #use this package so wd are common across different computers
+                  library(synchrony),
+                  library(zoo), #synch and zoo used to calculate rolling estimates of synchrony
+                  library(viridis), #color blind gradient palette
+                  library(ggplot2),
+                  library(gsl), #to calculate exact estimate of MSY following Scheuerell 2016 PeerJ
+                  library(dplyr),
+                  library(Rcpp),
+                  library(RcppArmadillo),
+                  library(sn)))
+  if (simsToRun[[1]]$species == "sockeye") {
+    clusterExport(cl, c("simsToRun", "recoverySim", "cuPar", "dirName", "nTrials", "catchDat", "srDat",
+                        "ricPars", "dirName", "larkPars", "tamFRP", "cuCustomCorrMat"), envir = environment()) #export custom function and objects
+    tic("run in parallel")
+    parLapply(cl, simsToRun, function(x) {
+      recoverySim(x, cuPar, catchDat = catchDat, srDat = srDat, variableCU = FALSE, 
+                  ricPars, larkPars = larkPars, tamFRP = tamFRP, cuCustomCorrMat = cuCustomCorrMat, 
+                  dirName = dirName, nTrials = nTrials, multipleMPs = FALSE)
+    })
+    stopCluster(cl) #end cluster
+    toc()
+  }
+  if (simsToRun[[1]]$species == "chum") {
+    clusterExport(cl, c("simsToRun","recoverySim","cuPar","dirName","nTrials","catchDat","srDat",
+                        "ricPars","dirName"), envir = environment()) #export custom function and objects
+    tic("run in parallel")
+    parLapply(cl, simsToRun, function(x) {
+      recoverySim(x, cuPar, catchDat = catchDat, srDat = srDat, variableCU = FALSE, ricPars, 
+                  larkPars = NULL, tamFRP = NULL, dirName = dirName, nTrials = nTrials, 
+                  multipleMPs = FALSE)
+      })
+    stopCluster(cl) #end cluster
+    toc()
+  }
+}
+
+
+#_________________________________________________________________________
+## Generate operating model proportion dot plots
+# pdf(file = paste(here(),"/outputs/summaryFigs/synchTrials/groupedDotPlot1.pdf", sep = ""), 
+#     height = 5, width = 9)
+# groupedDotPlot(dirNames[c(1,2,4)], vars = c("ppnCULower", "ppnCUUpper", "ppnFisheriesOpen",
+#                                   "ppnYrsLowCatch", "ppnYrsHighCatch", "ppnCUExtant",
+#                                   "ppnCUStable", "ppnCURecover"), 
+#                # facetNames = c("CUs Above Low BM", "CUs Above Up BM", 
+#                #                "Yrs Fisheries Open"), 
+#                yAxisLab = "Proportion", yScales = "free_y")
+# dev.off()
+# pdf(file = paste(here(),"/outputs/summaryFigs/synchTrials/groupedDotPlot2.pdf", sep = ""), 
+#     height = 5, width = 9)
+# groupedDotPlot(dirNames, vars = c("medSpawners", "medRecRY", "medCatch"), 
+#                facetNames = c("Spawners", "Recruits", "Catch"), 
+#                yAxisLab = "Millions Fish")
+# dev.off()
+
+
+#_________________________________________________________________________
+## Ugly custom code to generate proportional dot plots split across two different
+# productivity scenarios
+axisSize = 15; dotSize = 3.5; lineSize = 0.8; legendSize = 14
+vars <- c("medRecRY", "ppnCULower", "ppnCUUpper", "ppnCUExtant",
+          "medCatch", "ppnFisheriesOpen", "ppnYrsHighCatch", "medCatchChange")
+omNames <- c("ref", "ref", "ref", "skew", "skew", "skew")
+# omNames <- c("TAM", "TAM", "TAM", "fixed", "fixed", "fixed")
+sigNames <- c("low", "med", "high", "low", "med", "high")
+plotDat = NULL
+for(h in seq_along(dirNames)) {
+  agList <- genOutputList(dirNames[h], agg = TRUE)
+  keyVar <- sapply(agList, function(x) unique(x$keyVar))
+  plotOrder <- sapply(agList, function(x) unique(x$plotOrder))
+  singleScen = NULL
+  for (i in seq_along(vars)) {
+    dum <- data.frame(sigma = rep(sigNames[h], length.out = length(agList)),
+                      om = rep(omNames[h], length.out = length(agList)),
+                      var = rep(vars[i], length.out = length(agList)),
+                      synch = as.factor(keyVar),
+                      cat = as.factor(plotOrder),
+                      avg = sapply(agList, function(x) median(x[,vars[i]])),
+                      lowQ = sapply(agList, function(x) qLow(x[,vars[i]])),
+                      highQ = sapply(agList, function(x) qHigh(x[,vars[i]]))
+    )
+    singleScen <- rbind(singleScen, dum)
+  }
+  rownames(singleScen) <- c()
+  plotDat <- rbind(plotDat, singleScen) #merge multiple scenarios into one dataframe
+}
+plotDat <- plotDat %>% 
+  mutate(cat = recode(cat, "1" = "low", "2" = "med", "3" = "high", .default = levels(cat)),
+         om = recode(om, "ref" = "Reference Productivity", "skew" = "Skewed Productivity",
+                       .default = levels(om))
+         ) 
+colPal <- viridis(length(levels(plotDat$sigma)), begin = 0, end = 1)
+names(colPal) <- levels(plotDat$sigma)
+
+# Plot
+consVars <- c("medRecRY", "ppnCULower", "ppnCUUpper", "ppnCUExtant") 
+consYLabs <- c("Recruit\nAbundance", "Prop. CUs\nLower", "Prop. CUs\nUpper", "Prop. CUs\nExtant")
+consPlots <- lapply(seq_along(consVars), function(i) {
+  temp <- plotDat %>% 
+    filter(var == consVars[i])
+  q <- ggplot(temp, aes(x = sigma, y = avg, ymin = lowQ, ymax = highQ, 
+                        color = cat,
+                        shape = om
+                        )) +
+    labs(x = "Component Variance", y = consYLabs[i], color = "Sim.\nParameter\nValue") +
+    geom_pointrange(fatten = dotSize, size = lineSize, position = position_dodge(width = 0.5)) +
+    scale_x_discrete(labels = c("low" = expression(paste("0.75", sigma)),
+                                "med" = expression(paste("1.0", sigma)),
+                                "high" = expression(paste("1.25", sigma)))) +
+    scale_colour_manual(name = "Synchrony", values = colPal,
+                        labels = c("low" = expression(paste(rho, " = 0.05")),
+                                   "med" = expression(paste(rho, " = 0.50")),
+                                   "high" = expression(paste(rho, " = 0.75")))) +
+    scale_shape_manual(name = "Productivity", breaks = c("ref", "skew"), values = c(16, 17),
+                       guide = FALSE) +
+    facet_wrap(~om, scales = "fixed")
+  if (i == 1) {
+    q <- q + theme_sleekX(position = "top") 
+  } 
+  if (i == 2 | i == 3) {
+    q <- q + theme_sleekX(position = "mid")
+  }
+  if (i == 4) {
+    q <- q + theme_sleekX(position = "bottom")
+  }
+  return(q)
+})
+
+catchVars <- c("medCatch", "medCatchChange", "ppnFisheriesOpen", "ppnYrsHighCatch")
+catchYLabs <- c("Catch\nAbundance", "Catch Stability", "Prop.\nFisheries Open", "Prop. Years\nHigher Catch")
+catchPlots <- lapply(seq_along(catchVars), function(i) {
+  temp <- plotDat %>% 
+    filter(var == catchVars[i])
+  q <- ggplot(temp, aes(x = sigma, y = avg, ymin = lowQ, ymax = highQ, 
+                        color = cat,
+                        shape = om
+                        )) +
+    labs(x = "Component Variance", y = catchYLabs[i], color = "Sim.\nParameter\nValue") +
+    geom_pointrange(fatten = dotSize, size = lineSize, 
+                    position = position_dodge(width = 0.5)) +
+    scale_x_discrete(labels = c("low" = expression(paste("0.75", sigma)),
+                                "med" = expression(paste("1.0", sigma)),
+                                "high" = expression(paste("1.25", sigma)))) +
+    scale_colour_manual(name = "Synchrony", values = colPal,
+                        labels = c("low" = expression(paste(rho, " = 0.05")),
+                                   "med" = expression(paste(rho, " = 0.50")),
+                                   "high" = expression(paste(rho, " = 0.75")))) +
+    scale_shape_manual(name = "Productivity", breaks = c("ref", "skew"), values = c(16, 17),
+                       guide = FALSE) +
+    facet_wrap(~om, scales = "fixed")
+  if (i == 1) {
+    q <- q + theme_sleekX(position = "top")
+
+    # q <- q + theme_sleekX()
+  }
+  if (i == 2 | i == 3) {
+    q <- q + theme_sleekX(position = "mid")
+  }
+  if (i == 4) {
+    q <- q + theme_sleekX(position = "bottom")
+  }
+  return(q)
+})
+
+# pdf(file = paste(here(),"/outputs/summaryFigs/synchTrials/consGroupedPlots.pdf", sep = ""), 
+#     height = 6.5, width = 8.5)
+png(file = paste(here(),"/outputs/summaryFigs/synchTrials/consGroupedPlots.png", sep = ""), 
+    height = 6.5, width = 8.5, units = "in", res = 150)
+ggarrange(consPlots[[1]], consPlots[[2]],
+          consPlots[[3]], consPlots[[4]], 
+          ncol = 1, nrow = 4, common.legend = TRUE, legend = "right", 
+          align = "v", heights = c(1.1,1,1,1.2))
+dev.off()
+# pdf(file = paste(here(),"/outputs/summaryFigs/synchTrials/catchGroupedPlots.pdf", sep = ""), 
+#     height = 6.5, width = 8.5)
+png(file = paste(here(),"/outputs/summaryFigs/synchTrials/catchGroupedPlots.png", sep = ""), 
+    height = 6.5, width = 8.5, units = "in", res = 150)
+ggarrange(catchPlots[[1]], catchPlots[[2]],
+          catchPlots[[3]], catchPlots[[4]],
+          ncol = 1, nrow = 5, common.legend = TRUE, legend = "right", 
+          align = "v", 
+          heights = c(1.1,1,1,1.2))
+dev.off()
+
+
+
+#_________________________________________________________________________
+# Look at CU-specific PMs for subset of CUs
+# for (i in seq_along(dirNames)) {
+#   if (unique(simParTrim$species) == "sockeye") {
+#     selectedCUs <- c("E.St", "Bwrn", "Chlk", "L.Sh", "Clts", "Hrrs")
+#   }
+  # ## Generate operating model proportion dot plots
+  # ifelse(!dir.exists(paste(here("outputs/summaryFigs/synchTrials"), dirNames[h], sep = "/")), 
+  #        dir.create(paste(here("outputs/summaryFigs/synchTrials"), dirNames[h], sep = "/")), 
+  #        FALSE) #create dir if it doesn't already exist
+  
+#   if (unique(simParTrim$species) == "sockeye") {
+#     cuList <- genOutputList(dirNames[i], selectedCUs = selectedCUs, agg = FALSE)
+#   } else {
+#     cuList <- genOutputList(dirNames[i], selectedCUs = NULL, agg = FALSE)
+#   }
+#     
+#   pdf(file = paste(here(),"/outputs/summaryFigs/synchTrials/", dirNames[i], 
+#                    "CuOmDotPlots.pdf", sep = ""), height = 6, width = 7)
+#   ppnDotPlotOM(cuList,
+#                vars = c("medSpawners", "varSpawners", "medCatch", "varCatch", 
+#                         "ppnYrsUpper", "ppnYrsLower"),
+#                agg = FALSE, axisSize = 15, dotSize = 4.5, lineSize = 0.8, legendSize = 14,
+#                figName = dirNames[i])
+#   ppnDotPlotOM(cuList,
+#                vars = c("ppnYrsUpper", "ppnYrsLower", "ppnYrsCOS", "ppnYrsWSP"),
+#                agg = FALSE, axisSize = 15, dotSize = 4.5, lineSize = 0.8, legendSize = 14,
+#                figName = dirNames[i])
+#   dev.off()
+# }
+
+
+#_________________________________________________________________________
+# Generate CU-specific spawner abundance histograms for Cultus and Chilko
+selectedCUs <- c("Chlk", "Clts")
+nCUs <- length(selectedCUs)
+colPal <- c("#d95f02", "#7570b3")
+omNames <- c("Reference", "Reference", "Reference", "Skewed", "Skewed", "Skewed")
+sigNames <- c("low", "med", "high", "low", "med", "high")
+bmDat <- data.frame(cu = rep(selectedCUs, each = 2), #make DF to contain CU-specific benchmark estimates from sim run
+                    bm = rep(c("low", "high"), times = 2),
+                    s  = NA)
+labDat <- data.frame(om = factor(omNames[5:6], levels = unique(omNames)),
+                     lab = c("Chilko", "Cultus"),
+                     sigma = factor(sigNames[1], levels = unique(sigNames)),
+                     synch = factor("lowSynch", levels = c("lowSynch", "medSynch", "highSynch"))
+                     ) #make dataframe of labels to annotate facets
+plotDat <- NULL
+for (i in seq_along(dirNames)) { #make dataframe
+  cuList <- genOutputList(dirNames[i], selectedCUs = selectedCUs, agg = FALSE)[[3]]
+  nTrials <- nrow(cuList[["medSpawners"]])
+  spwnDat <- data.frame(om = rep(omNames[i], length.out = nTrials * nCUs),
+                     sigma = rep(sigNames[i], length.out = nTrials * nCUs)
+  )
+  spwn <- cuList[["medSpawners"]] %>% 
+    as.data.frame() %>% 
+    gather(key = cu, value = spawners) 
+  spwn$cu <- plyr::revalue(as.factor(spwn$cu), c("V1" = selectedCUs[1], "V2" = selectedCUs[2]))
+  plotDat <- rbind(plotDat, cbind(spwnDat, spwn))
+  bmDat[bmDat$bm == "low", ]$s <- cuList[["meanSGen"]]
+  bmDat[bmDat$bm == "high", ]$s <- cuList[["meanSMSY"]]
+}
+
+axisSize = 15; dotSize = 3.5; lineSize = 0.8; legendSize = 14
+spwnSigHists <- lapply(seq_along(selectedCUs), function(i) {
+  d <- plotDat %>% 
+    filter(cu == selectedCUs[i])
+  upp <- subset(bmDat, cu == selectedCUs[i] & bm == "high")[["s"]]
+  low <- subset(bmDat, cu == selectedCUs[i] & bm == "low")[["s"]]
+  q <- ggplot(d, aes(x = spawners, alpha = sigma)) +
+    geom_histogram(fill = colPal[i], position = "identity", bins = 40) +
+    facet_wrap(~om) + 
+    geom_vline(xintercept = upp, color = "black", linetype = "dashed") +
+    scale_alpha_manual(name = "Component\n  Variance", values = c(0.6, 0.4, 0.2),
+                       labels = c("low" = expression(paste("0.75", sigma)),
+                                  "med" = expression(paste("1.0", sigma)),
+                                  "high" = expression(paste("1.25", sigma)))) +
+    scale_fill_manual(name = "Conservation\n  Unit", values = colPal,
+                      labels = c("Chilko", "Cultus")) +
+    guides(alpha = guide_legend(override.aes = list(fill = "grey30"))) +
+    labs(x = "Median Spawner Abundance (millions)", y = "") +
+    geom_text(data = labDat[i ,],
+              mapping = aes(x = Inf, y = Inf, label = lab, hjust = 1.5, vjust = 2),
+              show.legend = FALSE)
+  if (i == 1) {
+    q <- q + theme_sleekX(position = "topWithX")
+  }
+  if (i == 2) {
+    q <- q  + theme_sleekX(position = "bottom") 
+  }
+  return(q)
+})
+
+png(file = paste(here(),"/outputs/summaryFigs/synchTrials/spawnerHistsSigma.png", sep = ""), 
+    height = 6.5, width = 8.5, units = "in", res = 150)
+p <- ggarrange(spwnHists[[1]], spwnHists[[2]], nrow = 2, ncol = 1, common.legend = TRUE,
+               legend = "right", label.y = "Number of Trials")
+annotate_figure(p,
+                left = text_grob("Number of Trials", color = "grey30", rot = 90, size = 15))
+dev.off()
+
+
+plotSynchDat <- NULL
+for (i in c(2, 5)) { #make dataframe
+  cuList <- genOutputList(dirNames[i], selectedCUs = selectedCUs, agg = FALSE)
+  nTrials <- nrow(cuList[[1]][["medSpawners"]])
+  for (h in seq_along(cuList)) {
+    dat <- cuList[[h]]
+    spwnDat <- data.frame(om = rep(omNames[i], length.out = nTrials * nCUs),
+                          synch = rep(dat[["opMod"]], length.out = nTrials * nCUs))
+    spwn <- dat[["medSpawners"]] %>% 
+      as.data.frame() %>% 
+      gather(key = cu, value = spawners)
+    spwn$cu <- plyr::revalue(as.factor(spwn$cu), c("V1" = selectedCUs[1], "V2" = selectedCUs[2]))
+    plotSynchDat <- rbind(plotSynchDat, cbind(spwnDat, spwn))
+  }
+}
+plotSynchDat$synch = factor(plotSynchDat$synch, levels(plotSynchDat$synch)[c(2, 3, 1)])
+
+spwnSynchHists <- lapply(seq_along(selectedCUs), function(i) {
+  d <- plotSynchDat %>% 
+    filter(cu == selectedCUs[i])
+  upp <- subset(bmDat, cu == selectedCUs[i] & bm == "high")[["s"]]
+  low <- subset(bmDat, cu == selectedCUs[i] & bm == "low")[["s"]]
+  q <- ggplot(d, aes(x = spawners, alpha = synch)) +
+    geom_histogram(fill = colPal[i], position = "identity", bins = 40) +
+    facet_wrap(~om) + 
+    geom_vline(xintercept = upp, color = "black", linetype = "dashed") +
+    scale_alpha_manual(name = "Synchrony", values = c(0.6, 0.4, 0.2),
+                       labels = c("obs" = "Observed",
+                                  "lowSynch" = expression(paste(rho, " = 0.05")),
+                                  "medSynch" = expression(paste(rho, " = 0.50")),
+                                  "highSynch" = expression(paste(rho, " = 0.75")))) +
+    scale_fill_manual(name = "Conservation\n  Unit", values = colPal,
+                      labels = c("Chilko", "Cultus")) +
+    guides(alpha = guide_legend(override.aes = list(fill = "grey30"))) +
+    labs(x = "Median Spawner Abundance (millions)", y = "") +
+    geom_text(data = labDat[i ,],
+              mapping = aes(x = Inf, y = Inf, label = lab, hjust = 1.5, vjust = 2),
+              show.legend = FALSE)
+  if (i == 1) {
+    q <- q + theme_sleekX(position = "topWithX")
+  }
+  if (i == 2) {
+    q <- q  + theme_sleekX(position = "bottom") 
+  }
+  return(q)
+})
+
+png(file = paste(here(),"/outputs/summaryFigs/synchTrials/spawnerHistsSynch.png", sep = ""), 
+    height = 6.5, width = 8.5, units = "in", res = 150)
+p <- ggarrange(spwnSynchHists[[1]], spwnSynchHists[[2]], nrow = 2, ncol = 1, common.legend = TRUE,
+               legend = "right", label.y = "Number of Trials")
+annotate_figure(p,
+                left = text_grob("Number of Trials", color = "grey30", rot = 90, size = 15))
+dev.off()
+
+
+
+#_________________________________________________________________________
+# Generate time series of component CV, synch and ag CV
+plotList = vector("list", length = length(dirNames))
+arrayNames <- sapply(dirNames, function(x) { #matrix of array names to be passed
+  list.files(paste(here("outputs/simData"), x, sep="/"), pattern = "\\Arrays.RData$")
+})
+
+tic("runParallel")
+Ncores <- detectCores()
+cl <- makeCluster(Ncores - 2) #save two cores
+registerDoParallel(cl)
+clusterEvalQ(cl, c(library(here), library(synchrony), library(zoo), library(parallel), 
+  library(doParallel), library(foreach)))
+newAgTSList <- lapply(seq_along(dirNames), function (h) {
+  clusterExport(cl, c("dirNames", "arrayNames", "calcSynchMetrics", "wtdCV", "cvAgg",
+                      "genOutputList", "h"), envir = environment()) #export custom function and objects
+  listSynchLists <- parLapply(cl, 1:length(arrayNames[, h]), function(x) {
+    datList <- readRDS(paste(here("outputs/simData"), dirNames[h], arrayNames[x, h], sep = "/"))
+    synchList <- calcSynchMetrics(datList)
+    synchList <- c(datList$nameOM, synchList)
+    names(synchList)[1] <- "opMod"
+    return(synchList)
+  }) #iterate across different OMs within a scenario
+  
+  # pull list of time series metrics estimated internally, then merge with synch list 
+  # generated above based on common op model
+  agTSList <- genOutputList(dirNames[h], agg = TRUE, aggTS = TRUE)
+  for(j in seq_along(agTSList)) { 
+    for(k in seq_along(listSynchLists)) {
+      om <- agTSList[[j]]$opMod
+      if (listSynchLists[[k]]$opMod == om) {
+        agTSList[[j]] <- c(agTSList[[j]], listSynchLists[[k]][-1])
+      }
+    }
+  }
+  plotList[[h]] <- agTSList
+  # names(plotList)[h] <- dirNames[h]
+}) #iterate across different scenarios
+names(newAgTSList) <- dirNames
+stopCluster(cl)
+toc()
+
+
+### Manipulate lists to create plottable data structure
+vars <- c("synchLogRS", "compCVLogRS", "agCVLogRS")
+sigmaNames <- c("lowSigma", "medSigma", "highSigma", "lowSigma", "medSigma", "highSigma")
+fullList <- sapply(seq_along(dirNames), function(h) {
+  d <- newAgTSList[[h]]
+  nYears <- d[[1]]$`nYears`
+  simLength <- d[[1]]$`nYears` - d[[1]]$`nPrime`
+  firstYear <- d[[1]]$`firstYr`
+  start <- d[[1]]$`nPrime` + firstYear
+  prodNames <- ifelse(h < 4, "Reference Productivity", "Skewed Productivity")
+  #subset list so it contains only sigma, synch and vars of interest, 
+  # calculate medians, and combine
+  trimList <- lapply(d, function(x) {
+    dat1 <- data.frame(sigmaOM = rep(sigmaNames[h], length.out = nYears),
+                      synchOM = rep(x[["opMod"]], length.out = nYears),
+                      prodOM = rep(prodNames, length.out = nYears),
+                      year = seq(from = firstYear, to = (firstYear + nYears - 1))
+                      ) %>% 
+      mutate(sigmaOM = as.character(sigmaOM),
+             synchOM = as.character(synchOM),
+             medSynchLogRS = apply(x[["synchLogRS"]], 1, median),
+             medCompCVLogRS = apply(x[["compCVLogRS"]], 1, median),
+             medAgCVLogRS = apply(x[["agCVLogRS"]], 1, median)
+      ) 
+    dat1[dat1$year < start, c("sigmaOM", "synchOM")] <- "obs"
+    dat2 <- dat1 %>% 
+      mutate(sigmaOM = factor(factor(sigmaOM), levels = c("obs", "lowSigma", "medSigma", "highSigma")),
+             synchOM = factor(factor(synchOM), levels = c("obs", "lowSynch", "medSynch", "highSynch"))
+      ) %>% 
+      filter(!is.na(medSynchLogRS)) #remove yrs where obs synch couldn't be calc
+    return(dat2)
+  })
+})
+plotDat <- do.call(rbind, fullList)
+
+start <- plotDat %>% 
+  filter(!sigmaOM == "obs") %>% 
+  summarise(min(year))
+start <- start[[1]]
+
+colPal <- c("black", viridis(length(unique(plotDat$sigmaOM)) - 1, begin = 0, end = 1))
+names(colPal) <- levels(dum$sigmaOM)
+dum <- plotDat %>% 
+  dplyr::filter(synchOM == "medSynch" | sigmaOM == "obs") 
+q <- ggplot(dum, aes(x = year, y = medCompCVLogRS, colour = sigmaOM)) +
+  labs(x = "Year", y = "Component CV") +
+  geom_line(size = 1) +
+  geom_vline(xintercept = start, color = "black", linetype = 3, size = 1) +
+  scale_colour_manual(name = "Operating Model", values = colPal,
+                      labels = c("obs" = "Observed",
+                                 "lowSigma" = expression(paste("0.75", sigma)),
+                                 "medSigma" = expression(paste("1.0", sigma)),
+                                 "highSigma" = expression(paste("1.25", sigma)))) +
+  theme_sleekX(position = "top") +
+  facet_wrap(~prodOM)
+
+colPal2 <- c("black", viridis(length(unique(plotDat$synchOM)) - 1, begin = 0, end = 1))
+names(colPal2) <- levels(dum$synchOM)
+dum2 <- plotDat %>% 
+  dplyr::filter(sigmaOM == "medSigma" | sigmaOM == "obs") 
+p <- ggplot(dum2, aes(x = year, y = medSynchLogRS, colour = synchOM)) +
+  labs(x = "Year", y = "Synchrony Index") +
+  geom_line(size = 1) +
+  geom_vline(xintercept = start, color = "black", linetype = 3, size = 1) +
+  scale_colour_manual(name = "Operating Model", values = colPal2,
+                      labels = c("obs" = "Observed",
+                                 "lowSynch" = expression(paste(rho, " = 0.05")),
+                                 "medSynch" = expression(paste(rho, " = 0.50")),
+                                 "highSynch" = expression(paste(rho, " = 0.75")))) +
+  theme_sleekX(position = "bottom") +
+  facet_wrap(~prodOM)
+
+
+png(file = paste(here(),"/outputs/summaryFigs/synchTrials/synchTS.png", sep = ""), 
+    height = 6.5, width = 7.5, units = "in", res = 150)
+ggarrange(q, p, nrow = 2, ncol = 1)
+dev.off()
+
+## Print time series of most relevant PM and OM combinations 
+# pdf(file = paste(here(),"/outputs/miscSensitivity/synchTests/focalTimeSeries.pdf", sep = ""), 
+#     height = 4, width = 6)
+# p1 <- plotOpmodTS(datList = newAgTSList[["lowSig_sockeye"]], trueVar = "synchLogRS",
+#             yAxisLab = "Synchrony logRS",
+#             legendCaptions = c("Obs", "0.05 Corr", "0.50 Corr", "0.75 Corr"),
+#             uncertainty = FALSE, error = FALSE)
+# p2 <- plotOpmodTS(datList = newAgTSList[["lowSigSkew_sockeye"]], trueVar = "synchLogRS",
+#                   yAxisLab = "Synchrony logRS",
+#                   legendCaptions = c("Obs", "0.05 Corr", "0.50 Corr", "0.75 Corr"),
+#                   uncertainty = FALSE, error = FALSE)
+# plotOpmodTS(datList = newAgTSList[[2]], trueVar = "compCVLogRS", 
+#             yAxisLab = "Component CV logRS",
+#             legendCaptions = c("Obs", expression(paste("0.75", sigma)), 
+#                                expression(paste("1.00", sigma)), expression(paste("1.25", sigma))),
+#             uncertainty = FALSE, error = FALSE)
+# plotOpmodTS(datList = newAgTSList[[3]], trueVar = "Prop Above Upper BM",
+#             yAxisLab = "Proportion Above BM",
+#             legendCaptions = c("Obs", expression(paste(rho, "=0.05")), 
+#                                expression(paste(rho, "=0.50")), expression(paste(rho, "=0.75"))),
+#             uncertainty = FALSE, error = FALSE)
+# dev.off()
+# 
+# ggarrange(p1, p2, nrow = 2, ncol = 1, common.legend = TRUE)
+# 
+# for (i in seq_along(dirNames)) {
+#   pdf(file = paste(here(),"/outputs/miscSensitivity/synchTests/", dirNames[i], "OmTSNormPMs.pdf", sep = ""), 
+#       height = 6, width = 7)
+#   # agTSList <- genOutputList(dirNames[h], agg = TRUE, aggTS = TRUE)
+#   trueVarVec <- c("Ag Spawners", "Ag Recruits RY", "Prop Above Upper BM", "Prop Above Lower BM")
+#   for (h in seq_along(trueVarVec)) {
+#     dum <- plotOpmodTS(datList = newAgTSList[[i]], trueVar  = trueVarVec[h], 
+#                        uncertainty = FALSE, error = FALSE, figName = dirNames[i])
+#     print(dum[[1]])
+#     dum[[2]]
+#   }
+#   dev.off()
+# }
+# 
+
+### Figures to explore why S increases with CVc but decreases with synch
+## Focus on data from high CVc ref, low CVc ref and high CVc skew (all moderate synch)
+# highAggDat <- newAgTSList[[2]][[3]]
+# lowAggDat <- newAgTSList[[1]][[3]]
+# skewAggDat <- newAgTSList[[3]][[3]]
+# highDat <- readRDS(paste(here("outputs/simData"), dirNames[2], arrayNames[3, 2], sep = "/"))
+# lowDat <- readRDS(paste(here("outputs/simData"), dirNames[1], arrayNames[3, 1], sep = "/"))
+# skewDat <- readRDS(paste(here("outputs/simData"), dirNames[3], arrayNames[3, 3], sep = "/"))
+# lowADat <- readRDS(paste(here("outputs/simData"), dirNames[4], arrayNames[3, 4], sep = "/"))
+# nTrials <- ncol(highAggDat[["Ag Spawners"]])
+# simPeriod <- (highAggDat[["nPrime"]] + 1):highAggDat[["nYears"]]
+# nCU <- ncol(highDat[["S"]])
+# rSeq <- sample(nTrials, size = 12, replace = FALSE)
+# cuSeq <- sample(nCU, size = 4, replace = TRUE)
+# 
+# ## Plot time series of aggreagate spawners from 12 random trials
+# pdf(here("outputs/miscSensitivity/synchTests/spawnerTS.pdf"))
+# par(mfrow = c(3, 4), mar = c(2, 2, 0.1, 0.1), oma = c(0, 2, 0, 0))
+# for (i in seq_along(rSeq)) {
+#   sH <- highAggDat[["Ag Spawners"]][simPeriod, rSeq[i]] #draw ag spawners from trial i
+#   sL <- lowAggDat[["Ag Spawners"]][simPeriod, rSeq[i]] #draw ag spawners from trial i
+#   sS <- skewAggDat[["Ag Spawners"]][simPeriod, rSeq[i]] #draw ag spawners from trial i
+#   plot(sH, type = "l", col = "black")
+#   lines(sL, col = "red")
+#   lines(sS, col = "lightblue")
+#   if (i == 1) {
+#     legend("topright", c("high CV", "low CV", "high CV\nskew"), 
+#            col = c("black", "red", "lightblue"), lty = 1)
+#   }
+# }
+# mtext("Agg Spawner Abundance", side = 2, outer = TRUE, line = 0.75)
+# dev.off()
+# 
+# ## Plot time series of recruitment deviations from 4 CUs and 3 random trials
+# pdf(here("outputs/miscSensitivity/synchTests/cuTimeSeries.pdf"))
+# par(mfrow = c(3, 4), mar = c(2, 2, 0.1, 0.1), oma = c(0, 2, 0, 0))
+# for (i in seq_along(rSeq[1:3])) {
+#   for (h in seq_along(cuSeq)) {  
+#     resH <- highDat[["recDev"]][simPeriod, cuSeq[h], rSeq[i]]
+#     resL <- lowDat[["recDev"]][simPeriod, cuSeq[h], rSeq[i]]
+#     resS <- skewDat[["recDev"]][simPeriod, cuSeq[h], rSeq[i]]
+#     plot(resH, type = "l", col = "black")
+#     lines(resL, col = "red")
+#     lines(resS, col = "lightblue")
+#     text(3, min(resH) * 0.95, labels = paste("CU", cuSeq[h], sep = ""))
+#     if (i == 1 & h == 1) {
+#       legend("topright", c("high CV", "low CV", "high CV\nskew"), 
+#              col = c("black", "red", "lightblue"), lty = 1)
+#     }
+#   }
+# }
+# mtext("Recruitment Deviations", side = 2, outer = TRUE, line = 0.75)
+# for (i in seq_along(rSeq[1:3])) {
+#   for (h in seq_along(cuSeq)) {  
+#     pH <- highDat[["logRS"]][simPeriod, cuSeq[h], rSeq[i]]
+#     pL <- lowDat[["logRS"]][simPeriod, cuSeq[h], rSeq[i]]
+#     pS <- skewDat[["logRS"]][simPeriod, cuSeq[h], rSeq[i]]
+#     plot(pH, type = "l", col = "black")
+#     lines(pL, col = "red")
+#     lines(pS, col = "lightblue")
+#     text(3, min(pH) * 0.95, labels = paste("CU", cuSeq[h], sep = ""))
+#     if (i == 1 & h == 1) {
+#       legend("topright", c("high CV", "low CV", "high CV\nskew"), 
+#              col = c("black", "red", "lightblue"), lty = 1)
+#     }
+#   }
+# }
+# mtext("log(R/S)", side = 2, outer = TRUE, line = 0.75)
+# dev.off()
+# 
+# 
+# ### Make box plots of cu specific data
+# omList <- list(lowDat, highDat, skewDat, lowADat)
+# listNames <- c("low", "refHigh", "skewHigh", "lowAHigh")
+# prodDat <- NULL
+# for (l in seq_along(omList)){
+#   t <- adply(omList[[l]][["logRS"]], c(1, 2, 3), 
+#              .id = c("year", "cu", "trial")) %>% 
+#     dplyr::rename(prod = V1) %>% 
+#     mutate(omName = as.factor(listNames[l]), year = as.numeric(year)) %>% 
+#     filter(year > 60)
+#   prodDat <- rbind(prodDat, t)
+# }
+# 
+# pdf(here("outputs/miscSensitivity/synchTests/prodBP.pdf"), height = 5, width = 7)
+# ggplot(prodDat, aes(x = as.factor(omName), y = prod)) +
+#   geom_boxplot() +
+#   theme_sleekX() +
+#   facet_wrap(~ cu, scales = "free")
+# dev.off()
+# 
+# prodDat %>% 
+#   group_by(omName, cu) %>% 
+#   summarize(meanProd = mean(prod)) %>% 
+#   arrange(cu) %>% 
+#   print(n = 76)
+
+
+
+ 
+#### Junky code to make equivalent plots w/ skewNorm and low prod scenarios
+vars <- c("medRecRY", "ppnCULower", "ppnCUUpper", "ppnCUExtant",
+          "medCatch", "ppnFisheriesOpen", "ppnYrsHighCatch", "medCatchChange")
+omNames <- c("ref", "ref", "ref", "skew", "skew", "skew", "low", "low", "low")
+sigNames <- rep(c("low", "med", "high"), length.out = 9)
+# labDat <- data.frame(om = rep(factor(unique(omNames), levels = unique(omNames)), each = 8),
+#                      lab = c(rep(c("a", "b", "c", "d"), times = 2),
+#                              rep(c("e", "f", "g", "h"), times = 2), 
+#                              rep(c("i", "j", "k", "l"), times = 2)),
+#                      var = rep(factor(vars, levels = unique(vars)), times = 3) 
+# ) #make dataframe of labels to annotate facets
+geom_text(data = labDat[i ,],
+          mapping = aes(x = Inf, y = Inf, label = lab, hjust = 1.5, vjust = 2),
+          show.legend = FALSE)
+
+plotDat = NULL
+for(h in seq_along(dirNames)) {
+  agList <- genOutputList(dirNames[h], agg = TRUE)
+  keyVar <- sapply(agList, function(x) unique(x$keyVar))
+  plotOrder <- sapply(agList, function(x) unique(x$plotOrder))
+  singleScen = NULL
+  for (i in seq_along(vars)) {
+    dum <- data.frame(sigma = rep(sigNames[h], length.out = length(agList)),
+                      om = rep(omNames[h], length.out = length(agList)),
+                      var = rep(vars[i], length.out = length(agList)),
+                      synch = as.factor(keyVar),
+                      cat = as.factor(plotOrder),
+                      avg = sapply(agList, function(x) median(x[,vars[i]])),
+                      lowQ = sapply(agList, function(x) qLow(x[,vars[i]])),
+                      highQ = sapply(agList, function(x) qHigh(x[,vars[i]]))
+    )
+    singleScen <- rbind(singleScen, dum)
+  }
+  rownames(singleScen) <- c()
+  plotDat <- rbind(plotDat, singleScen) #merge multiple scenarios into one dataframe
+}
+plotDat <- plotDat %>% 
+  mutate(cat = recode(cat, "1" = "low", "2" = "med", "3" = "high", .default = levels(cat)),
+         om = recode(om, "ref" = "Reference", "skew" = "Skewed Deviations",
+                       "low" = "Low Alpha",
+                       .default = levels(om)))
+
+colPal <- viridis(length(levels(plotDat$sigma)), begin = 0, end = 1)
+names(colPal) <- levels(plotDat$sigma)
+
+
+consVars <- c("medRecRY", "ppnCULower", "ppnCUUpper", "ppnCUExtant") 
+consYLabs <- c("Recruit\nAbundance", "Prop. CUs\nLower", "Prop. CUs\nUpper", "Prop. CUs\nExtant")
+consLabs <- data.frame(om = rep(factor(unique(plotDat$om), levels = unique(plotDat$om)), each = 4),
+                       lab = c("a)", "b)", "c)", "d)", "e)", "f)", "g)", "h)", "i)", "j)", "k)", "l)"),
+                       var = rep(factor(consVars, levels = unique(vars)), times = 3)
+                       )#make dataframe of labels to annotate facets
+consPlots <- lapply(seq_along(consVars), function(i) {
+  temp <- plotDat %>% 
+    filter(var == consVars[i])
+  q <- ggplot(temp, aes(x = sigma, y = avg, ymin = lowQ, ymax = highQ, 
+                        color = cat,
+                        shape = om)) +
+    labs(x = "Component Variance", y = consYLabs[i], color = "Sim.\nParameter\nValue") +
+    geom_pointrange(fatten = dotSize, size = lineSize, position = position_dodge(width = 0.5)) +
+    scale_x_discrete(labels = c("low" = expression(paste("0.5", sigma)),
+                                "med" = expression(paste("1.0", sigma)),
+                                "high" = expression(paste("1.5", sigma)))) +
+    scale_colour_manual(name = "Synchrony", values = colPal,
+                        labels = c("low" = expression(paste(rho, " = 0.05")),
+                                   "med" = expression(paste(rho, " = 0.50")),
+                                   "high" = expression(paste(rho, " = 0.75")))) +
+    scale_shape_manual(name = "Productivity", breaks = c("ref", "skew", "low"), 
+                       values = c(16, 17, 18), guide = FALSE) +
+    geom_text(data = consLabs %>% filter(var == consVars[i]),
+              mapping = aes(x = 0.75, y = min(temp$lowQ), label = lab, hjust = 1.5, vjust = 0),
+              show.legend = FALSE, inherit.aes = FALSE) +
+    facet_wrap(~om, scales = "fixed")
+  if (i == 1) {
+    q <- q + theme_sleekX(position = "top")
+  } 
+  if (i == 2 | i == 3) {
+    q <- q + theme_sleekX(position = "mid")
+  }
+  if (i == 4) {
+    q <- q + theme_sleekX(position = "bottom")
+  }
+  return(q)
+})
+
+catchVars <- c("medCatch", "medCatchChange", "ppnFisheriesOpen", "ppnYrsHighCatch")
+catchYLabs <- c("Catch\nAbundance", "Catch Stability", "Prop.\nFisheries Open", "Prop. Years\nHigher Catch")
+catchLabs <- data.frame(om = rep(factor(unique(plotDat$om), levels = unique(plotDat$om)), each = 4),
+                       lab = c("a)", "b)", "c)", "d)", "e)", "f)", "g)", "h)", "i)", "j)", "k)", "l)"),
+                       var = rep(factor(catchVars, levels = unique(vars)), times = 3)
+)#make dataframe of labels to annotate facets
+catchPlots <- lapply(seq_along(catchVars), function(i) {
+  temp <- plotDat %>% 
+    filter(var == catchVars[i])
+  q <- ggplot(temp, aes(x = sigma, y = avg, ymin = lowQ, ymax = highQ, 
+                        color = cat,
+                        shape = om
+  )) +
+    labs(x = "Component Variance", y = catchYLabs[i], color = "Sim.\nParameter\nValue") +
+    geom_pointrange(fatten = dotSize, size = lineSize, position = position_dodge(width = 0.5)) +
+    scale_x_discrete(labels = c("low" = expression(paste("0.5", sigma)),
+                                "med" = expression(paste("1.0", sigma)),
+                                "high" = expression(paste("1.5", sigma)))) +
+    scale_colour_manual(name = "Synchrony", values = colPal,
+                        labels = c("low" = expression(paste(rho, " = 0.05")),
+                                   "med" = expression(paste(rho, " = 0.50")),
+                                   "high" = expression(paste(rho, " = 0.75")))) +
+    scale_shape_manual(name = "Productivity", breaks = c("ref", "skew"), 
+                       values = c(16, 17, 18), guide = FALSE) +
+    geom_text(data = catchLabs %>% filter(var == catchVars[i]),
+              mapping = aes(x = 0.75, y = min(temp$lowQ), label = lab, hjust = 1.5, vjust = 0),
+              show.legend = FALSE, inherit.aes = FALSE) +
+    facet_wrap(~om, scales = "fixed")
+  if (i == 1) {
+    q <- q + theme_sleekX(position = "top")
+  } 
+  if (i == 2 | i == 3) {
+    q <- q + theme_sleekX(position = "mid")
+  }
+  if (i == 4) {
+    q <- q + theme_sleekX(position = "bottom")
+  }
+  return(q)
+})
+
+# pdf(file = paste(here(),"/outputs/summaryFigs/synchTrials/consGroupedPlots.pdf", sep = ""), 
+#     height = 6.5, width = 8.5)
+png(file = paste(here(),"/outputs/summaryFigs/synchTrials/consGroupedPlots_3OMs.png", sep = ""), 
+    height = 6.5, width = 9.5, units = "in", res = 150)
+ggarrange(consPlots[[1]], consPlots[[2]],
+          consPlots[[3]], consPlots[[4]], 
+          ncol = 1, nrow = 4, common.legend = TRUE, legend = "right", 
+          align = "v", heights = c(1.1,1,1,1.2))
+dev.off()
+# pdf(file = paste(here(),"/outputs/summaryFigs/synchTrials/catchGroupedPlots.pdf", sep = ""), 
+#     height = 6.5, width = 8.5)
+png(file = paste(here(),"/outputs/summaryFigs/synchTrials/catchGroupedPlots_3OMs.png", sep = ""), 
+    height = 6.5, width = 9.5, units = "in", res = 150)
+ggarrange(catchPlots[[1]], catchPlots[[2]],
+          catchPlots[[3]], catchPlots[[4]],
+          ncol = 1, nrow = 4, common.legend = TRUE, legend = "right", 
+          align = "v", heights = c(1.1,1,1,1.2))
+dev.off()
+
+
+
+
+
+
+

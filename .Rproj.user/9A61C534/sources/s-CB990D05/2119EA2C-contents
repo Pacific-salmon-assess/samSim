@@ -1,0 +1,20 @@
+#' Plot survey data
+#'
+#' Description here...
+#'
+#' @importFrom ggplot2 ggplot aes_string geom_point facet_wrap scale_size_continuous
+#'
+#' @param size_range A numeric vector of 2 describing size of plotted circles
+#'
+#' @export
+#' @examples
+#' plot_survey()
+#' plot_survey(size_range = c(1, 5))
+plot_survey <- function(size_range = c(0, 7)) {
+  ggplot(plotsurv::survey_dat,
+         aes_string(x = "longitude", y = "latitude", size = "density_kgpm2")) +
+    geom_point(pch = 21) +
+    facet_wrap(~year) +
+    scale_size_continuous(range = size_range)#string lets you use quoted names
+}
+
