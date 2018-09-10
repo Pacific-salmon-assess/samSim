@@ -4,33 +4,34 @@
 \alias{ppnAgeErr}
 \title{Generate log-normal error associated with proportions data}
 \usage{
-ppnAgeErr(ppnAgeVec, nAges, tau, error)
+ppnAgeErr(ppnAgeVec, tau, error)
 }
 \arguments{
-\item{ppnAgeVec}{A numeric vector of proportions, generally individuals returning at a given
-age.}
+\item{ppnAgeVec}{A numeric vector of proportions of individuals returning
+at a given age. \code{nAges = length(ppnAgeVec)}.}
 
-\item{nAges}{An integer specifying number of potential ages.}
+\item{tau}{A numeric specifying the parameter representing average variation
+in proportions (e.g. observed interannual variation in age stracuture).}
 
-\item{tau}{A numeric specifying the parameter representing average variation in proportions (e.g.
-observed interannual variation in age stracuture).}
-
-\item{error}{A numeric vector of length \code{nAges} that specifies random values to deviate proportions
-by (generally generated from a uniform distribution bounded by 0 and 1).}
+\item{error}{A numeric vector of length \code{nAges} that specifies random
+values to deviate proportions by (generally generated from a uniform dis-
+tribution bounded by 0 and 1).}
 }
 \value{
-Returns a numeric vector of length \code{nAges} representing proportions for each class.
+Returns a numeric vector of length \code{nAges} representing pro-
+portions for each class.
 }
 \description{
-This function generates proporations at age with multivariate logistic error (Schnute and
-Richards 1995, eqns.S.9 and S.10). Includes an adjustment to skip calculations when dealing
-with populations that have fixed age structures (e.g. pink salmon).
+This function generates proporations at age with multivariate logistic error
+(Schnute and Richards 1995, eqns.S.9 and S.10). Includes an adjustment to
+skip calculations when dealing with populations that have fixed age struc-
+tures (e.g. pink salmon).
 }
 \examples{
 ppnAgeVec <- c(0.2, 0.4, 0.3, 0.1)
 nAges <- length(ppnAgeVec)
 tau <- 0.7
 error <- runif(nAges, 0.0001, 0.9999)
-ppnAgeErr(ppnAgeVec, nAges, tau, error)
+ppnAgeErr(ppnAgeVec, tau, error)
 
 }
