@@ -23,11 +23,12 @@
 #' \code{err.next} which is used to generate subsequent process error.
 #'
 #' @examples
-#' #Spawner and recruit values represent millions of fish, parameters loosely
-#' #based on Chilko CU
+#' #Spawner and recruit values represent millions of fish, stock-recruit
+#' parameters approximate those of Fraser River sockeye salmon Chilko CU.
+#'
 #' #without autoregressive error
 #' rickerModel(S = 1.1, a = 1.8, b = 1.2, error = 0.3)
-
+#'
 #' #with autoregressive error
 #' rickerModel(S = 1.1, a = 1.8, b = 1.2, error = 0.3, rho = 0.2,
 #' utminus1 = 0.7)
