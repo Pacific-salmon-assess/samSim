@@ -2,7 +2,7 @@
 % Please edit documentation in R/benchmarkCalculations.R
 \name{sGenSolver}
 \alias{sGenSolver}
-\title{Function Sgen}
+\title{Solve for sGen}
 \usage{
 sGenSolver(theta, sMSY)
 }

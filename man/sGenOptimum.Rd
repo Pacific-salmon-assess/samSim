@@ -2,7 +2,7 @@
 % Please edit documentation in R/benchmarkCalculations.R
 \name{sGenOptimum}
 \alias{sGenOptimum}
-\title{Optimize Sgen}
+\title{Optimize sGen}
 \usage{
 sGenOptimum(S, theta, sMSY)
 }
