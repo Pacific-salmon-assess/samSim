@@ -13,7 +13,8 @@
 #'
 #' @param mat A matrix of observed abundances with \code{nrow} equal to number
 #' of years and \code{ncol} equal to the number of stocks.
-#' @return Returns a matrix of the same dimensions with NAs replaced by
+#' @return Returns a matrix of the same dimensions with NAs replaced by infilled
+#' values
 #'
 #' @examples
 #' set.seed(123)
