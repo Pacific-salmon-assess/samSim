@@ -30,4 +30,6 @@ Suggests:
     rmarkdown,
     testthat
 VignetteBuilder: knitr
-LinkingTo: Rcpp
+LinkingTo: 
+    Rcpp,
+    RcppArmadillo

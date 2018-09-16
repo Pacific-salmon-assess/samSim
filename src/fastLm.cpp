@@ -1,12 +1,12 @@
-// [[Rcpp::depends(RcppArmadillo)]]
+//' [[Rcpp::depends(RcppArmadillo)]]
 
 #include <RcppArmadillo.h>
 using namespace Rcpp;
 
-// This is a function to rapidly fit linear models and return estimated
-// coefficients.
+//' This is a function to rapidly fit linear models and return estimated
+//' coefficients.
 
-// [[Rcpp::export]]
+//' [[Rcpp::export]]
 List fastLm(const arma::vec & y, const arma::mat & X) {
 
   int n = X.n_rows, k = X.n_cols;
@@ -23,7 +23,7 @@ List fastLm(const arma::vec & y, const arma::mat & X) {
 }
 
 
-// Code block for testing
+//' Code block for testing
 
 /*** R
 x <- rnorm(10, 0, 1)

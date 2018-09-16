@@ -11,7 +11,8 @@ infill(mat)
 of years and \code{ncol} equal to the number of stocks.}
 }
 \value{
-Returns a matrix of the same dimensions with NAs replaced by
+Returns a matrix of the same dimensions with NAs replaced by infilled
+values
 }
 \description{
 This function infills matrices based on observed geometric mean abundances
