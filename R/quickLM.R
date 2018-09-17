@@ -12,17 +12,18 @@
 #'
 #' @examples
 #' x <- rnorm(10, 0, 1)
-#' y <- 2x + 1
-#' fastLm(x, y)
-
+#' y <- 2*x + 1
+#' quickLm(x, y)
+#'
 #' @export
 #' #Function that cleans input data then uses Rcpp to provide faster lm estimates
 quickLm <- function(xVec, yVec){
   #C++ won't accept mix of NAs so trim and convert to matrix w/ 1s for intercept
   xVec2 <- xVec[!is.na(xVec + yVec)]
-  xMat <- matrix(c(rep(1, length(xVec2)), xVec2), ncol = 2)
-  yMat <- yVec[!is.na(xVec + yVec)]
-  mod <- fastLm(yMat, xMat)
+  # xMat <- cbind(1, xVec2)
+  xMat <- xVec2
+  yMat <- as.numeric(yVec[!is.na(xVec + yVec)])
+  mod <- RcppArmadillo::fastLm(yMat ~ xMat)
 
   return(mod$coefficients)
 }

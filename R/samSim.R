@@ -4,9 +4,11 @@
 #' stocks while accounting for a range of uncertainties.
 #'
 #' @docType package
-#' @author you <youremail>
-#' @import Rcpp another_package another
+#' @author Cameron Freshwater <cameron.freshwater@dfo-mpo.gc.ca>
+#' @import Rcpp
+#' @import RcppArmadillo
 #' @importFrom Rcpp evalCpp
-#' @useDynLib your_package
-#' @name your_package
+#' @exportPattern "^[[:alpha:]]+"
+#' @useDynLib samSim
+#' @name samSim
 NULL
