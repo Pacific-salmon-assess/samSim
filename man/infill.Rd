@@ -37,4 +37,5 @@ popDat <- cbind(popA = round(exp(rnorm(20, 7, 1))),
 #remove 20\% of values
 gaps <- floor(runif(n = 0.2 * length(popDat), min = 1, max = length(popDat)))
 popDat[gaps] <- NA
+
 }

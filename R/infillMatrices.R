@@ -26,7 +26,7 @@
 #' #remove 20% of values
 #' gaps <- floor(runif(n = 0.2 * length(popDat), min = 1, max = length(popDat)))
 #' popDat[gaps] <- NA
-
+#'
 #' @export
 infill <- function(mat) {
   tsLength <- min(25, nrow(mat))

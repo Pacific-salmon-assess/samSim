@@ -16,7 +16,6 @@
 #' quickLm(x, y)
 #'
 #' @export
-#' #Function that cleans input data then uses Rcpp to provide faster lm estimates
 quickLm <- function(xVec, yVec){
   #C++ won't accept mix of NAs so trim and convert to matrix w/ 1s for intercept
   xVec2 <- xVec[!is.na(xVec + yVec)]
