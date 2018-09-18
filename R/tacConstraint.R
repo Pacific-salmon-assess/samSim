@@ -33,6 +33,7 @@
 #' @examples
 #' #Note that the function is intended to receive vectors rather than the DFs
 #' #used in this example to increase efficiency.
+#' head(exampleHCRData)
 #'
 #' @export
 

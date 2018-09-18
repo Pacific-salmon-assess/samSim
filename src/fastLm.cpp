@@ -1,4 +1,4 @@
-//' [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::depends(RcppArmadillo)]]
 
 #include <RcppArmadillo.h>
 using namespace Rcpp;
@@ -6,13 +6,12 @@ using namespace Rcpp;
 //' This is a function to rapidly fit linear models and return estimated
 //' coefficients.
 //'
-//' @title Return difference between two time zones at a given date.
+//' @title Estimate coefficients for linear model.
 //' @param y A numeric vector of response variables
 //' @param X A numeric matrix of predictor variables
 //' @return A numeric list with estimated coefficients and standard deviations.
-//'
-//' [[Rcpp::export]]
 //' @export
+// [[Rcpp::export]]
 List fastLm(const arma::vec & y, const arma::mat & X) {
 
   int n = X.n_rows, k = X.n_cols;

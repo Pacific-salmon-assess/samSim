@@ -26,3 +26,13 @@ quickLm <- function(xVec, yVec){
 
   return(mod$coefficients)
 }
+
+#______________________________________________________________________________
+
+#' Unload DLL 
+#'
+#' This function unloads the dynamic library whenever the package is unloaded.
+
+.onUnload <- function (libpath) {
+  library.dynam.unload("samSim", libpath)
+}

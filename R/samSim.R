@@ -7,7 +7,7 @@
 #' @author Cameron Freshwater <cameron.freshwater@dfo-mpo.gc.ca>
 #' @import Rcpp
 #' @import RcppArmadillo
-#' @importFrom Rcpp evalCpp
+#' @importFrom Rcpp evalCpp sourceCpp
 #' @exportPattern "^[[:alpha:]]+"
 #' @useDynLib samSim
 #' @name samSim
