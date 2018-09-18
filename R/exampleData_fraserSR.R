@@ -14,7 +14,6 @@
 #'   mean = 0}
 #'   \item{deviance}{estimate of model fit equivalent to residual sum of
 #'   squares for linear models}
-#'   ...
 #' }
 #' @source Fraser River Salmon Spawning Initiative (Ann-Marie Huang (DFO) personal
 #' communication; January 2018)
@@ -42,7 +41,6 @@
 #'   mean = 0}
 #'   \item{deviance}{estimate of model fit equivalent to residual sum of
 #'   squares for linear models}
-#'   ...
 #' }
 #' @source Fraser River Salmon Spawning Initiative (Ann-Marie Huang (DFO) personal
 #' communication; January 2018)

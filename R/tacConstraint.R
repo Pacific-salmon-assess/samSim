@@ -13,8 +13,7 @@
 #'
 #' **Note** Although all input vectors have length equal to \code{nCU}, the
 #' number of unique values will be equal to \code{nMU} because this is the
-#' scale at which in-season forecasts are available. Exception to this is
-#' \code{muName} which has length \code{nMU}.
+#' scale at which in-season forecasts are available.
 #'
 #' @param forecast A numeric vector representing MU-specific estimates of
 #' spawner abundance.
@@ -26,7 +25,6 @@
 #' to account for en route mortality (i.e. they increase the target escapement
 #' goal).
 #' @param manUnit A character vector identifying the MU that each CU belongs to.
-#' @param muName A character vector of unique MU names.
 #' @return Returns a two-element list of binary vectors. In \code{muAboveFRP}
 #' ones represent MUs that are forecasted above their FRP after incorporating
 #' management adjustments. In \code{muConstrained} ones represent MUs that
@@ -35,7 +33,6 @@
 #' @examples
 #' #Note that the function is intended to receive vectors rather than the DFs
 #' #used in this example to increase efficiency.
-
 #'
 #' @export
 
