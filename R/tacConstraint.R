@@ -35,16 +35,21 @@
 #' #used in this example to increase efficiency.
 #' head(exampleHCRData)
 #'
+#' forecast <- exampleHCRData$forecastMU
+#' highFRP <- exampleHCRData$highFRP
+#' manAdjustment <- exampleHCRData$adjustment
+#' manUnit <- exampleHCRData$mu
+#' constrain(forecast, highFRP, manAdjustment, manUnit)
 #' @export
-
-constrain <- function(forecast, highFRP, manAdjustment, manUnit, muName) {
+constrain <- function(forecast, highFRP, manAdjustment, manUnit) {
+  muName <- unique(manUnit)
   nCU <- length(forecast)
-  nMU <- length(unique(manUnit))
+  nMU <- length(muName)
   muAboveFRP <- rep(0, nCU)
   conFinal <- rep(0, nCU)
   # Check 1: what is forecast relative to reference point after adjusting downwards w/ pMA
   for (k in 1:nCU) {
-    if (forecast[k] * (1 - manAdjustment[k]) > highFRP[k]) {
+    if (forecast[k] > highFRP[k] * (1 + manAdjustment[k])) {
       muAboveFRP[k] <- 1
     }
   }

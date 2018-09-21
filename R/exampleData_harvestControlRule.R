@@ -1,8 +1,8 @@
 #' Example data for harvest control rule functions
 #'
 #' A list containing data necessary to run \code{constrain} and \code{calcTAC}
-#' functions. Generated with an example run of \code{recoverySim} using Fraser
-#' River salmon data.
+#' functions' examples. Generated with an example run of \code{recoverySim} using
+#' Fraser River salmon data.
 #'
 #' @format A list with nine elements.
 #' \describe{
@@ -15,6 +15,9 @@
 #'   although \code{length(forecastMU)} is equal to the number of stocks, the
 #'   number of unique values is equal to the number of MUs because this is the
 #'   scale at which test fisheries occur}
+#'   \item{adjustment}{A numeric vector representing median adjustments made to
+#'   MU-specific total allowable catches intended to account for en route
+#'   mortality.}
 #'   \item{lowFRP}{A numeric vector representing MU-specific lower fishery
 #'   reference points.}
 #'   \item{highFRP}{A numeric vector representing MU-specific upper fishery
@@ -26,6 +29,9 @@
 #'   \item{ppnMixedFisher}{A numeric vector representing the proportion of the
 #'   TAC that should be allocated to mixed-stock, as opposed to single-stock,
 #'   fisheries.}
+#'   \item{constraint}{A binary vector representing whether an MU's TAC should
+#'   be constrained based on the abundance of adjacent MUs. Note that this is
+#'   one of the outputs of \code{constrain}}.
 #' }
 #' @source recoverySim model run with parameters provided by Pacific Salmon
 #' Commission and Fraser River Sockeye Spawning Initiative (DFO)

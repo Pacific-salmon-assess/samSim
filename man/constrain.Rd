@@ -4,7 +4,7 @@
 \alias{constrain}
 \title{Constrain mixed-stock harvest}
 \usage{
-constrain(forecast, highFRP, manAdjustment, manUnit, muName)
+constrain(forecast, highFRP, manAdjustment, manUnit)
 }
 \arguments{
 \item{forecast}{A numeric vector representing MU-specific estimates of
@@ -49,4 +49,9 @@ scale at which in-season forecasts are available.
 #used in this example to increase efficiency.
 head(exampleHCRData)
 
+forecast <- exampleHCRData$forecastMU
+highFRP <- exampleHCRData$highFRP
+manAdjustment <- exampleHCRData$adjustment
+manUnit <- exampleHCRData$mu
+constrain(forecast, highFRP, manAdjustment, manUnit)
 }
