@@ -15,6 +15,7 @@ Imports:
     ggplot2,
     gsl,
     here,
+    magrittr,
     mvtnorm,
     plyr,
     Rcpp,

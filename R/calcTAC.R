@@ -53,13 +53,13 @@
 #' #Note that the function is intended to receive vectors rather than the DFs
 #' #used in this example to increase efficiency within the full closed-loop
 #' simulation.
-#' head(exampleHCRData)
+#' head(exampleHCRList)
 #'
-#' forecast <- exampleHCRData$forecastMU
-#' lowFRP <- exampleHCRData$lowFRP
-#' highFRP <- exampleHCRData$highFRP
-#' manAdjustment <- exampleHCRData$adjustment
-#' manUnit <- exampleHCRData$mu
+#' forecast <- exampleHCRList$forecastMU
+#' lowFRP <- exampleHCRList$lowFRP
+#' highFRP <- exampleHCRList$highFRP
+#' manAdjustment <- exampleHCRList$adjustment
+#' manUnit <- exampleHCRList$mu
 #' overlapConstraint <- constrain(forecast, highFRP, manAdjustment, manUnit)$muConstrained
 #'
 #' ## Fixed ER version
