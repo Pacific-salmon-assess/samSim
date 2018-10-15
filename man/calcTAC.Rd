@@ -4,15 +4,11 @@
 \alias{calcTAC}
 \title{Calculate total allowable catch}
 \usage{
-calcTAC(forecast, canER = NA, harvContRule, amER, ppnMix,
-  species = NULL, manAdjustment = NULL, lowFRP = NULL,
-  highFRP = NULL, minER = NULL, maxER = NULL,
-  overlapConstraint = NULL)
+calcTAC(foreRec, canER, harvContRule, amER, ppnMixVec, species = NULL,
+  manAdjustment = NULL, lowRef = NULL, highRef = NULL,
+  minER = NULL, maxER = NULL, constraint = NULL)
 }
 \arguments{
-\item{forecast}{A numeric representing an MU-specific estimate of spawner
-abundance.}
-
 \item{canER}{A numeric representing the target Canadian exploitation rate if
 \code{harvContRule = fixedER}}
 
@@ -20,9 +16,6 @@ abundance.}
 exploitation rate (\code{fixedER}) or the simplified TAM rule (\code{TAM}).}
 
 \item{amER}{A numeric representing the target American exploitation rate.}
-
-\item{ppnMix}{A numeric representing the proportion of the Canadian TAC
-allocated to mixed stock fisheries.}
 
 \item{species}{A character that can currently take either \code{chum} or
 \code{sockeye} values. Determines how American TAC is partitioned relative
@@ -33,16 +26,22 @@ adjustments. These values are used to adjust forecasted spawner abundance
 to account for en route mortality (i.e. they increase the target escapement
 goal).}
 
-\item{lowFRP}{A numeric representing a MU-specific lower fishery reference
-point.}
-
-\item{highFRP}{A numeric vector a MU-specific upper fishery reference point.}
-
 \item{minER}{A numeric representing minimum exploitation rate (intended to
 represent mortality due to bycatch or test fisheries).}
 
 \item{maxER}{A numeric representing maximum exploitation rate that is
 applied when MU is above its higher FRP.}
+
+\item{forecast}{A numeric representing an MU-specific estimate of spawner
+abundance.}
+
+\item{ppnMix}{A numeric representing the proportion of the Canadian TAC
+allocated to mixed stock fisheries.}
+
+\item{lowFRP}{A numeric representing a MU-specific lower fishery reference
+point.}
+
+\item{highFRP}{A numeric vector a MU-specific upper fishery reference point.}
 
 \item{overlapConstraint}{A numeric representing whether a given MU's TAC
 should be constrained or not.}
@@ -78,22 +77,20 @@ are at sufficiently low abundance to limit a given fishery (see
 #Note that the function is intended to receive vectors rather than the DFs
 #used in this example to increase efficiency within the full closed-loop
 simulation.
-head(exampleHCRData)
+head(exampleHCRList)
 
-forecast <- exampleHCRData$forecastMU
-lowFRP <- exampleHCRData$lowFRP
-highFRP <- exampleHCRData$highFRP
-manAdjustment <- exampleHCRData$adjustment
-manUnit <- exampleHCRData$mu
+forecast <- exampleHCRList$forecastMU
+lowFRP <- exampleHCRList$lowFRP
+highFRP <- exampleHCRList$highFRP
+manAdjustment <- exampleHCRList$adjustment
+manUnit <- exampleHCRList$mu
 overlapConstraint <- constrain(forecast, highFRP, manAdjustment, manUnit)$muConstrained
-nCU <- length(forecast)
 
 ## Fixed ER version
 calcTAC(forecast, canER = 0.4, harvContRule = "fixedER", amER = 0.1, ppnMix = 1,
         species = "sockeye")
-## TAM version (must be passed one value at a time)
-calcTAC(forecast[1], canER, harvContRule = "TAM", amER = 0.1, ppnMix = 1,
-        species = "sockeye", manAdjustment = manAdjustment[1], lowFRP = lowFRP[1],
-        highFRP = highFRP[1],  minER = 0.1, maxER = 0.6,
-        overlapConstraint = overlapConstraint[1])
+calcTAC(forecast, canER, harvContRule = "TAM", amER = 0.1, ppnMix = 1,
+        species = "sockeye", manAdjustment = manAdjustment, lowFRP = lowFRP,
+        highFRP = highFRP,  minER = 0.1, maxER = 0.6,
+        overlapConstraint = overlapConstraint)
 }

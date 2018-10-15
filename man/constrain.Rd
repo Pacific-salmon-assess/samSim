@@ -47,11 +47,11 @@ scale at which in-season forecasts are available.
 \examples{
 #Note that the function is intended to receive vectors rather than the DFs
 #used in this example to increase efficiency.
-head(exampleHCRData)
+head(exampleHCRList)
 
-forecast <- exampleHCRData$forecastMU
-highFRP <- exampleHCRData$highFRP
-manAdjustment <- exampleHCRData$adjustment
-manUnit <- exampleHCRData$mu
+forecast <- exampleHCRList$forecastMU
+highFRP <- exampleHCRList$highFRP
+manAdjustment <- exampleHCRList$adjustment
+manUnit <- exampleHCRList$mu
 constrain(forecast, highFRP, manAdjustment, manUnit)
 }
