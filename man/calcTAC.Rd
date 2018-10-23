@@ -5,8 +5,8 @@
 \title{Calculate total allowable catch}
 \usage{
 calcTAC(foreRec, canER, harvContRule, amER, ppnMixVec, species = NULL,
-  manAdjustment = NULL, lowRef = NULL, highRef = NULL,
-  minER = NULL, maxER = NULL, constraint = NULL)
+  manAdjustment = NULL, lowFRP = NULL, highFRP = NULL,
+  minER = NULL, maxER = NULL, overlapConstraint = NULL)
 }
 \arguments{
 \item{canER}{A numeric representing the target Canadian exploitation rate if
@@ -26,25 +26,25 @@ adjustments. These values are used to adjust forecasted spawner abundance
 to account for en route mortality (i.e. they increase the target escapement
 goal).}
 
+\item{lowFRP}{A numeric representing a MU-specific lower fishery reference
+point.}
+
+\item{highFRP}{A numeric vector a MU-specific upper fishery reference point.}
+
 \item{minER}{A numeric representing minimum exploitation rate (intended to
 represent mortality due to bycatch or test fisheries).}
 
 \item{maxER}{A numeric representing maximum exploitation rate that is
 applied when MU is above its higher FRP.}
 
+\item{overlapConstraint}{A numeric representing whether a given MU's TAC
+should be constrained or not.}
+
 \item{forecast}{A numeric representing an MU-specific estimate of spawner
 abundance.}
 
 \item{ppnMix}{A numeric representing the proportion of the Canadian TAC
 allocated to mixed stock fisheries.}
-
-\item{lowFRP}{A numeric representing a MU-specific lower fishery reference
-point.}
-
-\item{highFRP}{A numeric vector a MU-specific upper fishery reference point.}
-
-\item{overlapConstraint}{A numeric representing whether a given MU's TAC
-should be constrained or not.}
 }
 \value{
 Returns a six element list of numeric vectors with length equal to
