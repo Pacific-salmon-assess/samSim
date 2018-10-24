@@ -71,31 +71,20 @@
 #'         overlapConstraint = overlapConstraint)
 #' @export
 calcTAC <- function(foreRec, canER, harvContRule, amER, ppnMixVec, species = NULL,
-                    manAdjustment = NULL, lowRef = NULL, highRef = NULL,
-                    minER = NULL, maxER = NULL, constraint = NULL) {
+                    manAdjustment = NULL, lowFRP = NULL, highFRP = NULL,
+                    minER = NULL, maxER = NULL, overlapConstraint = NULL) {
   if (species == "sockeye") {
     if (harvContRule == "fixedER") {
       totalTAC <- foreRec * canER
     }
     if (harvContRule == "TAM") {
-      #checks to ensure vectorized
-      if (length(amER) < length(foreRec)) {
-        amER <- rep(amER, length.out = length(foreRec))
-      }
-      if (length(minER) < length(foreRec)) {
-        minER <- rep(minER, length.out = length(foreRec))
-      }
-      if (length(ppnMixVec) < length(foreRec)) {
-        ppnMixVec <- rep(ppnMixVec, length.out = length(foreRec))
-      }
       totalTAC <- rep(NA, length = length(foreRec))
-
       for (k in seq_along(foreRec)) {
-        if (foreRec[k] < lowRef[k]) { #if forecast below lower RP, en route mort not accounted for; minEr used
+        if (foreRec[k] < lowFRP[k]) { #if forecast below lower RP, en route mort not accounted for; minEr used
           totalTAC[k] <- minER[k] * foreRec[k]
         }
-        if ((foreRec[k] > lowRef[k]) & (foreRec[k] < highRef[k])) { #if stock is between ref points, ERs are either scaled to adjusted forecast or minER
-          escTarget <- lowRef[k]
+        if ((foreRec[k] > lowFRP[k]) & (foreRec[k] < highFRP[k])) { #if stock is between ref points, ERs are either scaled to adjusted forecast or minER
+          escTarget <- lowFRP[k]
           adjTarget <- escTarget * (1 + manAdjustment[k]) # escapement goal is adjusted up based on pMA and forecast (equivalent to esc target + MA)
           calcER <- ifelse(foreRec[k] > adjTarget,
                            (foreRec[k] - adjTarget) / foreRec[k],
@@ -106,7 +95,7 @@ calcTAC <- function(foreRec, canER, harvContRule, amER, ppnMixVec, species = NUL
                           minER[k])
           totalTAC[k] <- tacER * foreRec[k]
         }
-        if (foreRec[k] > highRef[k]) { #if stock is above upper reference point, ERs set to max ()
+        if (foreRec[k] > highFRP[k]) { #if stock is above upper reference point, ERs set to max ()
           escTarget <- ((1 - maxER) * foreRec[k]) #escapement target increases w/ abundance (i.e. constant ER)
           adjTarget <- escTarget * (1 + manAdjustment[k])
           calcER <- ifelse(foreRec[k] > adjTarget,
@@ -119,29 +108,32 @@ calcTAC <- function(foreRec, canER, harvContRule, amER, ppnMixVec, species = NUL
         }
       }
     }
-    amTAC <- amER * totalTAC
+    #adjust total TAC to account for AFE (400k fish) when calculating us TAC
+    afe <- totalTAC / sum(unique(totalTAC)) * 0.4
+    amTAC <- amER * (totalTAC - afe)
     canTAC <- totalTAC - amTAC
-  } else { #sockeye is odd in that Americans get a proportion of total TAC, not total escapement; all other fisheries simplify by taking simultaneously
+  } else {
+    #sockeye is odd in that Americans get a proportion of total TAC, not total
+    #escapement; all other fisheries simplify by calculating simultaneously
     amTAC <- amER * foreRec
     canTAC <- canER * foreRec
   }
   mixTAC <- canTAC * ppnMixVec
-  unconAmTAC <- amTAC #by TAC is unconstrained
   unconMixTAC <- mixTAC
-  singTAC <- (canTAC * (1 - ppnMixVec))
+  singTAC <- (canTAC * (1 -  ppnMixVec))
   if (harvContRule == "TAM") {
-    for (k in seq_along(foreRec)) { #apply overlap constraints to marine fisheries based on min ER and overlap constraints
-      if (foreRec[k] > lowRef[k] & constraint[k] == 1) {
-        amTAC[k] <- 0.75 * amTAC[k]
+    for (k in seq_along(foreRec)) {
+      #apply overlap constraints to marine fisheries if above lower FRP
+      if (foreRec[k] > lowFRP[k] & overlapConstraint[k] == 1) {
         mixTAC[k] <- 0.75 * mixTAC[k]
       }
     }
   }
-  tacList <- list(amTAC, mixTAC, singTAC, unconAmTAC, unconMixTAC)
+  tacList <- list(amTAC, mixTAC, singTAC, unconMixTAC)
   tacList <- lapply(tacList, function (x){ #replace NAs with 0s
     x[is.na(x)] <- 0
     return(x)
   })
-  names(tacList) <- c("amTAC", "mixTAC", "singTAC", "unconAmTAC", "unconMixTAC")
+  names(tacList) <- c("amTAC", "mixTAC", "singTAC", "unconMixTAC")
   return(tacList)
 }
