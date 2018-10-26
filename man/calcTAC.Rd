@@ -6,7 +6,8 @@
 \usage{
 calcTAC(foreRec, canER, harvContRule, amER, ppnMixVec, species = NULL,
   manAdjustment = NULL, lowFRP = NULL, highFRP = NULL,
-  minER = NULL, maxER = NULL, overlapConstraint = NULL)
+  minER = NULL, maxER = NULL, overlapConstraint = NULL,
+  constrainMix = TRUE)
 }
 \arguments{
 \item{canER}{A numeric representing the target Canadian exploitation rate if

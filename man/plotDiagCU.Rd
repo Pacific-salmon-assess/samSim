@@ -2,7 +2,7 @@
 % Please edit documentation in R/diagnosticPlots.R
 \name{plotDiagCU}
 \alias{plotDiagCU}
-\title{Diagnostic plots}
+\title{Diagnostic plot}
 \usage{
 plotDiagCU(varArray, varNames, stkName = NULL, model, ricB,
   larBList = NULL, medAbundance = NULL, nPrime, extinct,
