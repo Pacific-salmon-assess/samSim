@@ -5,6 +5,8 @@
 #' deviations. Useful for posterior predictive comparisons and generating
 #' output figures if model residuals are a variable of interest.
 #'
+#' @importFrom dplyr filter mutate
+#'
 #' @param recList A list of length nCU with each element a dataframe with nrow
 #' = to length of the maximum observed timeseries. Each dataframe should
 #' contain the following columns: an estimate of total recruitment (by brood

@@ -43,7 +43,7 @@ calcObsCatch <- function(catchVec, recVec, manUnit, tauCatch, stkID, catchObsErr
                   obsErr = catchObsErr)
   d2 <- d %>%
     group_by(mu) %>%
-    summarize(catchMU = sum(catch),
+    summarise(catchMU = sum(catch),
               recMU = sum(rec),
               n = length(rec))
   d3 <- merge(d, d2, by = "mu") %>%

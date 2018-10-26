@@ -4,7 +4,7 @@
 #' containing posterior samples from MCMC sampling. Sampling is based on
 #' percentile arguments.
 #'
-#' @importFrom dplyr select group_by summarise_all summarise
+#' @importFrom dplyr filter group_by select summarise summarise_all
 #'
 #' @param pars A dataframe containing stock-recruit parameters. Should be
 #' formatted so that stock/population (\code{stk}) is in first column and each

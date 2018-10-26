@@ -72,7 +72,8 @@
 #' @export
 calcTAC <- function(foreRec, canER, harvContRule, amER, ppnMixVec, species = NULL,
                     manAdjustment = NULL, lowFRP = NULL, highFRP = NULL,
-                    minER = NULL, maxER = NULL, overlapConstraint = NULL) {
+                    minER = NULL, maxER = NULL, overlapConstraint = NULL,
+                    constrainMix = TRUE) {
   if (species == "sockeye") {
     if (harvContRule == "fixedER") {
       totalTAC <- foreRec * canER
@@ -122,10 +123,12 @@ calcTAC <- function(foreRec, canER, harvContRule, amER, ppnMixVec, species = NUL
   unconMixTAC <- mixTAC
   singTAC <- (canTAC * (1 -  ppnMixVec))
   if (harvContRule == "TAM") {
-    for (k in seq_along(foreRec)) {
-      #apply overlap constraints to marine fisheries if above lower FRP
-      if (foreRec[k] > lowFRP[k] & overlapConstraint[k] == 1) {
-        mixTAC[k] <- 0.75 * mixTAC[k]
+    if (constrainMix == TRUE) {
+      for (k in seq_along(foreRec)) {
+        #apply overlap constraints to marine fisheries if above lower FRP
+        if (foreRec[k] > lowFRP[k] & constraint[k] == 1) {
+          mixTAC[k] <- 0.75 * mixTAC[k]
+        }
       }
     }
   }

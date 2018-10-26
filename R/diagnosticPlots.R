@@ -75,7 +75,7 @@ plotDiagCU <- function(varArray, varNames, stkName = NULL, model, ricB,
   par(mfrow = c(3, 2), mar = c(3.5, 4, 0.5, 0.5), oma = c(0, 0, 0, 0),
       cex.lab = 1)
   nYears <- dim(varArray)[1]
-  colPal <- data.frame(col = viridis(length(selectCUs), begin = 0, end = 1),
+  colPal <- data.frame(col = viridis::viridis(length(selectCUs), begin = 0, end = 1),
                        cu = selectCUs)
   colPal$col <- as.character(colPal$col)
 
@@ -105,7 +105,7 @@ plotDiagCU <- function(varArray, varNames, stkName = NULL, model, ricB,
   # Plot stock-recruit relationship (observed and predicted) first
   par(mar = c(4, 4, 0.5, 0.5))
   plot(varArray[ , p, "Recruits BY"] ~ varArray[ , p, "Spawners"],
-       bg = alpha("black", 0.4), pch = 21,
+       bg = scales::alpha("black", 0.4), pch = 21,
        ylim = c(0, max(c(varArray[, p, "Recruits BY"], varArray[, p, "Obs Recruits BY"]),
                        na.rm = TRUE)),
        xlim = c(0, max(c(varArray[, p, "Spawners"], varArray[, p, "Obs Spawners"]),
@@ -126,12 +126,12 @@ plotDiagCU <- function(varArray, varNames, stkName = NULL, model, ricB,
     }
   }
   points(varArray[, p, "Obs Recruits BY"] ~ varArray[, p, "Obs Spawners"],
-         bg = alpha("white", 0.4), pch = 21)
+         bg = scales::alpha("white", 0.4), pch = 21)
   curve(x * exp(modelA - modelB * x), from = 0, #estimated curve
         to = max(varArray[ , p, "Obs Spawners"], na.rm = TRUE),
         add = TRUE, lwd = 2, lty = 2)
   legend("topright", legend = c("True", "Obs"), lty = c(1, 2), pch = c(21, 21), bg = "white",
-         pt.bg = c(alpha("black", 0.4), "white"), cex = 1.1, lwd = 1.25)
+         pt.bg = c(scales::alpha("black", 0.4), "white"), cex = 1.1, lwd = 1.25)
   text(0.1*max(c(varArray[ , p, "Spawners"], varArray[ , p, "Obs Spawners"]), na.rm = TRUE),
        0.95*max(c(varArray[ , p, "Recruits BY"], varArray[ , p, "Obs Recruits BY"]), na.rm = TRUE),
        paste(cuName), cex = 1.4)
