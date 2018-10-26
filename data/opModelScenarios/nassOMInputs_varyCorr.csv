@@ -1,0 +1,10 @@
+scenario,nameOM,nameMP,plotOrder,species,simYears,harvContRule,escGoal,canER,propMixHigh,propMixLow,varyAllocation,prodRegime,startYear,endYear,rho,correlCU,corrMat,adjustSig,tauCatch,obsSig,mixOUSig,singOUSig,obsMixCatchSig,obsSingCatchSig,obsSBias,propSampleCU,sampleProb,ageErr,lowCatchThresh,highCatchThresh,extinctThresh
+synch,lowCorr,0.3,1,chum,55,fixedER,FALSE,0.3,0.8,0.2,FALSE,med,NA,NA,0,0.1,FALSE,1,0.25,0.6,0.7,0.7,1,0.5,1,1,1,0.1,2400,12000,100
+synch,medCorr,0.3,2,chum,55,fixedER,FALSE,0.3,0.8,0.2,FALSE,med,NA,NA,0,0.5,FALSE,1,0.25,0.6,0.7,0.7,1,0.5,1,1,1,0.1,2400,12000,100
+synch,highCorr,0.3,3,chum,55,fixedER,FALSE,0.3,0.8,0.2,FALSE,med,NA,NA,0,0.75,FALSE,1,0.25,0.6,0.7,0.7,1,0.5,1,1,1,0.1,2400,12000,100
+synchSig,lowSig,0.3,1,chum,55,fixedER,FALSE,0.3,0.8,0.2,FALSE,med,NA,NA,0,0,FALSE,0.5,0.25,0.6,0.7,0.7,1,0.5,1,1,1,0.1,2400,12000,100
+synchSig,medSig,0.3,2,chum,55,fixedER,FALSE,0.3,0.8,0.2,FALSE,med,NA,NA,0,0,FALSE,1,0.25,0.6,0.7,0.7,1,0.5,1,1,1,0.1,2400,12000,100
+synchSig,highSig,0.3,3,chum,55,fixedER,FALSE,0.3,0.8,0.2,FALSE,med,NA,NA,0,0,FALSE,1.5,0.25,0.6,0.7,0.7,1,0.5,1,1,1,0.1,2400,12000,100
+both,lowBoth,0.3,1,chum,55,fixedER,FALSE,0.3,0.8,0.2,FALSE,med,NA,NA,0,0.1,FALSE,0.5,0.25,0.6,0.7,0.7,1,0.5,1,1,1,0.1,2400,12000,100
+both,medBoth,0.3,2,chum,55,fixedER,FALSE,0.3,0.8,0.2,FALSE,med,NA,NA,0,0.5,FALSE,1,0.25,0.6,0.7,0.7,1,0.5,1,1,1,0.1,2400,12000,100
+both,highBoth,0.3,3,chum,55,fixedER,FALSE,0.3,0.8,0.2,FALSE,med,NA,NA,0,0.75,FALSE,1.5,0.25,0.6,0.7,0.7,1,0.5,1,1,1,0.1,2400,12000,100

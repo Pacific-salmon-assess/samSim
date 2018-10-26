@@ -1,0 +1,10 @@
+scenario,nameOM,nameMP,keyVar,plotOrder,species,simYears,harvContRule,benchmark,canER,usER,propMixHigh,propMixLow,varyAllocation,prodRegime,startYear,endYear,rho,correlCU,corrMat,tauCatch,obsSig,mixOUSig,singOUSig,obsMixCatchSig,obsSingCatchSig,obsSBias,propSampleCU,sampleProb,ageErr,lowCatchThresh,highCatchThresh,extinctThresh,adjustSig,adjustAge,adjustForecast,adjustEnRoute
+ageTau,low,TAM,adjustAge,1,sockeye,40,TAM,stockRecruit,NA,0,1,0,FALSE,med,NA,NA,0.2,0.5,FALSE,0,0,0.2,0.2,0,0,1,1,1,0.1,0.5,1,0.0001,1,0.5,1,1
+ageTau,high,TAM,adjustAge,2,sockeye,40,TAM,stockRecruit,NA,0,1,0,FALSE,med,NA,NA,0.2,0.5,FALSE,0,0,0.2,0.2,0,0,1,1,1,0.1,0.5,1,0.0001,1,1.5,1,1
+ouSig,low,TAM,mixOUSig,1,sockeye,40,TAM,stockRecruit,NA,0,1,0,FALSE,med,NA,NA,0.2,0.5,FALSE,0,0,0,0.2,0,0,1,1,1,0.1,0.5,1,0.0001,1,1,1,1
+ouSig,high,TAM,mixOUSig,2,sockeye,40,TAM,stockRecruit,NA,0,1,0,FALSE,med,NA,NA,0.2,0.5,FALSE,0,0,0.5,0.2,0,0,1,1,1,0.1,0.5,1,0.0001,1,1,1,1
+forecastSig,low,TAM,adjustForecast,1,sockeye,40,TAM,stockRecruit,NA,0,1,0,FALSE,med,NA,NA,0.2,0.5,FALSE,0,0,0,0.2,0,0,1,1,1,0.1,0.5,1,0.0001,1,1,0.5,1
+forecastSig,high,TAM,adjustForecast,2,sockeye,40,TAM,stockRecruit,NA,0,1,0,FALSE,med,NA,NA,0.2,0.5,FALSE,0,0,0.5,0.2,0,0,1,1,1,0.1,0.5,1,0.0001,1,1,1.5,1
+enRouteSig,low,TAM,adjustEnRoute,1,sockeye,40,TAM,stockRecruit,NA,0,1,0,FALSE,med,NA,NA,0.2,0.5,FALSE,0,0,0,0.2,0,0,1,1,1,0.1,0.5,1,0.0001,1,1,1,0.5
+enRouteSig,high,TAM,adjustEnRoute,2,sockeye,40,TAM,stockRecruit,NA,0,1,0,FALSE,med,NA,NA,0.2,0.5,FALSE,0,0,0.5,0.2,0,0,1,1,1,0.1,0.5,1,0.0001,1,1,1,1.5
+refSensitivity,reference,TAM,synch,1,sockeye,40,TAM,stockRecruit,NA,0,1,0,FALSE,med,NA,NA,0.2,0.5,FALSE,0,0,0.2,0.2,0,0,1,1,1,0.1,0.5,1,0.0001,1,1,1,1

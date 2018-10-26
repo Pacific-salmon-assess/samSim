@@ -1,0 +1,11 @@
+scenario,nameOM,nameMP,keyVar,plotOrder,species,simYears,harvContRule,canER,propMixHigh,propMixLow,varyAllocation,prodRegime,startYear,endYear,freqSkew,rho,correlCU,corrMat,adjustSig,tauCatch,obsSig,mixOUSig,singOUSig,obsMixCatchSig,obsSingCatchSig,obsSBias,propSampleCU,sampleProb,ageErr,extinctThresh
+skewReg,shortReg,TAM,endYear,1,sockeye,55,TAM,0.2,0.8,0.2,FALSE,skewReg,1,10,NA,0.15,0,FALSE,1,0.1,0.25,0,0,0.1,0.5,1,1,1,0.1,0.0001
+skewReg,medReg,TAM,endYear,2,sockeye,55,TAM,0.2,0.8,0.2,FALSE,skewReg,1,20,NA,0.15,0,FALSE,1,0.1,0.25,0,0,0.1,0.5,1,1,1,0.1,0.0001
+skewReg,longReg,TAM,endYear,3,sockeye,55,TAM,0.2,0.8,0.2,FALSE,skewReg,1,30,NA,0.15,0,FALSE,1,0.1,0.25,0,0,0.1,0.5,1,1,1,0.1,0.0001
+skewRan,skewProb0.05,TAM,freqSkew,1,sockeye,55,TAM,0.2,0.8,0.2,FALSE,skew,NA,NA,0.05,0.15,0,FALSE,1,0.1,0.25,0,0,0.1,0.5,1,1,1,0.1,0.0001
+skewRan,skewProb0.1,TAM,freqSkew,2,sockeye,55,TAM,0.2,0.8,0.2,FALSE,skew,NA,NA,0.1,0.15,0,FALSE,1,0.1,0.25,0,0,0.1,0.5,1,1,1,0.1,0.0001
+skewRan,skewProb0.2,TAM,freqSkew,3,sockeye,55,TAM,0.2,0.8,0.2,FALSE,skew,NA,NA,0.2,0.15,0,FALSE,1,0.1,0.25,0,0,0.1,0.5,1,1,1,0.1,0.0001
+skewRan,skewProb0.4,TAM,freqSkew,4,sockeye,55,TAM,0.2,0.8,0.2,FALSE,skew,NA,NA,0.4,0.15,0,FALSE,1,0.1,0.25,0,0,0.1,0.5,1,1,1,0.1,0.0001
+noSkew,decProd,TAM,prodRegime,2,sockeye,55,TAM,0.2,0.8,0.2,FALSE,decline,1,20,NA,0.15,0,FALSE,1,0.1,0.25,0,0,0.1,0.5,1,1,1,0.1,0.0001
+noSkew,lowProd,TAM,prodRegime,1,sockeye,55,TAM,0.2,0.8,0.2,FALSE,low,NA,NA,NA,0.15,0,FALSE,1,0.1,0.25,0,0,0.1,0.5,1,1,1,0.1,0.0001
+noSkew,medProd,TAM,prodRegime,3,sockeye,55,TAM,0.2,0.8,0.2,FALSE,med,NA,NA,NA,0.15,0,FALSE,1,0.1,0.25,0,0,0.1,0.5,1,1,1,0.1,0.0001

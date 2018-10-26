@@ -1,0 +1,15 @@
+scenario,nameOM,nameMP,species,simYears,harvContRule,escGoal,canER,propMixHigh,propMixLow,varyAllocation,prodRegime,startYear,endYear,rho,correlCU,corrMat,omSig,tauCatch,obsSig,mixOUSig,singOUSig,obsMixCatchSig,obsSingCatchSig,obsSBias,propSampleCU,sampleProb,ageErr,extinctThresh
+ar,noAR,0.4,sockeye,55,fixedER,TRUE,0.4,0.8,0.2,FALSE,med,NA,NA,0,0.1,FALSE,0,0.1,0.1,0.1,0.1,0.1,0.1,1,1,1,0.1,0.0001
+ar,lowAR,0.4,sockeye,55,fixedER,TRUE,0.4,0.8,0.2,FALSE,med,NA,NA,0.1,0.1,FALSE,0,0.1,0.1,0.1,0.1,0.1,0.1,1,1,1,0.1,0.0001
+ar,medAR,0.4,sockeye,55,fixedER,TRUE,0.4,0.8,0.2,FALSE,med,NA,NA,0.5,0.1,FALSE,0,0.1,0.1,0.1,0.1,0.1,0.1,1,1,1,0.1,0.0001
+ar,highAR,0.4,sockeye,55,fixedER,TRUE,0.4,0.8,0.2,FALSE,med,NA,NA,0.9,0.1,FALSE,0,0.1,0.1,0.1,0.1,0.1,0.1,1,1,1,0.1,0.0001
+arRef,noAR,0.4,sockeye,55,fixedER,TRUE,0.4,0.8,0.2,FALSE,med,NA,NA,0,0.3,FALSE,0,0.1,0.25,0.2,0.2,0.1,0.5,1,1,1,0.1,0.0001
+arRef,lowAR,0.4,sockeye,55,fixedER,TRUE,0.4,0.8,0.2,FALSE,med,NA,NA,0.1,0.3,FALSE,0,0.1,0.25,0.2,0.2,0.1,0.5,1,1,1,0.1,0.0001
+arRef,medAR,0.4,sockeye,55,fixedER,TRUE,0.4,0.8,0.2,FALSE,med,NA,NA,0.5,0.3,FALSE,0,0.1,0.25,0.2,0.2,0.1,0.5,1,1,1,0.1,0.0001
+arRef,highAR,0.4,sockeye,55,fixedER,TRUE,0.4,0.8,0.2,FALSE,med,NA,NA,0.9,0.3,FALSE,0,0.1,0.25,0.2,0.2,0.1,0.5,1,1,1,0.1,0.0001
+arLowSig,noAR,0.4,sockeye,55,fixedER,TRUE,0.4,0.8,0.2,FALSE,med,NA,NA,0,0.3,FALSE,0.1,0.1,0.25,0.2,0.2,0.1,0.5,1,1,1,0.1,0.0001
+arLowSig,lowAR,0.4,sockeye,55,fixedER,TRUE,0.4,0.8,0.2,FALSE,med,NA,NA,0.1,0.3,FALSE,0.1,0.1,0.25,0.2,0.2,0.1,0.5,1,1,1,0.1,0.0001
+arLowSig,medAR,0.4,sockeye,55,fixedER,TRUE,0.4,0.8,0.2,FALSE,med,NA,NA,0.5,0.3,FALSE,0.1,0.1,0.25,0.2,0.2,0.1,0.5,1,1,1,0.1,0.0001
+arLowSig,highAR,0.4,sockeye,55,fixedER,TRUE,0.4,0.8,0.2,FALSE,med,NA,NA,0.9,0.3,FALSE,0.1,0.1,0.25,0.2,0.2,0.1,0.5,1,1,1,0.1,0.0001
+arHighER,noAR,0,sockeye,55,fixedER,TRUE,0.7,0.8,0.2,FALSE,med,NA,NA,0,0.1,FALSE,0,0.1,0.1,0.1,0.1,0.1,0.1,1,1,1,0.1,0.0001
+arHighER,medAR,0,sockeye,55,fixedER,TRUE,0.7,0.8,0.2,FALSE,med,NA,NA,0.5,0.1,FALSE,0,0.1,0.1,0.1,0.1,0.1,0.1,1,1,1,0.1,0.0001
