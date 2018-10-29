@@ -36,5 +36,5 @@ rsconnect/
 outputs
 
 # Private data
-data/fraserDat
-data/northCoastDat
+data/fraserDat/
+data/northCoastDat/
