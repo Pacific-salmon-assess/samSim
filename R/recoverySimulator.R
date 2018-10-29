@@ -1,13 +1,12 @@
 #' Recovery simulator
 #'
 #' Closed-loop simulation tool to assess management procedures and inform
-#'			 Pacific salmon rebuilding strategies;
-#'			 Primarily based on C. Holt's CSAS chum model; earlier model version (SimpleSimWCatch.R Feb 7) saved in scripts/Defunct
-#' 			 Simulation runs primed with observed SR data (recDat input)
-#'			 Includes data generation, variation in age structure, survey design, and variable exploitation rules
-#'		 (constant ER);
-#'		 Uses Ricker formulation \code{R=S(exp(a-bS))};
-#'		 Additional details in changesToChumModel.md in reports directory
+#' Pacific salmon rebuilding strategies. Originally based on C. Holt's south
+#' coast chum model (CSAS 2018). Simulation runs primed with observed SR data
+#' (recDat input). The model includes data generation, variation in age
+#' structure, survey design, and variable exploitation rules. OM uses Ricker
+#' formulation \code{R=S(exp(a-bS))}. Additional details in changesToChumModel.md
+#' in reports directory.
 #' @importFrom here here
 #' @importFrom dplyr group_by summarise
 #' @param y TO BE DEFINED
@@ -18,6 +17,7 @@
 # here <- here::here
 # simParF <- read.csv(here("data/manProcScenarios/fraserMPInputs_varyMixPpn.csv"),
 # stringsAsFactors = F)
+# simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorr.csv"), stringsAsFactors = F)
 # cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
 # srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
 # catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors=F)
@@ -1028,8 +1028,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
       ppnMixVec <- ifelse(ppnMix == "flex", # convert ppnMix to numeric = 1 so TAC can be calcd
                           rep(1, length.out = nCU),
                           rep(as.numeric(ppnMix), length.out = nCU))
-      tacs <- calcTAC(foreRec = foreRecRYManU[y, ], canER, harvContRule, amER,
-                      ppnMixVec, species = species, manAdjustment = manAdjustment,
+      tacs <- calcTAC(foreRec = foreRecRYManU[y, ], canER = canER, harvContRule =
+                        harvContRule, amER = amER, ppnMixVec = ppnMixVec,
+                      species = species, manAdjustment = manAdjustment,
                       lowFRP = lowRefPt[y, ], highFRP = highRefPt[y, ],
                       minER = minER, maxER = 0.6,
                       overlapConstraint = overlapConstraint[y, ],

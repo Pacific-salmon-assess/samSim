@@ -126,7 +126,7 @@ calcTAC <- function(foreRec, canER, harvContRule, amER, ppnMixVec, species = NUL
     if (constrainMix == TRUE) {
       for (k in seq_along(foreRec)) {
         #apply overlap constraints to marine fisheries if above lower FRP
-        if (foreRec[k] > lowFRP[k] & constraint[k] == 1) {
+        if (foreRec[k] > lowFRP[k] & overlapConstraint[k] == 1) {
           mixTAC[k] <- 0.75 * mixTAC[k]
         }
       }
