@@ -26,9 +26,6 @@ wtdCV <- function(datMat, weightMat = NULL, weight = TRUE) {
   if (ncol(datMat) != ncol(weightMat)){
     stop("Input matrices have unequal number of components")
   }
-  if (any(is.na(datMat))) {
-    warning("NAs present. This will affect estimates of weighted CV.")
-  }
   #temporal mean of aggregate abundance
   aggAbund <- sum(apply(weightMat, 2, function (x) mean(x, na.rm = TRUE)))
   #wtd mean of aggregate abundance
