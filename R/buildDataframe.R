@@ -1,11 +1,11 @@
-#' Build output dataframes
+#' Build output dataframes for CU data
 #'
 #' This is one of two sister functions that are extensions of
 #' \code{genOutputList} and used to builds dataframes around key variables that
 #' change across scenarios. One is for CU-specific data and the other for
 #' aggregate data. Each combination of directory, subdirectory, and key
 #' variable levels should represent a unique scenario (i.e. they can vary across
-#' up to three dimensions). For example, different keyvariables (proportion
+#' up to three dimensions). For example, different key variables (proportion
 #' allocated to mixed fisheries) nested within OM (productivity regime) nested
 #' within higher level MP or additional OM (e.g. fixed exploitation or TAM
 #' rule).
@@ -26,21 +26,24 @@
 #' value, its lower quantile, and its upper quantile.
 #'
 #' @examples
-#' TO BE COMPLETED
+#' TO BE COMPLETED (need example data in outputs directory)
 #'
 #' @export
 
 buildDataCU <- function(dirNames, cuVars, keyVarName, selectedCUs = NULL) {
   cuData = NULL #construct CU dataframe
   for (i in seq_along(dirNames)) {
-    subDirs <- list.dirs(path = paste(here("outputs/simData"), dirNames[i], sep = "/"), full.names = FALSE,
-                         recursive = FALSE) #alternatively ID OMs based on prespecified directory
+    #alternatively ID OMs based on prespecified directory
+    subDirs <- list.dirs(path = paste(here("outputs/simData"), dirNames[i],
+                                      sep = "/"),
+                         full.names = FALSE, recursive = FALSE)
 
     for (j in seq_along(subDirs)) {
       if (is.null(selectedCUs == TRUE)) {
         cuList <- genOutputList(dirNames[i], subDirs[j], agg = FALSE)
       } else {
-        cuList <- genOutputList(dirNames[i], subDirs[j], selectedCUs = selectedCUs, agg = FALSE)
+        cuList <- genOutputList(dirNames[i], subDirs[j], selectedCUs = selectedCUs,
+                                agg = FALSE)
       }
 
       nCU <- length(cuList[[1]]$stkName)
@@ -72,4 +75,67 @@ buildDataCU <- function(dirNames, cuVars, keyVarName, selectedCUs = NULL) {
     }
   }
   return(cuData)
+}
+
+# _____________________________________________________________________________
+
+#' Build output dataframes for aggregate data
+#'
+#' This is one of two sister functions that are extensions of
+#' \code{genOutputList} and used to builds dataframes around key variables that
+#' change across scenarios. One is for CU-specific data and the other for
+#' aggregate data. Each combination of directory, subdirectory, and key
+#' variable levels should represent a unique scenario (i.e. they can vary across
+#' up to three dimensions). For example, different key variables (proportion
+#' allocated to mixed fisheries) nested within OM (productivity regime) nested
+#' within higher level MP or additional OM (e.g. fixed exploitation or TAM
+#' rule).
+#'
+#' @importFrom here here
+#'
+#' @param dirNames A character vector representing directories, each of which
+#' contains multiple scenarios nested within subdirectories.
+#' @param agVars A character vector representing aggregate performance metrics
+#' to include in the dataframe.
+#' @param keyVarName A character vector specifying which variable differs among
+#' scenarios within a subdirectory within a directory (e.g. fixed exploitation
+#' rate).
+#' @return Returns a dataframe with columns for the keyVariable, management
+#' procedure, operating model, plotOrder, variable, its median value, its lower
+#' quantile, and its upper quantile.
+#'
+#' @examples
+#' TO BE COMPLETED
+#'
+#' @export
+
+buildDataAgg <- function(dirNames, agVars, keyVarName) {
+  agData = NULL #construct aggregate dataframe
+  for (i in seq_along(dirNames)) {
+    #alternatively ID OMs based on prespecified directory
+    subDirs <- list.dirs(path = paste(here("outputs/simData"), dirNames[i],
+                                      sep = "/"),
+                         full.names = FALSE, recursive = FALSE)
+
+    for (j in seq_along(subDirs)) {
+      agList <- genOutputList(dirNames[i], subDirs[j], agg = TRUE)
+      singleScenDat = NULL
+      for (k in seq_along(agVars)) {
+        dum <- data.frame(keyVar = sapply(agList, function(x) unique(as.character(x$keyVar))),
+                          mp = sapply(agList, function(x) unique(x$hcr)),
+                          om = sapply(agList, function(x) unique(x$opMod)),
+                          plotOrder = sapply(agList, function(x) unique(x$plotOrder)),
+                          var = rep(agVars[k], length.out = length(agList)),
+                          avg = as.vector(sapply(agList, function(x) median(x[[agVars[k]]]))),
+                          lowQ = as.vector(sapply(agList, function(x) qLow(x[[agVars[k]]]))),
+                          highQ = as.vector(sapply(agList, function(x) qHigh(x[[agVars[k]]]))),
+                          row.names = NULL
+        )
+        singleScenDat <- rbind(singleScenDat, dum, row.names = NULL)
+      }
+      names(singleScenDat)[1] <- keyVarName
+      agData <- rbind(agData, singleScenDat)
+    }
+  }
+  return(agData)
 }
