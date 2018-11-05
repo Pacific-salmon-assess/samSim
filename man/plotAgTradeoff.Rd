@@ -41,6 +41,9 @@ This function generates Kobe style plots for a series of conservation- and
 catch-based performance metrics.
 }
 \examples{
-TO BE ADDED ONCE EXAMPLE DATA PROVIDED
+plotAgTradeoff(agPlottingDF, consVar = "medSpawners", catchVar = "medCatch",
+facet = "om", showUncertainty = TRUE,
+legendLab = "Prop. TAC in mixed stock fishery", xLab = "Median Catch",
+yLab = "Median Spawners")
 
 }

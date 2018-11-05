@@ -3,7 +3,7 @@
 #' This function generates Kobe style plots for a series of conservation- and
 #' catch-based performance metrics.
 #'
-#' @importFrom dplyr filter mutate select
+#' @importFrom dplyr everything filter mutate select
 #' @importFrom ggplot2 aes facet_wrap geom_errorbar geom_errorbarh geom_point
 #' ggplot guides labs scale_alpha_discrete scale_shape_manual scale_fill_manual
 #' theme
@@ -18,7 +18,7 @@
 #' \code{"mu", "cu", "mp", "om"} and specifies along which categorical variable
 #' the plot should be faceted.
 #' @param panel  A character value that can take the values:
-#' \code{"mu", mp", "om"} and specifies along which categorical variable new
+#' \code{"mu", "mp", "om"} and specifies along which categorical variable new
 #' pages in the output PDF will be generated.
 #' @param showUncertainty A logical specifying whether whiskers for each
 #' variable's credible interval should be plotted.
@@ -29,7 +29,10 @@
 #' @return Returns a ggplot object.
 #'
 #' @examples
-#' TO BE ADDED ONCE EXAMPLE DATA PROVIDED
+#' plotCUTradeoff(cuPlottingDF, consVar = "medSpawners", catchVar = "medCatch",
+#' facet = "mu", panel = "om", showUncertainty = FALSE,
+#' legendLab = "Prop. TAC in mixed stock fishery", xLab = "Median Catch",
+#' yLab = "Median Spawners", main = FALSE)
 #'
 #' @export
 plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch",
@@ -156,7 +159,7 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
 #' This function generates Kobe style plots for a series of conservation- and
 #' catch-based performance metrics.
 #'
-#' @importFrom dplyr filter mutate select
+#' @importFrom dplyr everything filter mutate select
 #' @importFrom ggplot2 aes facet_wrap geom_errorbar geom_errorbarh geom_point
 #' ggplot guides labs scale_alpha_discrete scale_shape_manual scale_fill_manual
 #' theme
@@ -179,7 +182,10 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
 #' @return Returns a ggplot object.
 #'
 #' @examples
-#' TO BE ADDED ONCE EXAMPLE DATA PROVIDED
+#' plotAgTradeoff(agPlottingDF, consVar = "medSpawners", catchVar = "medCatch",
+#' facet = "om", showUncertainty = TRUE,
+#' legendLab = "Prop. TAC in mixed stock fishery", xLab = "Median Catch",
+#' yLab = "Median Spawners")
 #'
 #' @export
 plotAgTradeoff <- function(agDat, consVar = "medSpawners", catchVar = "medCatch",

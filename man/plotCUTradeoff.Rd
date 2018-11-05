@@ -23,7 +23,7 @@ cuDat$vars.}
 the plot should be faceted.}
 
 \item{panel}{A character value that can take the values:
-\code{"mu", mp", "om"} and specifies along which categorical variable new
+\code{"mu", "mp", "om"} and specifies along which categorical variable new
 pages in the output PDF will be generated.}
 
 \item{showUncertainty}{A logical specifying whether whiskers for each
@@ -45,6 +45,9 @@ This function generates Kobe style plots for a series of conservation- and
 catch-based performance metrics.
 }
 \examples{
-TO BE ADDED ONCE EXAMPLE DATA PROVIDED
+plotCUTradeoff(cuPlottingDF, consVar = "medSpawners", catchVar = "medCatch",
+facet = "mu", panel = "om", showUncertainty = FALSE,
+legendLab = "Prop. TAC in mixed stock fishery", xLab = "Median Catch",
+yLab = "Median Spawners", main = FALSE)
 
 }
