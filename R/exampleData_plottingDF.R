@@ -10,7 +10,9 @@
 #'   allocate to mixed vs. single stock fisheries}
 #'   \item{mp}{management procedure (TAM refers to pseudo-total allowable
 #'   mortality rule)}
-#'   \item{om}{operating model}
+#'   \item{om}{operating model (technically this is inaccurate for this
+#'   particular example, the different OM levels actually represent alternative
+#'   secondary MPs)}
 #'   \item{plotOrder}{numeric representing the order in which different key
 #'   variable factors should be plotted}
 #'   \item{cuName}{CU name}
