@@ -18,7 +18,9 @@
 #' @examples
 #' r <- recMatrix[1:10, ]
 #' wtdCV(r, weightMat = NULL, weight = TRUE)
+#'
 #' @export
+
 wtdCV <- function(datMat, weightMat = NULL, weight = TRUE) {
   if (is.null(weightMat)) { #if weightMat is NULL assume datMat is a matrix of abundance
     weightMat <- datMat

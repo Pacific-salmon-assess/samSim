@@ -72,7 +72,7 @@ plotRadar <- function(dat, xLab, plotVars = NULL, groupingVar = NULL, cu = FALSE
   colPal <- viridis::viridis(length(levels(groupVar)), begin = 0, end = 1)
   names(colPal) <- levels(groupVar)
 
-  p <- ggplot2::ggplot(d, aes(x = var, y = avg)) +
+  p <- ggplot(d, aes(x = var, y = avg)) +
     geom_polygon(aes(group = groupVar, color = groupVar), fill = NA, size = 2,
                  show.legend = FALSE) +
     geom_line(aes(group = groupVar, color = groupVar), size = 2) +
