@@ -110,7 +110,7 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
                              alpha = keyVar, fill = cuName)) +
       geom_point(size = dotSize) +
       theme_sleekX() +
-      theme(strip.text = element_text(size = axisSize),
+      theme(strip.text = element_text(size = 0.8 * axisSize),
             axis.text = element_text(size = 0.9 * axisSize),
             axis.title = element_text(size = axisSize),
             legend.text = element_text(size = 0.9 * legendSize),
@@ -222,7 +222,7 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners", catchVar = "medCatch"
                            alpha = keyVar)) +
     geom_point(size = dotSize, fill = "black") +
     theme_sleekX() +
-    theme(strip.text = element_text(size = axisSize),
+    theme(strip.text = element_text(size = 0.8 * axisSize),
           axis.text = element_text(size = 0.9 * axisSize),
           axis.title = element_text(size = axisSize),
           legend.text = element_text(size = 0.9 * legendSize),

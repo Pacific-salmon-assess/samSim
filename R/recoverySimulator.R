@@ -81,10 +81,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
   extinctThresh <- simPar$extinctThresh #minimum number of spawners before set to 0
   preFMigMort <- ifelse(is.null(simPar$preFMigMort), 1,
                         as.numeric(simPar$preFMigMort)) #proportion of en route mortality occurring before single stock fisheries
-  ## FOLLOWING WILL LIKELY BE REMOVED FOR INITIAL STUDY
-  obsSBias <- simPar$obsSBias #bias in spawner abundance estimates
-  propSampleCU <- simPar$propSampleCU #proportion of CUs sampled
-  sampleProb <- simPar$sampleProb #probability that a CU is sampled, eg if 0.5 then 50% probability a CU is removed
 
   ## CU-specific parameters
   cuPar$stkName <- abbreviate(cuPar$stkName, minlength = 4)
@@ -345,7 +341,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
   #Management and performance
   sAg <- matrix(NA, nrow = nYears, ncol = nTrials)
   obsSAg <- matrix(NA, nrow = nYears, ncol = nTrials)
-  obsSAgWNA <- matrix(NA, nrow = nYears, ncol = nTrials)
   recRYAg <- matrix(NA, nrow = nYears, ncol = nTrials)
   obsRecRYAg <- matrix(NA, nrow = nYears, ncol = nTrials)
   recBYAg <- matrix(NA, nrow = nYears, ncol = nTrials)
@@ -762,9 +757,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
     #_____________________________________________________________________
     ### LOOP 3
     for (y in (nPrime + 1):nYears) {
-      #Draw value that will be used to remove surveys if > than sampleProb
-      randSurvMat <- runif(1, 0.001, 0.999)
-
       ### Population dynamics submodel
       alphaMat[y, ] <- ifelse(prod == "decline" & alphaMat[y - 1, ] > finalAlpha,
                               alphaMat[y - 1, ] + trendAlpha,
@@ -1143,19 +1135,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
       #CU specific draws from shared distribution
       obsErrDat[["singC"]] <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0, obsSingCatchSig))
 
-      #Sample a proportion of subpops and apply expansion factor
-      # NOTE SUBSAMPLING CURRENTLY UNTESTED (artifact from CSAS model)
-      obsS[y, 1:nSampleCU] <- obsSBias*S[y, 1:nSampleCU] * obsErrDat[1:nSampleCU, "spwn"]
-      obsSAg[y, n] <- sum(obsS[y, 1:nSampleCU]) * expFactor[n]
-
-      if (randSurvMat <= sampleProb) {
-        obsSAgWNA[y, n] <- obsSAg[y, n]
-      }
-      if (randSurvMat > sampleProb) {
-        obsSAg[y, n] <- obsSAg[y - 1, n]
-        obsSAgWNA[y, n] <- NA
-        obsS[y, ] <- NA
-      }
+      obsS[y, ] <- S[y, ] * obsErrDat[["spwn"]]
+      obsSAg[y, n] <- sum(obsS[y, ])
 
       obsAmCatch[y, ] <- calcObsCatch(amCatch[y, ], recRY[y, ], manUnit,
                                       tauCatch, stkID, obsErrDat[["mixC"]],
@@ -1181,11 +1162,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
                                           obsSingCatch[y, ]) / obsRecRY[y, ]))
       obsExpRate[obsRecRY == 0] <- 0
       obsExpRateAg[y, n] <- mean(obsExpRate[y, ])
-
-      #Is this recruitment observed based on sampleProb value?
-      if (randSurvMat > sampleProb) {
-        obsRecRY[y, ] <- NA
-      }
 
       #___________________________________________________________________
       ### Assessment submodel
