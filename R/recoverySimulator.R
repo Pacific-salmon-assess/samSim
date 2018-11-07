@@ -407,6 +407,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
   migMortArray <- array(NA, dim = c(nYears, nCU, nTrials))
   singCatchArray <- array(NA, dim = c(nYears, nCU, nTrials))
   singTACArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  totalCatchArray <- array(NA, dim = c(nYears, nCU, nTrials))
 
   #Plotting matrices and vectors
   hcr <- matrix(NA, nrow = nTrials, ncol = nCU)
@@ -1502,6 +1503,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
     migMortArray[ , , n] <- migMort
     singCatchArray[ , , n] <- singCatch
     singTACArray[ , , n] <- singTAC
+    totalCatchArray[ , , n] <- totalCatch
 
     #Store trial and CU specific means, variances, and proportions to add to aggregate data frame
     #id variables for plotting
@@ -1588,11 +1590,11 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
                      paste(nameOM, nameMP, "cuDat.RData", sep = "_"))
   saveRDS(cuList, file = paste(here("outputs/simData"), dirPath, fileName, sep = "/"))
 
-  # Data to look at changes in synchrony
+  # CU- and trial-specific time series data (e.g. used to calculate synchrony)
   synchList <- list(nameOM, plotOrder, nPrime, spwnrArray, recArray, logRSArray,
-                    recDevArray, migMortArray, singCatchArray)
+                    recDevArray, migMortArray, singCatchArray, totalCatchArray)
   names(synchList) <- c("nameOM", "plotOrder", "nPrime", "S", "recBY", "logRS",
-                        "recDev", "migMort", "singCatch")
+                        "recDev", "migMort", "singCatch", "totCatch")
   fileName <- ifelse(variableCU == "TRUE",
                      paste(cuNameOM, cuNameMP, "synchArrays.RData", sep = "_"),
                      paste(nameOM, nameMP, "synchArrays.RData", sep = "_"))

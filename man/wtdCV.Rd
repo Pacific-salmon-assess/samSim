@@ -30,4 +30,5 @@ mean abundance. Based on equation 4 in Thibaut and Connolly 2013.
 \examples{
 r <- recMatrix[1:10, ]
 wtdCV(r, weightMat = NULL, weight = TRUE)
+
 }
