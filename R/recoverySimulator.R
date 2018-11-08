@@ -281,7 +281,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
   ppn5 <- ageStruc[, 4]
   ppn6 <- ageStruc[, 5]
   cycle <- genCycle(min(recDat[[1]]$yr), nYears) #vector used to orient Larkin BM estimates and TAM rules
-  nSampleCU <- round(propSampleCU * nCU) #number of CUs sampled
   drawTrial <- round(runif(1, min = 0.5, max = nTrials)) #randomly selects trial to draw and plot
   obsErrDat <- data.frame(mu = manUnit, #df used to store MU-specific observation errors; can't use matrix because mix of numeric and characters; updated annually
                           cu = stkName,
@@ -1150,7 +1149,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
                                   obsSingCatch[y, ])
       obsCatchAg[y, n] <- sum(obsAmCatch[y, ] + obsMixCatch[y, ] + obsSingCatch[y, ],
                               na.rm = TRUE)
-      obsRecRY[y, ] <- obsS[y, c(1:nSampleCU)] + migMort[y, ] + obsAmCatch[y, ] +
+      obsRecRY[y, ] <- obsS[y, ] + migMort[y, ] + obsAmCatch[y, ] +
         obsMixCatch[y, ] + obsSingCatch[y, ]
       obsRecRYAg[y, n] <- sum(obsRecRY[y, ], na.rm = TRUE)
       obsExpRate[y, ] <- ifelse((obsAmCatch[y, ] + obsMixCatch[y, ] +
