@@ -984,26 +984,28 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
       }
       ppnOpenFishery[y, n] <- mean(openFishery[y, ])
       if (harvContRule == "TAM") {
+        #should fisheries be constrained
         overlapConstraint[y, ] <- constrain(foreRecRYManU[y, ], highRefPt[y, ],
-                                            manAdjustment, manUnit)$muConstrained #should fisheries be constrained
+                                            manAdjustment, manUnit)$muConstrained
       }
 
-      #Should single stock TAC be taken? Should eventually be replaced w/ obs model
+      #Should single stock TAC be taken?
+      #Should eventually be replaced w/ obs model and estimated BMs
       for (k in 1:nCU) {
         if (model[k] == "ricker") {
-          if (median(S[(y - 1):(y - gen), k]) >= lowerBM[y - 1, k]) {
+          if (median(obsS[(y - 1):(y - gen), k]) >= lowerBM[y - 1, k]) {
             counterSingleBMLow[y, k] <- 1
           }
-          if (median(S[(y - 1):(y - gen), k]) >= upperBM[y - 1, k]) {
+          if (median(obsS[(y - 1):(y - gen), k]) >= upperBM[y - 1, k]) {
             counterSingleBMHigh[y, k] <- 1
           }
         }
         #larkin HCR only applies to dominant line (no median)
         if (model[k] == "larkin" & cycle[y] == domCycle[k]) {
-          if (S[y - gen, k] >= lowerBM[y - 1, k]) {
+          if (obsS[y - gen, k] >= lowerBM[y - 1, k]) {
             counterSingleBMLow[y, k] <- 1
           }
-          if (S[y - gen, k] >= upperBM[y - 1, k]) {
+          if (obsS[y - gen, k] >= upperBM[y - 1, k]) {
             counterSingleBMHigh[y, k] <- 1
           }
         }
@@ -1038,17 +1040,14 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
       mixTAC[y, ] <- tacs[['mixTAC']] * truePpn
       mixTAC[is.na(mixTAC)] <- 0
 
-      ### CHANGE TO forecastPpn ONCE HCRs FINALIZED ###
-
+      #NOTE THAT USE OF FORECAST PPN CAUSES MIX AND SINGLE TO DIVERGE
       singTAC[y ,] <- if (ppnMix == "flex") {
         #if using flexing secondary HCR single fishery TAC = the foregone TAC
         #from the mixed-stock fishery
-        (tacs[["unconMixTAC"]] - tacs[['mixTAC']]) * truePpn
+        (tacs[["unconMixTAC"]] - tacs[['mixTAC']]) * forecastPpn
       } else {
-        tacs[['singTAC']] * truePpn
+        tacs[['singTAC']] * forecastPpn
       }
-
-      ### CHANGE TO forecastPpn ONCE HCRs FINALIZED ###
 
       ## Apply secondary HCR if appropriate
       if (singleHCR == TRUE) {
@@ -1133,7 +1132,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
       #observed spawner error; also used to generate en route mortality estimate
       obsErrDat[["spwn"]] <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0, obsSig))
       #CU specific draws from shared distribution
-      obsErrDat[["singC"]] <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0, obsSingCatchSig))
+      obsErrDat[["singC"]] <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0,
+                                        obsSingCatchSig))
 
       obsS[y, ] <- S[y, ] * obsErrDat[["spwn"]]
       obsSAg[y, n] <- sum(obsS[y, ])
