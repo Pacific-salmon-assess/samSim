@@ -36,7 +36,7 @@ coordRadar <- function(theta = "x", start = 0, direction = 1) {
 #' and specifies along which categorical variable dot plots should be grouped.
 #' @param legendLab A character representing the legend title.
 #' @param xLab A character representing the x axis label.
-#' @param yLab A character representing the y axis label.
+#' @param mainLab A character representing the main label
 #' @return Returns a ggplot object.
 #'
 #' @examples
@@ -49,7 +49,7 @@ coordRadar <- function(theta = "x", start = 0, direction = 1) {
 #'
 #' @export
 plotRadar <- function(dat, xLab, plotVars = NULL, groupingVar = NULL, cu = FALSE,
-                      legendLab = NULL, axisSize = 13) {
+                      mainLab = NULL, legendLab = NULL, axisSize = 13) {
   if (cu == TRUE) {
     warning("Facet wrap non-functional with radar plots. If plotting CU-specific
             data, generate list of unique dataframes and plot w/ sapply.")
@@ -92,7 +92,7 @@ plotRadar <- function(dat, xLab, plotVars = NULL, groupingVar = NULL, cu = FALSE
           legend.background = element_rect(colour = NA, fill = NA),
           plot.margin = unit(c(5.5, 5.5, 6.5, 5.5), "pt")
     ) +
-    xlab("") + ylab("") +
+    xlab("") + ylab("") + ggtitle(mainLab) +
     scale_color_manual(name = legendLab, values = colPal) +
     coordRadar()
   return(p)

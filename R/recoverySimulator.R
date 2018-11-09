@@ -15,15 +15,15 @@
 
 #Temporary inputs
 # here <- here::here
-# simParF <- read.csv(here("data/manProcScenarios/fraserMPInputs_varyMixPpn.csv"),
+# simParF <- read.csv(here("data/manProcScenarios/fraserMPInputs_varyMixPpnHCRs.csv"),
 # stringsAsFactors = F)
-# simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorr.csv"), stringsAsFactors = F)
 # cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
 # srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
 # catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors=F)
 # ricPars <- read.csv(here("data/fraserDat/rickerMCMCPars.csv"), stringsAsFactors=F)
 # larkPars <- read.csv(here("data/fraserDat/larkinMCMCPars.csv"), stringsAsFactors=F)
 # tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
+
 # cuCustomCorrMat <- read.csv(here("data/fraserDat/prodCorrMatrix.csv"), stringsAsFactors=F)
 # erCorrMat <- read.csv(here("data/fraserDat/erMortCorrMatrix.csv"), stringsAsFactors=F,
 #                       row.names = NULL)
@@ -40,7 +40,7 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 5
-# simPar <- simParF[1, ]
+# simPar <- simParF[12, ]
 # multipleMPs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 
 
@@ -523,6 +523,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
     amExpRate <- matrix(NA, nrow = nYears, ncol = nCU)
     mixExpRate <- matrix(NA, nrow = nYears, ncol = nCU)
     singExpRate <- matrix(NA, nrow = nYears, ncol = nCU)
+    singleStockStatus <- matrix(NA, nrow = nYears, ncol = nCU) #compared to BBs to determine whether singleTAC is taken (unless singleHCR = false)
     obsAmCatch <- matrix(NA, nrow = nYears, ncol = nCU)
     obsMixCatch <- matrix(NA, nrow = nYears, ncol = nCU)
     obsMigMort <- matrix(NA, nrow = nYears, ncol = nCU)
@@ -941,9 +942,10 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
       #___________________________________________________________________
       ### Management submodel (i.e. HCRs and catch)
       #Calculate forecasts and benchmarks at CU level
-      if (is.null(forecastMean)) { # if no forecast available assume it's observed perfectly when setting ERs
+      #If no forecast available assume it's obsperfectly when setting ERs
+      if (is.null(forecastMean)) {
         obsErrDat[["forecast"]] <-  1
-      } else { #draw from TRUNCATED normal distribution bounded by 0 and large value
+      } else {
         obsErrDat[["forecast"]] <- exp(qnorm(runif(nCU, 0.0001, 0.9999),
                                              log(forecastMean), forecastSig))
       }
@@ -958,8 +960,10 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
         recRYManU[y, k] <- sum(recRY[y, MUs])
         foreRecRYManU[y, k] <- sum(foreRecRY[y, MUs])
         if (harvContRule == "TAM") {
-          lowRefPt[y, k] <- tamFRP[tamFRP$cyc == cycle[y] & tamFRP$manUnit == manUnit[k], "lowRefPt"]
-          highRefPt[y, k] <- tamFRP[tamFRP$cyc == cycle[y] & tamFRP$manUnit == manUnit[k], "highRefPt"]
+          lowRefPt[y, k] <- tamFRP[tamFRP$cyc == cycle[y] &
+                                     tamFRP$manUnit == manUnit[k], "lowRefPt"]
+          highRefPt[y, k] <- tamFRP[tamFRP$cyc == cycle[y] &
+                                      tamFRP$manUnit == manUnit[k], "highRefPt"]
         }
       }
 
@@ -967,10 +971,14 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
       for (m in 1:nMU) {
         CUs <- which(manUnit %in% muName[m])
         if (species == "sockeye") {
-          lowRefPtMU[y, m] <- tamFRP[tamFRP$cyc == cycle[y] & tamFRP$manUnit == muName[m], "lowRefPt"]
-          highRefPtMU[y, m] <- tamFRP[tamFRP$cyc == cycle[y] & tamFRP$manUnit == muName[m], "highRefPt"]
+          lowRefPtMU[y, m] <- tamFRP[tamFRP$cyc == cycle[y] &
+                                       tamFRP$manUnit == muName[m], "lowRefPt"]
+          highRefPtMU[y, m] <- tamFRP[tamFRP$cyc == cycle[y] &
+                                        tamFRP$manUnit == muName[m], "highRefPt"]
+          #if forecasted recruitment within an MU is over lower ref pt,
+          #assume fishery should be open
           openFishery[y, m] <- ifelse(sum(foreRecRY[y, CUs]) > lowRefPtMU[y, m],
-                                      1, 0) #if forecasted recruitment within an MU is over lower ref pt, assume fishery should be open
+                                      1, 0)
         }
         if (species == "chum") {
           lowRefPtMU[y, m] <- 0.1 #target exploitation rate for Canadian fisheries in Nass MU
@@ -986,28 +994,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
         #should fisheries be constrained
         overlapConstraint[y, ] <- constrain(foreRecRYManU[y, ], highRefPt[y, ],
                                             manAdjustment, manUnit)$muConstrained
-      }
-
-      #Should single stock TAC be taken?
-      #Should eventually be replaced w/ obs model and estimated BMs
-      for (k in 1:nCU) {
-        if (model[k] == "ricker") {
-          if (median(obsS[(y - 1):(y - gen), k]) >= lowerBM[y - 1, k]) {
-            counterSingleBMLow[y, k] <- 1
-          }
-          if (median(obsS[(y - 1):(y - gen), k]) >= upperBM[y - 1, k]) {
-            counterSingleBMHigh[y, k] <- 1
-          }
-        }
-        #larkin HCR only applies to dominant line (no median)
-        if (model[k] == "larkin" & cycle[y] == domCycle[k]) {
-          if (obsS[y - gen, k] >= lowerBM[y - 1, k]) {
-            counterSingleBMLow[y, k] <- 1
-          }
-          if (obsS[y - gen, k] >= upperBM[y - 1, k]) {
-            counterSingleBMHigh[y, k] <- 1
-          }
-        }
       }
 
       #Calculate catches w/ error; will be redrawn each year to add unique error
@@ -1048,8 +1034,45 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
         tacs[['singTAC']] * forecastPpn
       }
 
-      ## Apply secondary HCR if appropriate
-      if (singleHCR == TRUE) {
+      #Should single stock TAC be taken?
+      #Secondary HCR option 1 uses forecasted spawner abundance
+      #(i.e. rec - mixCatch)
+      if (singleHCR == "forecast") {
+        singleStockStatus[y, ] <- foreRecRY[y, ] - amTAC[y, ] - mixTAC[y, ]
+      }
+      for (k in 1:nCU) {
+        if (model[k] == "ricker") {
+          #Secondary HCR option 2 uses median obsS abundance over previous gen
+          #Needs to be in for loop because calc depends on whether stock is cyclic
+          #or not; should eventually be replaced w/ estimated BMs
+          if (singleHCR == "retro") {
+            singleStockStatus[y, k] <- median(obsS[(y - 1):(y - gen), k])
+          }
+          if (singleStockStatus[y, k] >= lowerBM[y - 1, k]) {
+            counterSingleBMLow[y, k] <- 1
+          }
+          if (singleStockStatus[y, k] >= upperBM[y - 1, k]) {
+            counterSingleBMHigh[y, k] <- 1
+          }
+        }
+        #Larkin HCR only applies to dominant line (no median)
+        if (model[k] == "larkin" & cycle[y] == domCycle[k]) {
+          if (singleHCR == "retro") {
+            singleStockStatus[y, k] <- obsS[y - gen, k]
+          }
+          #NOTE that BMs for Larkin stocks use only dominant cycle line so
+          #aligning lowerBM with cycle line is not necessary
+          if (singleStockStatus[y, k] >= lowerBM[y - 1, k]) {
+            counterSingleBMLow[y, k] <- 1
+          }
+          if (singleStockStatus[y, k] >= upperBM[y - 1, k]) {
+            counterSingleBMHigh[y, k] <- 1
+          }
+        }
+      }
+
+      ## Apply secondary HCR as appropriate
+      if (singleHCR != FALSE) {
         for (k in 1:nCU) {
           if (moveTAC == TRUE) {
             #identify which CUs in the MU are above their upper OCP and in the same Mu
@@ -1290,7 +1313,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
             lowerObsBM[y, k] <- estS25th[y, k, n]
           }
         }
-        if (model[k] == "larkin" & cycle[y] != domCycle[k]) { # only save status for Larkin stocks when on dom cycle line otherwise use previous status
+        #only save status for Larkin stocks on dom cycle otherwise use prev status
+        if (model[k] == "larkin" & cycle[y] != domCycle[k]) {
           upperBM[y, k] <- upperBM[y - 1, k]
           lowerBM[y, k] <- lowerBM[y - 1, k]
           upperObsBM[y, k] <- upperObsBM[y - 1, k]
