@@ -5,10 +5,12 @@
 \title{Radar plot}
 \usage{
 plotRadar(dat, xLab, plotVars = NULL, groupingVar = NULL, cu = FALSE,
-  legendLab = NULL, axisSize = 13)
+  mainLab = NULL, legendLab = NULL, axisSize = 13)
 }
 \arguments{
 \item{xLab}{A character representing the x axis label.}
+
+\item{mainLab}{A character representing the main label}
 
 \item{legendLab}{A character representing the legend title.}
 
@@ -19,8 +21,6 @@ either catch- or conservation-based).}
 
 \item{group}{A character value that can take the values: \code{"mp", "om"}
 and specifies along which categorical variable dot plots should be grouped.}
-
-\item{yLab}{A character representing the y axis label.}
 }
 \value{
 Returns a ggplot object.

@@ -523,7 +523,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
     amExpRate <- matrix(NA, nrow = nYears, ncol = nCU)
     mixExpRate <- matrix(NA, nrow = nYears, ncol = nCU)
     singExpRate <- matrix(NA, nrow = nYears, ncol = nCU)
-    singleStockStatus <- matrix(NA, nrow = nYears, ncol = nCU) #compared to BBs to determine whether singleTAC is taken (unless singleHCR = false)
+    singCUStatus <- matrix(NA, nrow = nYears, ncol = nCU) #compared to BBs to determine whether singleTAC is taken (unless singleHCR = false)
     obsAmCatch <- matrix(NA, nrow = nYears, ncol = nCU)
     obsMixCatch <- matrix(NA, nrow = nYears, ncol = nCU)
     obsMigMort <- matrix(NA, nrow = nYears, ncol = nCU)
@@ -1036,36 +1036,41 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
 
       #Should single stock TAC be taken?
       #Secondary HCR option 1 uses forecasted spawner abundance
-      #(i.e. rec - mixCatch)
       if (singleHCR == "forecast") {
-        singleStockStatus[y, ] <- foreRecRY[y, ] - amTAC[y, ] - mixTAC[y, ]
+        #mortality adjustment is used to scale spawner abundance down based on average
+        #en route mortality and a constant that determines where fishery occurs (preFMigMort)
+        mortAdjustment <- sapply(manAdjustment, function(x) ifelse(preFMigMort == 0,
+                                                                   1,
+                                                                   preFMigMort * (1 + x)))
+        singCUStatus[y, ] <- (foreRecRY[y, ] / mortAdjustment) - amTAC[y, ] - mixTAC[y, ]
       }
+
       for (k in 1:nCU) {
         if (model[k] == "ricker") {
           #Secondary HCR option 2 uses median obsS abundance over previous gen
           #Needs to be in for loop because calc depends on whether stock is cyclic
           #or not; should eventually be replaced w/ estimated BMs
           if (singleHCR == "retro") {
-            singleStockStatus[y, k] <- median(obsS[(y - 1):(y - gen), k])
+            singCUStatus[y, k] <- median(obsS[(y - 1):(y - gen), k])
           }
-          if (singleStockStatus[y, k] >= lowerBM[y - 1, k]) {
+          if (singCUStatus[y, k] >= lowerBM[y - 1, k]) {
             counterSingleBMLow[y, k] <- 1
           }
-          if (singleStockStatus[y, k] >= upperBM[y - 1, k]) {
+          if (singCUStatus[y, k] >= upperBM[y - 1, k]) {
             counterSingleBMHigh[y, k] <- 1
           }
         }
         #Larkin HCR only applies to dominant line (no median)
         if (model[k] == "larkin" & cycle[y] == domCycle[k]) {
           if (singleHCR == "retro") {
-            singleStockStatus[y, k] <- obsS[y - gen, k]
+            singCUStatus[y, k] <- obsS[y - gen, k]
           }
           #NOTE that BMs for Larkin stocks use only dominant cycle line so
           #aligning lowerBM with cycle line is not necessary
-          if (singleStockStatus[y, k] >= lowerBM[y - 1, k]) {
+          if (singCUStatus[y, k] >= lowerBM[y - 1, k]) {
             counterSingleBMLow[y, k] <- 1
           }
-          if (singleStockStatus[y, k] >= upperBM[y - 1, k]) {
+          if (singCUStatus[y, k] >= upperBM[y - 1, k]) {
             counterSingleBMHigh[y, k] <- 1
           }
         }

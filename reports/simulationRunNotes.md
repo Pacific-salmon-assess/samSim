@@ -1,11 +1,39 @@
 # Notes on Simulation Runs #
 ## Organized reverse-chronologically ##
 
+#### Run single stock scenarios w/ secondary HCRs (Nov. 9)
+-	Run retrospective w/ no secondary HCR, as well as forecasting and 	retrospective options
+-	See singleStock/mdReports/secondaryHCRs.Rmd for details
+
+#### Run single stock scenarios w/ productivity (Nov. 9)
+-	Run retrospective secondary HCR w/ skewed normal or low alpha
+-	See singleStock/mdReports/productivity.Rmd for details
+
+#### Run single stock scenarios w/ uncertainty (Nov. 8)
+-	Manipulate tauCatch, obsS, obsCatch, OU, and ageErr independently 	to evaluate relative impact on proportion allocation effects
+-	See singleStock/mdReports/uncertainty.Rmd for details
+
 #### Rerun full spectrum of single stock scenarios - (Oct 25)
+-	Easiest to look at early catch and early spawner abundance
 -	Reference case (no mixed stock constraints, no secondary harvest 	control rule, no moving TAC and no en route mortality) mix and 	single stock TAC will differ because mixTAC is split by true 	proportions, singleTAC by forecast proportions
 	-	Furthermore, realized catches will differ due to uncorrelated 	outcome uncertainty
--	Constrain only: generally single bigger than mixed (as expected), 	but due to patterns described above possible for individual years 	to have mix catches bigger than single
--	Single HCR only
+-	Aggregate
+	-	Early basically as expected
+		-	Constraint results in pos. correlation between mix and cons
+		-	Single HCR results in opposite, pos. correlation between 	single and mix
+		-	Single + constraint dampens differences between mixed and 	single resulting in increased S and decreased C overall
+		-	Moving TAC further dampens differences, reducing aggregate 	spawner abundance considerably
+		-	Adding ER mortality before harvest completely removes 	spawner abundances, but catches obviously still decline
+	-	Differences between late and early results
+		-	Relative benefits of mixed ppn (constraint only) weakens 	suggesting that catches benefit over long term
+		-	Other trends typically weeaken suggesting that there is a 	high probability of less catch, but probability of greater 	spawner abundance is more dubious
+		-	However impacts on status are generally stronger
+-	CU-specific
+	-	Constrain only: generally single bigger than mixed (as expected), 	but due to patterns described above possible for individual years 	to have mix catches bigger than single
+	-	Single HCR only: generally mixed bigger than single as expected 	(note that over entire simulation period some weird patterns emerge 	due to abundance being driven down)
+	-	Single HCR + constraint: primarily driven by single HCR so that 	catches maximized at high mixed proportion
+	-	Single + cons + moveTAC: similar to above but magnifies differences 	among CUs (e.g. healthy CUs like Chilko differ from depleted)
+	-	Single + cons + ER before fishery: stocks with high ER and 	exploitation rates benefit from mixed stock fisheries, others 	resemble above (e.g. EStud); others are just noisy (e.g. Chilko)
 
 
 #### Compare MPs that do or do not reallocate TAC - (Oct 19)

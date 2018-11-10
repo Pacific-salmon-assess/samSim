@@ -477,3 +477,9 @@ Potential issues
 -	Add Aboriginal Fisheries Exclusion to Fraser TAM rule
 -	This guarantees 400k fish to Canadian TAC prior to US TAC being calculated
 	-	I.e. AM TAC is calculated with US ER assuming that aggregate abundance is 	400k smaller and that those 400k fish are distributed proportionally across 	MUs
+
+
+### XXXXIV) Add forecast based secondary HCR (Nov 9)
+-	As alternative to retrospective HCR (i.e. based on median obs S over prev 	generation), add one based on forecasted spawner abundance
+-	Calculated using CU-specific forecasts of recruitment, adjusted downward by 	mean mortality rate if ER occurs before the fishery does, minus amTAC minus 	mixTAC
+-	Reference points are still the same, i.e. TAC is only taken if forecast is 	above lower BM
