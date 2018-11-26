@@ -7,6 +7,7 @@
 #' structure, survey design, and variable exploitation rules. OM uses Ricker
 #' formulation \code{R=S(exp(a-bS))}. Additional details in changesToChumModel.md
 #' in reports directory.
+#' @import magrittr
 #' @importFrom here here
 #' @importFrom dplyr group_by summarise
 #' @param y TO BE DEFINED
@@ -44,9 +45,10 @@
 # multipleMPs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 
 
-recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FALSE, multipleMPs=TRUE,
-                        ricPars, larkPars=NULL, tamFRP=NULL, cuCustomCorrMat=NULL, erCorrMat=NULL,
-                        dirName, nTrials=100, uniqueProd=TRUE) {
+recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
+                        variableCU=FALSE, multipleMPs=TRUE, ricPars,
+                        larkPars=NULL, tamFRP=NULL, cuCustomCorrMat=NULL,
+                        erCorrMat=NULL, dirName, nTrials=100, uniqueProd=TRUE) {
   set.seed(123)
 
   #_______________________________________________________________________
