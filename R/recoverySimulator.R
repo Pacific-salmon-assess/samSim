@@ -7,9 +7,8 @@
 #' structure, survey design, and variable exploitation rules. OM uses Ricker
 #' formulation \code{R=S(exp(a-bS))}. Additional details in changesToChumModel.md
 #' in reports directory.
-#' @import magrittr
 #' @importFrom here here
-#' @importFrom dplyr group_by summarise
+#' @importFrom dplyr filter group_by summarise
 #' @param y TO BE DEFINED
 #' @return TO BE DEFINED.
 #' @export
@@ -18,6 +17,8 @@
 # here <- here::here
 # simParF <- read.csv(here("data/manProcScenarios/fraserMPInputs_varyMixPpnHCRs.csv"),
 # stringsAsFactors = F)
+# simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorr.csv"),
+#                     stringsAsFactors = F)
 # cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
 # srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
 # catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors=F)
@@ -45,10 +46,9 @@
 # multipleMPs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 
 
-recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
-                        variableCU=FALSE, multipleMPs=TRUE, ricPars,
-                        larkPars=NULL, tamFRP=NULL, cuCustomCorrMat=NULL,
-                        erCorrMat=NULL, dirName, nTrials=100, uniqueProd=TRUE) {
+recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FALSE, multipleMPs=TRUE,
+                        ricPars, larkPars=NULL, tamFRP=NULL, cuCustomCorrMat=NULL, erCorrMat=NULL,
+                        dirName, nTrials=100, uniqueProd=TRUE) {
   set.seed(123)
 
   #_______________________________________________________________________
@@ -121,7 +121,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   }
   forecastMean <- cuPar$meanForecast
   forecastSig <- cuPar$sdForecast * simPar$adjustForecast
-  ageStruc <- matrix(c(cuPar$meanRec2, cuPar$meanRec3, cuPar$meanRec4, cuPar$meanRec5, cuPar$meanRec6), nrow=nCU, ncol=5) #mean proportion of each age class in returns
+  ageStruc <- matrix(c(cuPar$meanRec2, cuPar$meanRec3, cuPar$meanRec4,
+                       cuPar$meanRec5, cuPar$meanRec6), nrow=nCU, ncol=5) #mean proportion of each age class in returns
   nAges <- ncol(ageStruc) #total number of ages at return in ageStruc matrix (does not mean that modeled populations actually contain 4 ages at maturity)
   tauAge <- cuPar$tauCycAge * simPar$adjustAge #CU-specific variation in age-at-maturity, adjusted by scenario
   medAbundance <- cbind(cuPar$medianRec, cuPar$lowQRec, cuPar$highQRec) #matrix of long term abundances (median, lower and upper quantile)
@@ -136,22 +137,36 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     } else{
       recDat <- srDat
     }
-    recDat <- recDat[recDat$stk %in% cuPar$stk, ] #remove stocks from SR dataset that aren't in CU parameter inputs
+    #remove stocks from SR dataset that aren't in CU parameter inputs
+    recDat <- recDat %>%
+      dplyr::filter(stk %in% cuPar$stk) %>%
+      dplyr::rowwise() %>%
+      dplyr::mutate(totalRec = sum(rec2, rec3, rec4, rec5, rec6))
     if (length(unique(recDat$stk)) != length(unique(cuPar$stk))) {
       stop("SR input dataset does not match parameter inputs")
     }
-    recDat <- with(recDat, recDat[order(stk, yr),])
-    recDat$totRec <- apply(recDat[, c("rec2", "rec3", "rec4", "rec5", "rec6")],
-                           1, sum)
-    summRec <- recDat %>%
+    # trim SR data so that empty rows are excluded; otherwise gaps may be
+    # retained when catch data is more up to date
+    recDat <- recDat[!is.na(recDat$totalRec), ]
+    maxYears <- recDat %>%
             dplyr::group_by(stk) %>%
-            dplyr::summarise(tsLength = length(ets), maxRec = max(totRec,
-                                                                  na.rm = TRUE))
+            dplyr::summarise(maxYr = max(yr))
+    # crop any stks with time series that end at a late year
+    commonMaxYr <- min(maxYears$maxYr)
+    recDat <- recDat %>%
+      dplyr::filter(!yr > commonMaxYr)
+    recDat <- with(recDat, recDat[order(stk, yr),])
+    summRec <- recDat %>%
+      dplyr::group_by(stk) %>%
+      dplyr::summarise(tsLength = length(ets),
+                       maxRec = max(totalRec, na.rm = TRUE))
     nPrime <- max(summRec[, "tsLength"])
     recCap <- 3 * summRec$maxRec
     dumFull <- vector("list", nCU)
-    stkList <- unique(cuPar$stk) #list of stk numbers to pass to following for loop; only necessary when using a subset of CUs from input
-    for (k in 1:nCU) { #add NAs to front end of shorter TS to ensure all matrices are same length in SR list
+    #list of stk numbers to pass to following for loop
+    stkList <- unique(cuPar$stk)
+    #add NAs to front end of shorter TS to ensure all matrices are same length
+    for (k in 1:nCU) {
       dum <- recDat[recDat$stk == stkList[k], ]
       if (nrow(dum) < nPrime) {
         empties <- nPrime - nrow(dum)
@@ -162,7 +177,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       dumFull[[k]] <- dum
     }
     recDat <- dumFull
-    firstYr <- min(sapply(recDat, function(x) min(x$yr, na.rm=TRUE))) #calculate firstYr here because catch and rec data may differ in length
+    #calculate firstYr here because catch and rec data may differ in length
+    firstYr <- min(sapply(recDat, function(x) min(x$yr, na.rm=TRUE)))
   }
 
   ## Stock-recruitment parameters
@@ -200,7 +216,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     }
     if (prod == "decline") {
       srPars <- dum$pMed
-      finalRicA <- as.numeric(dum$pLow[["alpha"]]) #floor value to which A declines equals lower probabily
+      #floor value to which A declines equals lower probability
+      finalRicA <- as.numeric(dum$pLow[["alpha"]])
     }
     ricA <- srPars[["alpha"]]
     ricB <- srPars[["beta0"]]
@@ -575,24 +592,36 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       for (k in 1:nCU) {
         S[y, k] <- recDat[[k]]$ets[y]
         #calculate total recruitment as sum of all age classes
-        recBY[y, k] <- sum(recDat[[k]][y, c("rec2", "rec3", "rec4", "rec5", "rec6")])
+        recBY[y, k] <- sum(recDat[[k]][y, c("rec2", "rec3", "rec4", "rec5",
+                                            "rec6")])
         #each age is a matrix, columns CUs, rows years
         ppnAges[y, k, ] <- as.matrix(recDat[[k]][y, c("rec2", "rec3", "rec4",
                                                       "rec5", "rec6")] /
                                        recBY[y, k])
         #if ppns can't be estimated due to TS gaps replace with mean values
         for (j in 1:nAges) {
-          ppnAges[y, k, j] <- ifelse(is.na(ppnAges[y, k, j]), ageStruc[k, j], ppnAges[y, k, j])
+          ppnAges[y, k, j] <- ifelse(is.na(ppnAges[y, k, j]),
+                                     ageStruc[k, j],
+                                     ppnAges[y, k, j])
         }
         if (species == "sockeye") {
-          mixCatch[y, k] <- ifelse(exists("catchDat"), recDat[[k]]$marCatch[y], 0)
+          amCatch[y, k] <- 0 #not available for Fraser
+          mixCatch[y, k] <- ifelse(exists("catchDat"),
+                                   recDat[[k]]$marCatch[y],
+                                   0)
         } else {
           amCatch[y, k] <- ifelse(exists("catchDat"),
-                                  (recDat[[k]]$marCatch[y] - recDat[[k]]$canCatch[y]), 0)
-          mixCatch[y, k] <- ifelse(exists("catchDat"), recDat[[k]]$canCatch[y], 0)
+                                  (recDat[[k]]$marCatch[y] -
+                                     recDat[[k]]$canCatch[y]),
+                                  0)
+          mixCatch[y, k] <- ifelse(exists("catchDat"),
+                                   recDat[[k]]$canCatch[y],
+                                   0)
         }
-        singCatch[y, k] <- ifelse(exists("catchDat"), recDat[[k]]$frfnCatch[y], 0)
-        expRate[y, k] <- ifelse(exists("catchDat"), recDat[[k]]$totER[y], 0)
+        singCatch[y, k] <- ifelse(exists("catchDat"),
+                                  recDat[[k]]$frfnCatch[y],
+                                  0)
+        expRate[y, k] <- ifelse(exists("catchDat"), recDat[[k]]$totalER[y], 0)
         logRS[y, k] <- log(recBY[y, k] / S[y, k])
       }
       totalCatch[y, ] <- amCatch[y, ] + mixCatch[y, ] + singCatch[y, ]
@@ -601,11 +630,13 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       recBYAg[y, n] <- sum(recBY[y, ])
       mixCatchAg[y, n] <- sum(mixCatch[y, ], na.rm = TRUE)
       amCatchAg[y, n] <- sum(amCatch[y, ], na.rm = TRUE)
-      catchAg[y, n] <- sum(mixCatch[y, ], singCatch[y, ], amCatch[y, ], na.rm = TRUE)
+      catchAg[y, n] <- sum(mixCatch[y, ], singCatch[y, ], amCatch[y, ],
+                           na.rm = TRUE)
       # Aligned by return year
       if (y > 6) {
-        recRY[y, ] <- recBY[y - 2, ] * ppnAges[y - 2, , 1] + recBY[y - 3, ] * ppnAges[y - 3, , 2] +
-          recBY[y - 4, ] * ppnAges[y - 4, , 3] + recBY[y - 5, ] * ppnAges[y - 5, , 4] + recBY[y - 6, ] *
+        recRY[y, ] <- recBY[y - 2, ] * ppnAges[y - 2, , 1] + recBY[y - 3, ] *
+          ppnAges[y - 3, , 2] +  recBY[y - 4, ] * ppnAges[y - 4, , 3] +
+          recBY[y - 5, ] * ppnAges[y - 5, , 4] + recBY[y - 6, ] *
           ppnAges[y - 6, , 5]
         recRY2[y, ] <- recBY[y - 2, ] * ppnAges[y - 2, , 1]
         recRY3[y, ] <- recBY[y - 3, ] * ppnAges[y - 3, , 2]
@@ -858,7 +889,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       if (species == "sockeye") {
         obsLag <- 6
         # Assume true ppns of recRY in this stock assessment step
-        obsRecBY_noAgeErr[y-obsLag,] <- obsRecRY[y - 4, ] * ppnAge2Ret4[y - 4, ] +
+        obsRecBY_noAgeErr[y-obsLag, ] <- obsRecRY[y - 4, ] * ppnAge2Ret4[y - 4, ] +
           obsRecRY[y - 3, ] * ppnAge3Ret3[y - 3, ] + obsRecRY[y - 2, ] *
           ppnAge4Ret2[y - 2, ] + obsRecRY[y - 1, ] * ppnAge5Ret1[y - 1, ]
       }
@@ -1047,33 +1078,37 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         singCUStatus[y, ] <- (foreRecRY[y, ] / mortAdjustment) - amTAC[y, ] - mixTAC[y, ]
       }
 
-      for (k in 1:nCU) {
-        if (model[k] == "ricker") {
-          #Secondary HCR option 2 uses median obsS abundance over previous gen
-          #Needs to be in for loop because calc depends on whether stock is cyclic
-          #or not; should eventually be replaced w/ estimated BMs
-          if (singleHCR == "retro") {
-            singCUStatus[y, k] <- median(obsS[(y - 1):(y - gen), k])
+      #If a single stock HCR is in effect, assess status based on forecast or
+      #retro calculation.
+      if (singleHCR != FALSE) {
+        for (k in 1:nCU) {
+          if (model[k] == "ricker") {
+            #Secondary HCR option 2 uses median obsS abundance over previous gen
+            #Needs to be in for loop because calc depends on whether stock is cyclic
+            #or not; should eventually be replaced w/ estimated BMs
+            if (singleHCR == "retro") {
+              singCUStatus[y, k] <- median(obsS[(y - 1):(y - gen), k])
+            }
+            if (singCUStatus[y, k] >= lowerBM[y - 1, k]) {
+              counterSingleBMLow[y, k] <- 1
+            }
+            if (singCUStatus[y, k] >= upperBM[y - 1, k]) {
+              counterSingleBMHigh[y, k] <- 1
+            }
           }
-          if (singCUStatus[y, k] >= lowerBM[y - 1, k]) {
-            counterSingleBMLow[y, k] <- 1
-          }
-          if (singCUStatus[y, k] >= upperBM[y - 1, k]) {
-            counterSingleBMHigh[y, k] <- 1
-          }
-        }
-        #Larkin HCR only applies to dominant line (no median)
-        if (model[k] == "larkin" & cycle[y] == domCycle[k]) {
-          if (singleHCR == "retro") {
-            singCUStatus[y, k] <- obsS[y - gen, k]
-          }
-          #NOTE that BMs for Larkin stocks use only dominant cycle line so
-          #aligning lowerBM with cycle line is not necessary
-          if (singCUStatus[y, k] >= lowerBM[y - 1, k]) {
-            counterSingleBMLow[y, k] <- 1
-          }
-          if (singCUStatus[y, k] >= upperBM[y - 1, k]) {
-            counterSingleBMHigh[y, k] <- 1
+          #Larkin HCR only applies to dominant line (no median)
+          if (model[k] == "larkin" & cycle[y] == domCycle[k]) {
+            if (singleHCR == "retro") {
+              singCUStatus[y, k] <- obsS[y - gen, k]
+            }
+            #NOTE that BMs for Larkin stocks use only dominant cycle line so
+            #aligning lowerBM with cycle line is not necessary
+            if (singCUStatus[y, k] >= lowerBM[y - 1, k]) {
+              counterSingleBMLow[y, k] <- 1
+            }
+            if (singCUStatus[y, k] >= upperBM[y - 1, k]) {
+              counterSingleBMHigh[y, k] <- 1
+            }
           }
         }
       }
@@ -1177,7 +1212,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       obsSingCatch[y, ] <- singCatch[y, ] * obsErrDat[["singC"]]
       obsSingCatch[y, ] <- ifelse(obsSingCatch[y, ] < (0.1 * extinctThresh), 0,
                                   obsSingCatch[y, ])
-      obsCatchAg[y, n] <- sum(obsAmCatch[y, ] + obsMixCatch[y, ] + obsSingCatch[y, ],
+      obsCatchAg[y, n] <- sum(obsAmCatch[y, ] + obsMixCatch[y, ] +
+                                obsSingCatch[y, ],
                               na.rm = TRUE)
       obsRecRY[y, ] <- obsS[y, ] + migMort[y, ] + obsAmCatch[y, ] +
         obsMixCatch[y, ] + obsSingCatch[y, ]
@@ -1223,15 +1259,17 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         estRicA[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estYi[y, k, n])
         #Calculate SR BMs
         estSMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
-                                   (1 - gsl::lambert_W0(exp(1 - estRicA[y, k, n]))) /
+                                   (1 - gsl::lambert_W0(exp(
+                                     1 - estRicA[y, k, n]))) /
                                      estRicB[y, k, n])
         if (is.na(estRicB[y, k, n]) == FALSE) {
           if (estRicB[y, k, n] > 0) {
             if ((1 / estRicB[y, k, n]) <= max(obsS[,k], na.rm = TRUE) * 4) {
-              estSGen[y, k, n] <- as.numeric(sGenSolver(theta = c(estRicA[y, k, n],
-                                                                  estRicB[y, k, n],
-                                                                  ricSig[k]),
-                                                         sMSY = estSMSY[y, k, n]))
+              estSGen[y, k, n] <- as.numeric(sGenSolver(theta =
+                                                          c(estRicA[y, k, n],
+                                                            estRicB[y, k, n],
+                                                            ricSig[k]),
+                                                        sMSY = estSMSY[y, k, n]))
             } else {
               #if a BM cannot be estimated set it to the last estimated value
               estSGen[y, k, n] <- estSGen[max(which(!is.na(estSGen[, k, n]))), k, n]
@@ -1371,13 +1409,19 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     if (n == drawTrial) {
       # Generate indices of observation error
       obsSErr <- ifelse((obsS - S) / S == Inf, NA, (obsS - S) / S)
-      obsRecBYErr <- ifelse((obsRecBY - recBY) / recBY == Inf, NA, (obsRecBY - recBY) / recBY)
-      obsRecRYErr <- ifelse((obsRecRY - recRY) / recRY == Inf, NA, (obsRecRY - recRY) / recRY)
+      obsRecBYErr <- ifelse((obsRecBY - recBY) / recBY == Inf,
+                            NA,
+                            (obsRecBY - recBY) / recBY)
+      obsRecRYErr <- ifelse((obsRecRY - recRY) / recRY == Inf,
+                            NA,
+                            (obsRecRY - recRY) / recRY)
       obsMixCatchErr <- ifelse((obsMixCatch - mixCatch) / mixCatch == Inf |
-                                 (obsMixCatch - mixCatch) / mixCatch == -Inf, NA,
+                                 (obsMixCatch - mixCatch) / mixCatch == -Inf,
+                               NA,
                                (obsMixCatch - mixCatch) / mixCatch)
       obsSingCatchErr <- ifelse((obsSingCatch - singCatch) / singCatch == Inf |
-                                  (obsSingCatch - singCatch) / singCatch == -Inf, NA,
+                                  (obsSingCatch - singCatch) / singCatch == -Inf,
+                                NA,
                                 (obsSingCatch - singCatch) / singCatch)
       obsAmCatchErr <- ifelse((obsAmCatch - amCatch) / amCatch == Inf |
                                 (obsAmCatch - amCatch) / amCatch == -Inf, NA,

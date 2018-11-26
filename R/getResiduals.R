@@ -5,8 +5,6 @@
 #' deviations. Useful for posterior predictive comparisons and generating
 #' output figures if model residuals are a variable of interest.
 #'
-#' @importFrom dplyr filter mutate
-#'
 #' @param recList A list of length nCU with each element a dataframe with nrow
 #' = to length of the maximum observed timeseries. Each dataframe should
 #' contain the following columns: an estimate of total recruitment (by brood
@@ -25,9 +23,9 @@
 getResiduals <- function(recList, modelVec) {
   residMat <- sapply(seq_along(recList), function(h) {
     d <- recList[[h]] %>%
-      mutate(model = modelVec[h], logProd = log(totRec/ets),
-             spwnRetYr = yr + 4, ets1 = NA, ets2 = NA, ets3 = NA,
-             resid = NA)
+      dplyr::mutate(model = modelVec[h], logProd = log(totalRec/ets),
+                    spwnRetYr = yr + 4, ets1 = NA, ets2 = NA, ets3 = NA,
+                    resid = NA)
     for (i in 1:nrow(d)) { #add top-fitting SR model
       d$ets1[i] <- ifelse(i < 1, NA, d$ets[i - 1])
       d$ets2[i] <- ifelse(i < 2, NA, d$ets[i - 2])
@@ -35,11 +33,11 @@ getResiduals <- function(recList, modelVec) {
     }
     if (unique(d$model) == "ricker") {
       d2 <- d %>%
-        filter(!is.na(logProd))
+        dplyr::filter(!is.na(logProd))
       d2$resid = lm(logProd ~ ets, data = d2)$residuals
     } else {
       d2 <- d %>%
-        filter(!is.na(logProd), !is.na(ets3))
+        dplyr::filter(!is.na(logProd), !is.na(ets3))
       d2$resid = lm(logProd ~ ets + ets1 + ets2 + ets3, data = d2)$residuals
     }
     d[d$yr %in% d2$yr, "resid"] <- d2$resid
