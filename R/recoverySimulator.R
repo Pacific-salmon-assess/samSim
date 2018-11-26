@@ -106,11 +106,11 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
     amER <- cuPar$usER #American exploitation rate shared
   }
   minER <- cuPar$minER #minimum exploitation rate applied with TAM rule even at low abundance
-  if (is.null(cuPar$medDBE)) {
+  if (is.null(cuPar$meanDBE)) {
     enRouteMR <- rep(0, length.out = nrow(cuPar))
     enRouteSig <- rep(0, length.out = nrow(cuPar))
   } else { # FRASER ONLY; en-route mortality rate (i.e. between marine fisheries and terminal fisheries) taken from in-river difference between estimates (post-2000); replace NAs w/ 0s
-    enRouteMR <- cuPar$medDBE
+    enRouteMR <- cuPar$meanDBE
     enRouteSig <- cuPar$sdDBE
   }
   enRouteSig <- enRouteSig * simPar$adjustEnRoute #adjust en route mortality variation for sensitivity analysis
@@ -770,8 +770,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
       } #end for k
       if (y > (nPrime - 6)) {
         recRY[y, ] <- recBY[y - 2, ] * ppnAges[y - 2, , 1] +
-          recBY[y - 3, ] * ppnAges[y - 3,  , 2] + recBY[y - 4, ] * ppnAges[y - 4, , 3] +
-          recBY[y - 5, ] * ppnAges[y - 5, , 4] + recBY[y - 6, ] * ppnAges[y - 6, , 5]
+          recBY[y - 3, ] * ppnAges[y - 3,  , 2] + recBY[y - 4, ] *
+          ppnAges[y - 4, , 3] + recBY[y - 5, ] * ppnAges[y - 5, , 4] +
+          recBY[y - 6, ] * ppnAges[y - 6, , 5]
         recRY2[y, ] <- recBY[y - 2, ] * ppnAges[y - 2, , 1]
         recRY3[y, ] <- recBY[y - 3, ] * ppnAges[y - 3, , 2]
         recRY4[y, ] <- recBY[y - 4, ] * ppnAges[y - 4, , 3]
@@ -1189,9 +1190,11 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
       # Generate MU-specific observation error
       for (m in seq_along(muName)) {
         #catch observation error for both Can and US fisheries
-        obsErrDat[obsErrDat$mu == muName[m], "mixC"] <- exp(qnorm(runif(1, 0.0001,
+        obsErrDat[obsErrDat$mu == muName[m], "mixC"] <- exp(qnorm(runif(1,
+                                                                        0.0001,
                                                                         0.9999),
-                                                                  0, obsMixCatchSig))
+                                                                  0,
+                                                                  obsMixCatchSig))
       }
       #observed spawner error; also used to generate en route mortality estimate
       obsErrDat[["spwn"]] <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0, obsSig))
