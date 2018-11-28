@@ -38,12 +38,12 @@
 # ricPars <- read.csv(here("data/northCoastDat/nassChumMCMCPars.csv"), stringsAsFactors=F)
 
 ## Misc. objects to run single trial w/ "reference" OM
-uniqueProd <- TRUE
-variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
-dirName <- "TEST"
-nTrials <- 5
-simPar <- simParF[12, ]
-multipleMPs <- TRUE #only false when running scenarios with multiple OMs and only one MP
+# uniqueProd <- TRUE
+# variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
+# dirName <- "TEST"
+# nTrials <- 5
+# simPar <- simParF[12, ]
+# multipleMPs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 
 
 recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FALSE, multipleMPs=TRUE,
