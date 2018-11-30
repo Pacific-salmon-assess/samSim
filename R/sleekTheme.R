@@ -1,7 +1,7 @@
 #' Minimalist ggplot theme
 #'
-#' This function is a copy of S. Anderson's \code{ggsidekick} which is not in
-#' the supported the newest R version. Adds an argument for top, bottom, middle
+#' This function is a copy of S. Anderson's \code{ggsidekick} which is not
+#' supported in the newest R version. Adds an argument for top, bottom, middle
 #' for multipanel functionality.
 #'
 #' @import ggplot2
@@ -32,8 +32,8 @@ theme_sleekX <- function(base_size = 11, base_family = "", position = "standard"
       strip.background = element_rect(fill = NA, colour = NA),
       strip.text.x = element_text(colour = "grey30", size = rel(facetSize)),
       strip.text.y = element_text(colour = "grey30"),
-      axis.text = element_text(colour = "grey30"),
-      axis.title = element_text(colour = "grey30"),
+      axis.text = element_text(colour = "grey30", size = 0.9*axisSize),
+      axis.title = element_text(colour = "grey30", size = axisSize),
       legend.title = element_text(colour = "grey30", size = rel(1.1 * legendSize)),
       panel.border = element_rect(fill = NA, colour = "grey70", size = 1),
       legend.key.size = unit(1, "lines"),
@@ -47,14 +47,14 @@ theme_sleekX <- function(base_size = 11, base_family = "", position = "standard"
     q <- q + theme(strip.background = element_blank(),
                    strip.text.x = element_blank(),
                    strip.text.y = element_blank(),
-                   axis.text.y = element_text(size = axisSize),
-                   axis.text.x = element_text(size = axisSize),
+                   axis.text.y = element_text(size = 0.9*axisSize),
+                   axis.text.x = element_text(size = 0.9*axisSize),
                    axis.title = element_text(size = axisSize)
     )
   }
   if (position == "top") {
     q <- q + theme(strip.text = element_text(size = axisSize),
-                   axis.text.y = element_text(size = axisSize),
+                   axis.text.y = element_text(size = 0.9*axisSize),
                    axis.text.x = element_blank(),
                    axis.title.y = element_text(size = axisSize),
                    axis.title.x = element_blank()
@@ -62,8 +62,8 @@ theme_sleekX <- function(base_size = 11, base_family = "", position = "standard"
   }
   if (position == "topWithX") {
     q <- q + theme(strip.text = element_text(size = axisSize),
-                   axis.text.y = element_text(size = axisSize),
-                   axis.text.x = element_text(size = axisSize),
+                   axis.text.y = element_text(size = 0.9*axisSize),
+                   axis.text.x = element_text(size = 0.9*axisSize),
                    axis.title.y = element_text(size = axisSize),
                    axis.title.x = element_blank()
     )
@@ -72,7 +72,7 @@ theme_sleekX <- function(base_size = 11, base_family = "", position = "standard"
     q <- q + theme(strip.background = element_blank(),
                    strip.text.x = element_blank(),
                    strip.text.y = element_blank(),
-                   axis.text.y = element_text(size = axisSize),
+                   axis.text.y = element_text(size = 0.9*axisSize),
                    axis.text.x = element_blank(),
                    axis.title.y = element_text(size = axisSize),
                    axis.title.x = element_blank()

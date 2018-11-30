@@ -29,7 +29,7 @@ Returns a minimalist ggplot (i.e. no grid lines, more white and less
 grey).
 }
 \description{
-This function is a copy of S. Anderson's \code{ggsidekick} which is not in
-the supported the newest R version. Adds an argument for top, bottom, middle
+This function is a copy of S. Anderson's \code{ggsidekick} which is not
+supported in the newest R version. Adds an argument for top, bottom, middle
 for multipanel functionality.
 }
