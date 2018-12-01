@@ -34,7 +34,3 @@ rsconnect/
 
 # Simulation outputs
 outputs
-
-# Private data
-data/fraserDat/
-data/northCoastDat/
