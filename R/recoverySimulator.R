@@ -254,6 +254,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
   }
   alpha <- ifelse(model == "ricker", ricA, larA)
   beta <- ifelse(model == "ricker", ricB, larB)
+  if (is.null(simPar$adjustBeta) == FALSE) {
+    beta <- beta * simPar$adjustBeta
+  }
   #adjust sigma up or down
   sig <- ifelse(model == "ricker", ricSig, larSig) * adjSig
   if (prod == "decline") {
