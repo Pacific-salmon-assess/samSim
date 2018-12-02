@@ -17,7 +17,7 @@
 # here <- here::here
 # simParF <- read.csv(here("data/manProcScenarios/fraserMPInputs_varyMixPpnHCRs.csv"),
 # stringsAsFactors = F)
-# simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorr.csv"),
+# simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorrAdjustBeta.csv"),
 #                     stringsAsFactors = F)
 # cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
 # srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
@@ -42,7 +42,7 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 5
-# simPar <- simParF[12, ]
+# simPar <- simParF[10,]
 # multipleMPs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 
 
@@ -1408,14 +1408,14 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
       for (k in 1:nCU) {
         if (S[y, k] > 0) {
           if (model[k] == "ricker") {
-            dum <- rickerModel(S[y, k], alphaMat[y, k], ricB[k],
+            dum <- rickerModel(S[y, k], alphaMat[y, k], beta[k],
                                error = errorCU[y, k], rho = rho,
                                laggedError[y - 1, k])
             laggedError[y, k] <- dum[[2]]
           }
           if (model[k] == "larkin") {
             dum <- larkinModel(S[y, k], S[y - 1, k], S[y-2, k], S[y - 3, k],
-                          alphaMat[y, k], larB[k], larB1[k], larB2[k], larB3[k],
+                          alphaMat[y, k], beta[k], larB1[k], larB2[k], larB3[k],
                           error = errorCU[y, k])
           }
           #keep recruitment below CU-specific cap
@@ -1674,7 +1674,11 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
     varObsRecBY[n, ] <- apply(na.omit(obsRecBY[(nPrime + 1):nYears, ]), 2, cv)
     medAlpha[n, ] <- apply(na.omit(alphaMat[(nPrime + 1):nYears, ]), 2, median) #avg productivity through time per trial
     varAlpha[n, ] <- apply(na.omit(alphaMat[(nPrime + 1):nYears, ]), 2, cv) #cv productivity through time per trial
-    medBeta[n, ] <- ifelse(is.null(nrow(beta)),  beta, apply(na.omit(beta), 2, median)) #avg capacity through time per trial
+    medBeta[n, ] <- if (is.null(nrow(beta))) {
+      beta
+    } else {
+      apply(na.omit(beta), 2, median)
+    }#avg capacity through time per trial
     medTotalCatch[n, ] <- apply(totalCatch[(nPrime + 1):nYears, ], 2, median, na.rm=TRUE) #avg catch through time per trial
     varTotalCatch[n, ] <- apply(totalCatch[(nPrime + 1):nYears, ], 2, cv) #cv catch through time per trial
     stblTotalCatch[n, ] <- apply(totalCatch[(nPrime + 1):nYears, ], 2,
