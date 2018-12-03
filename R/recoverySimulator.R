@@ -15,9 +15,7 @@
 
 #Temporary inputs
 # here <- here::here
-# simParF <- read.csv(here("data/manProcScenarios/fraserMPInputs_varyMixPpnHCRs.csv"),
-# stringsAsFactors = F)
-# simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorrAdjustBeta.csv"),
+# simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorrNoMort.csv"),
 #                     stringsAsFactors = F)
 # cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
 # srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
@@ -105,18 +103,24 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
   } else {
     amER <- cuPar$usER #American exploitation rate shared
   }
-  minER <- cuPar$minER #minimum exploitation rate applied with TAM rule even at low abundance
-  if (is.null(cuPar$meanDBE)) {
+  #minimum exploitation rate applied with TAM rule even at low abundance
+  minER <- cuPar$minER
+  if (simPar$enRouteMort == FALSE) {
     enRouteMR <- rep(0, length.out = nrow(cuPar))
     enRouteSig <- rep(0, length.out = nrow(cuPar))
-  } else { # FRASER ONLY; en-route mortality rate (i.e. between marine fisheries and terminal fisheries) taken from in-river difference between estimates (post-2000); replace NAs w/ 0s
+  } else {
+    # ER mort rate (i.e. between marine and term. fisheries);
+    # taken from in-river difference between estimates (post-2000)
     enRouteMR <- cuPar$meanDBE
     enRouteSig <- cuPar$sdDBE
   }
-  enRouteSig <- enRouteSig * simPar$adjustEnRoute #adjust en route mortality variation for sensitivity analysis
+  #adjust en route mortality variation for sensitivity analysis
+  enRouteSig <- enRouteSig * simPar$adjustEnRouteSig
   if (is.null(cuPar$medMA)) {
     manAdjustment <- rep(0, length.out = nrow(cuPar))
-  } else { #management adjustment to increase escapement goal based on median MU-level observations of pDBE since 2000
+  } else {
+    #management adjustment to increase escapement goal based on median MU-level
+    #observations of pDBE since 2000
     manAdjustment <- cuPar$medMA
   }
   forecastMean <- cuPar$meanForecast
@@ -1120,13 +1124,15 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL, variableCU=FAL
       #Calculate catches w/ error; will be redrawn each year to add unique error
       mixOutErr <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0, mixOUSig))
       migMortErr <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0, enRouteSig))
+      singOutErr <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0, singOUSig))
+
       #add correlated ER mortality (commented out due to weak impacts on PMs)
       # migMortErr <- if (simPar$corrMort == TRUE) {
       #   exp(rmvnorm(n = 1, mean = rep(0, nCU), sigma = corMortMat))
       # } else {
       #   exp(qnorm(runif(nCU, 0.0001, 0.9999), 0, enRouteSig))
       # }
-      singOutErr <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0, singOUSig))
+
       # convert ppnMix to numeric = 1 so TAC can be calcd
       ppnMixVec <- ifelse(ppnMix == "flex",
                           rep(1, length.out = nCU),
