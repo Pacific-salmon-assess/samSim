@@ -1,0 +1,13 @@
+scenario,nameOM,nameMP,keyVar,plotOrder,species,simYears,harvContRule,benchmark,canER,usER,propMixHigh,propMixLow,enRouteMort,varyAllocation,prodRegime,startYear,endYear,freqSkew,rho,arSigTransform,correlCU,corrMat,tauCatch,obsSig,mixOUSig,singOUSig,obsMixCatchSig,obsSingCatchSig,obsSBias,propSampleCU,sampleProb,ageErr,lowCatchThresh,highCatchThresh,extinctThresh,adjustSig,adjustAge,adjustAge,adjustForecast,adjustEnRoute
+ref,lowSynch,TAM,synch,1,sockeye,40,TAM,stockRecruit,NA,0,1,0,TRUE,FALSE,med,NA,NA,NA,0.2,TRUE,0.05,FALSE,0,0,0.2,0.2,0,0,1,1,1,0.1,0.5,1,0.0001,1,1,1,1,1
+ref,medSynch,TAM,synch,2,sockeye,40,TAM,stockRecruit,NA,0,1,0,TRUE,FALSE,med,NA,NA,NA,0.2,TRUE,0.5,FALSE,0,0,0.2,0.2,0,0,1,1,1,0.1,0.5,1,0.0001,1,1,1,1,1
+ref,highSynch,TAM,synch,3,sockeye,40,TAM,stockRecruit,NA,0,1,0,TRUE,FALSE,med,NA,NA,NA,0.2,TRUE,0.75,FALSE,0,0,0.2,0.2,0,0,1,1,1,0.1,0.5,1,0.0001,1,1,1,1,1
+noExp,lowSynch,fixedER,synch,1,sockeye,40,fixedER,stockRecruit,0,0,1,0,TRUE,FALSE,med,NA,NA,NA,0.2,TRUE,0.05,FALSE,0,0,0.2,0.2,0,0,1,1,1,0.1,0.5,1,0.0001,1,1,1,1,1
+noExp,medSynch,fixedER,synch,2,sockeye,40,fixedER,stockRecruit,0,0,1,0,TRUE,FALSE,med,NA,NA,NA,0.2,TRUE,0.5,FALSE,0,0,0.2,0.2,0,0,1,1,1,0.1,0.5,1,0.0001,1,1,1,1,1
+noExp,highSynch,fixedER,synch,3,sockeye,40,fixedER,stockRecruit,0,0,1,0,TRUE,FALSE,med,NA,NA,NA,0.2,TRUE,0.75,FALSE,0,0,0.2,0.2,0,0,1,1,1,0.1,0.5,1,0.0001,1,1,1,1,1
+noMM,lowSynch,TAM,synch,1,sockeye,40,TAM,stockRecruit,NA,0,1,0,FALSE,FALSE,med,NA,NA,NA,0.2,TRUE,0.05,FALSE,0,0,0.2,0.2,0,0,1,1,1,0.1,0.5,1,0.0001,1,1,1,1,1
+noMM,medSynch,TAM,synch,2,sockeye,40,TAM,stockRecruit,NA,0,1,0,FALSE,FALSE,med,NA,NA,NA,0.2,TRUE,0.5,FALSE,0,0,0.2,0.2,0,0,1,1,1,0.1,0.5,1,0.0001,1,1,1,1,1
+noMM,highSynch,TAM,synch,3,sockeye,40,TAM,stockRecruit,NA,0,1,0,FALSE,FALSE,med,NA,NA,NA,0.2,TRUE,0.75,FALSE,0,0,0.2,0.2,0,0,1,1,1,0.1,0.5,1,0.0001,1,1,1,1,1
+noBoth,lowSynch,fixedER,synch,1,sockeye,40,fixedER,stockRecruit,0,0,1,0,FALSE,FALSE,med,NA,NA,NA,0.2,TRUE,0.05,FALSE,0,0,0.2,0.2,0,0,1,1,1,0.1,0.5,1,0.0001,1,1,1,1,1
+noBoth,medSynch,fixedER,synch,2,sockeye,40,fixedER,stockRecruit,0,0,1,0,FALSE,FALSE,med,NA,NA,NA,0.2,TRUE,0.5,FALSE,0,0,0.2,0.2,0,0,1,1,1,0.1,0.5,1,0.0001,1,1,1,1,1
+noBoth,highSynch,fixedER,synch,3,sockeye,40,fixedER,stockRecruit,0,0,1,0,FALSE,FALSE,med,NA,NA,NA,0.2,TRUE,0.75,FALSE,0,0,0.2,0.2,0,0,1,1,1,0.1,0.5,1,0.0001,1,1,1,1,1
