@@ -305,23 +305,23 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
   #_____________________________________________________________________
   ## Create directories (based on all scenarios in a sim run)
-  ifelse(!dir.exists(paste(here("outputs/diagnostics"), dirName, sep = "/")), #create dir if it doesn't already exist
-         dir.create(paste(here("outputs/diagnostics"), dirName, sep = "/")),
-         FALSE)
-  ifelse(!dir.exists(paste(here("outputs/simData"), dirName, sep = "/")),
-         dir.create(paste(here("outputs/simData"), dirName, sep = "/")),
-         FALSE)
+  dir.create(paste(here("outputs/diagnostics"), dirName, sep = "/"),
+             recursive = TRUE, showWarnings = FALSE)
+  dir.create(paste(here("outputs/simData"), dirName, sep = "/"),
+             recursive = TRUE, showWarnings = FALSE)
+
   ## Create subdirectories if multiple OMs and MPs are being run
   if (multipleMPs == TRUE) {
     subDirName <- simPar$nameOM
-    ifelse(!dir.exists(paste(here("outputs/diagnostics"), dirName, subDirName, sep = "/")),
-           dir.create(paste(here("outputs/diagnostics"), dirName, subDirName, sep = "/")),
-           FALSE)
-    ifelse(!dir.exists(paste(here("outputs/simData"), dirName, subDirName, sep = "/")),
-           dir.create(paste(here("outputs/simData"), dirName, subDirName, sep = "/")),
-           FALSE)
+    dir.create(paste(here("outputs/diagnostics"), dirName, subDirName,
+                     sep = "/"),
+               recursive = TRUE, showWarnings = FALSE)
+    dir.create(paste(here("outputs/simData"), dirName, subDirName,
+                     sep = "/"),
+               recursive = TRUE, showWarnings = FALSE)
   }
-  dirPath <- ifelse(multipleMPs == TRUE, #use this to generate figs/data in subsequent calls
+  #use this to generate figs/data in subsequent calls
+  dirPath <- ifelse(multipleMPs == TRUE,
                     paste(dirName, subDirName, sep = "/"),
                     dirName)
 
