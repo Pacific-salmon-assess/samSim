@@ -146,11 +146,11 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       stop("SR input dataset does not match parameter inputs")
     }
     recDat <- with(recDat, recDat[order(stk, yr),])
-    recDat$totRec <- apply(recDat[, c("rec2", "rec3", "rec4", "rec5", "rec6")],
+    recDat$totalRec <- apply(recDat[, c("rec2", "rec3", "rec4", "rec5", "rec6")],
                            1, sum)
     summRec <- recDat %>%
             dplyr::group_by(stk) %>%
-            dplyr::summarise(tsLength = length(ets), maxRec = max(totRec,
+            dplyr::summarise(tsLength = length(ets), maxRec = max(totalRec,
                                                                   na.rm = TRUE))
     nPrime <- max(summRec[, "tsLength"])
     recCap <- 3 * summRec$maxRec
@@ -601,7 +601,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           mixCatch[y, k] <- ifelse(exists("catchDat"), recDat[[k]]$canCatch[y], 0)
         }
         singCatch[y, k] <- ifelse(exists("catchDat"), recDat[[k]]$frfnCatch[y], 0)
-        expRate[y, k] <- ifelse(exists("catchDat"), recDat[[k]]$totER[y], 0)
+        expRate[y, k] <- ifelse(exists("catchDat"), recDat[[k]]$totalER[y], 0)
         logRS[y, k] <- log(recBY[y, k] / S[y, k])
       }
       totalCatch[y, ] <- amCatch[y, ] + mixCatch[y, ] + singCatch[y, ]
@@ -1060,33 +1060,37 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         singCUStatus[y, ] <- (foreRecRY[y, ] / mortAdjustment) - amTAC[y, ] - mixTAC[y, ]
       }
 
-      for (k in 1:nCU) {
-        if (model[k] == "ricker") {
-          #Secondary HCR option 2 uses median obsS abundance over previous gen
-          #Needs to be in for loop because calc depends on whether stock is cyclic
-          #or not; should eventually be replaced w/ estimated BMs
-          if (singleHCR == "retro") {
-            singCUStatus[y, k] <- median(obsS[(y - 1):(y - gen), k])
+      #If a single stock HCR is in effect, assess status based on forecast or
+      #retro calculation.
+      if (singleHCR != FALSE) {
+        for (k in 1:nCU) {
+          if (model[k] == "ricker") {
+            #Secondary HCR option 2 uses median obsS abundance over previous gen
+            #Needs to be in for loop because calc depends on whether stock is
+            #cyclic or not; should eventually be replaced w/ estimated BMs
+            if (singleHCR == "retro") {
+              singCUStatus[y, k] <- median(obsS[(y - 1):(y - gen), k])
+            }
+            if (singCUStatus[y, k] >= lowerBM[y - 1, k]) {
+              counterSingleBMLow[y, k] <- 1
+            }
+            if (singCUStatus[y, k] >= upperBM[y - 1, k]) {
+              counterSingleBMHigh[y, k] <- 1
+            }
           }
-          if (singCUStatus[y, k] >= lowerBM[y - 1, k]) {
-            counterSingleBMLow[y, k] <- 1
-          }
-          if (singCUStatus[y, k] >= upperBM[y - 1, k]) {
-            counterSingleBMHigh[y, k] <- 1
-          }
-        }
-        #Larkin HCR only applies to dominant line (no median)
-        if (model[k] == "larkin" & cycle[y] == domCycle[k]) {
-          if (singleHCR == "retro") {
-            singCUStatus[y, k] <- obsS[y - gen, k]
-          }
-          #NOTE that BMs for Larkin stocks use only dominant cycle line so
-          #aligning lowerBM with cycle line is not necessary
-          if (singCUStatus[y, k] >= lowerBM[y - 1, k]) {
-            counterSingleBMLow[y, k] <- 1
-          }
-          if (singCUStatus[y, k] >= upperBM[y - 1, k]) {
-            counterSingleBMHigh[y, k] <- 1
+          #Larkin HCR only applies to dominant line (no median)
+          if (model[k] == "larkin" & cycle[y] == domCycle[k]) {
+            if (singleHCR == "retro") {
+              singCUStatus[y, k] <- obsS[y - gen, k]
+            }
+            #NOTE that BMs for Larkin stocks use only dominant cycle line so
+            #aligning lowerBM with cycle line is not necessary
+            if (singCUStatus[y, k] >= lowerBM[y - 1, k]) {
+              counterSingleBMLow[y, k] <- 1
+            }
+            if (singCUStatus[y, k] >= upperBM[y - 1, k]) {
+              counterSingleBMHigh[y, k] <- 1
+            }
           }
         }
       }

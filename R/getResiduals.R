@@ -23,7 +23,7 @@
 getResiduals <- function(recList, modelVec) {
   residMat <- sapply(seq_along(recList), function(h) {
     d <- recList[[h]] %>%
-      dplyr::mutate(model = modelVec[h], logProd = log(totRec/ets),
+      dplyr::mutate(model = modelVec[h], logProd = log(totalRec/ets),
                     spwnRetYr = yr + 4, ets1 = NA, ets2 = NA, ets3 = NA,
                     resid = NA)
     for (i in 1:nrow(d)) { #add top-fitting SR model
