@@ -15,7 +15,7 @@
 
 #Temporary inputs
 # here <- here::here
-# simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorrNoMort.csv"),
+# simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorr.csv"),
 #                     stringsAsFactors = F)
 # cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
 # srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
@@ -40,7 +40,7 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 5
-# simPar <- simParF[10,]
+# simPar <- simParF[23,]
 # multipleMPs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 
 
