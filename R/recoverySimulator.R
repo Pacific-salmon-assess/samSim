@@ -39,8 +39,8 @@
 # uniqueProd <- TRUE
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
-# nTrials <- 5
-# simPar <- simParF[23,]
+# nTrials <- 100
+# simPar <- simParF[20,]
 # multipleMPs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 
 
@@ -178,7 +178,16 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         colnames(emptyMat) <- colnames(dum)
         dum <- rbind(emptyMat, dum)
       }
-      dumFull[[k]] <- dum
+      if(!is.null(dum["frfnCatch"])) {
+        dum <- dum %>%
+          dplyr::rename(singCatch = frfnCatch)
+      }
+      if(!is.null(dum["marCatch"])) {
+        dum <- dum %>%
+          dplyr::rename(mixCatch = marCatch)
+      }
+      #convert from tbbl to dataframe to silence unknown column warnings
+      dumFull[[k]] <- as.data.frame(dum)
     }
     recDat <- dumFull
     #calculate firstYr here because catch and rec data may differ in length
@@ -613,23 +622,21 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                      ageStruc[k, j],
                                      ppnAges[y, k, j])
         }
-        if (species == "sockeye") {
-          amCatch[y, k] <- 0 #not available for Fraser
-          mixCatch[y, k] <- ifelse(exists("catchDat"),
-                                   recDat[[k]]$marCatch[y],
-                                   0)
+        if (exists("catchDat")) {
+          amCatch[y, k] <- ifelse(is.null(recDat[[k]]$amCatch[y]),
+                                  0, #not available for Fraser
+                                  recDat[[k]]$amCatch[y])
+          mixCatch[y, k] <- ifelse(is.null(recDat[[k]]$mixCatch[y]),
+                                   0, #not available for Fraser
+                                   recDat[[k]]$mixCatch[y])
+          singCatch[y, k] <- ifelse(is.null(recDat[[k]]$singCatch[y]),
+                                    0,
+                                    recDat[[k]]$singCatch[y])
         } else {
-          amCatch[y, k] <- ifelse(exists("catchDat"),
-                                  (recDat[[k]]$marCatch[y] -
-                                     recDat[[k]]$canCatch[y]),
-                                  0)
-          mixCatch[y, k] <- ifelse(exists("catchDat"),
-                                   recDat[[k]]$canCatch[y],
-                                   0)
+          amCatch[y , k] <- 0
+          mixCatch[y, k] <- 0
+          singCatch[y, k] <- 0
         }
-        singCatch[y, k] <- ifelse(exists("catchDat"),
-                                  recDat[[k]]$frfnCatch[y],
-                                  0)
         expRate[y, k] <- ifelse(exists("catchDat"), recDat[[k]]$totalER[y], 0)
         logRS[y, k] <- log(recBY[y, k] / S[y, k])
       }
@@ -675,6 +682,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             sEqVar[y, k, n] <- alphaMat[y, k] / beta[k]
             sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - alphaMat[y, k]))) /
               beta[k]
+            # if (is.na(log(sMSY[y, k, n]))) {
+            #   stop("Benchmark calculation is NA")
+            # }
             sGen[y, k, n] <- as.numeric(sGenSolver(
               theta = c(alphaMat[y, k], alphaMat[y, k] / sEqVar[y, k, n],
                         ricSig[k]), sMSY = sMSY[y, k, n]
@@ -691,6 +701,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                       ((1 - gsl::lambert_W0(exp(
                                         1 - alphaPrimeMat[y, k]))) / beta[k]),
                                       NA)
+            # if (is.na(log(cycleSMSY[y, k]))) {
+            #   stop("Benchmark calculation is NA")
+            # }
             cycleSGen[y, k] <- ifelse(alphaPrimeMat[y, k] > 0,
                                       as.numeric(sGenSolver(
                                         theta = c(alphaPrimeMat[y, k],
@@ -722,8 +735,12 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           if (model[k] == "ricker" |
               model[k] == "larkin" & cycle[y] == domCycle[k]) {
             if (bm == "stockRecruit") {
-              upperBM[y, k] <- 0.8 * sMSY[y, k, n]
-              lowerBM[y, k] <- sGen[y, k, n]
+              upperBM[y, k] <- ifelse(!is.na(sMSY[y, k, n]),
+                                      0.8 * sMSY[y, k, n],
+                                      0)
+              lowerBM[y, k] <- ifelse(!is.na(sGen[y, k, n]),
+                                      sGen[y, k, n],
+                                      0)
             }
             if (bm == "percentile") {
               upperBM[y, k] <- s75th[y, k, n]
@@ -1309,7 +1326,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         estS50th[y, k, n] <- sort(obsSNoNA)[obsN50th]
         estS75th[y, k, n] <- sort(obsSNoNA)[obsN75th]
         #Build SRR
-        srMod <- quickLm(xVec = obsS[, k], yVec = logRS[, k])
+        srMod <- quickLm(xVec = obsS[, k], yVec = obsLogRS[, k])
         estYi[y, k, n] <- srMod[[1]]
         estSlope[y, k, n] <- srMod[[2]]
         estRicB[y, k, n] <- ifelse(extinct[y, k] == 1, NA, -estSlope[y, k, n])
@@ -1405,13 +1422,22 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       recBYAg[y, n] <- sum(recBY[y, ])
 
       for (k in 1:nCU) {
-        if (model[k] == "ricker" | model[k] == "larkin" & cycle[y] == domCycle[k]) {
+        if (model[k] == "ricker" |
+            model[k] == "larkin" & cycle[y] == domCycle[k]) {
           if (bm == "stockRecruit") {
             #is spawner abundance greater than upper/lower BM
-            upperBM[y, k] <- 0.8 * sMSY[y, k, n]
-            upperObsBM[y, k] <- 0.8 * estSMSY[y, k, n]
-            lowerBM[y, k] <- sGen[y, k, n]
-            lowerObsBM[y, k] <- estSGen[y, k, n]
+            upperBM[y, k] <- ifelse(!is.na(sMSY[y, k, n]),
+                                    0.8 * sMSY[y, k, n],
+                                    0)
+            lowerBM[y, k] <- ifelse(!is.na(sGen[y, k, n]),
+                                    sGen[y, k, n],
+                                    0)
+            upperObsBM[y, k] <- ifelse(!is.na(estSMSY[y, k, n]),
+                                    0.8 * estSMSY[y, k, n],
+                                    0)
+            lowerObsBM[y, k] <- ifelse(!is.na(estSGen[y, k, n]),
+                                    estSGen[y, k, n],
+                                    0)
           }
           if (bm == "percentile") {
             upperBM[y, k] <- s75th[y, k, n]
@@ -1472,14 +1498,16 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     if (n == drawTrial) {
       # Generate indices of observation error
       obsSErr <- ifelse((obsS - S) / S == Inf, NA, (obsS - S) / S)
-      obsRecBYErr <- ifelse((obsRecBY - recBY) / recBY == Inf, NA, (obsRecBY - recBY) / recBY)
-      obsRecRYErr <- ifelse((obsRecRY - recRY) / recRY == Inf, NA, (obsRecRY - recRY) / recRY)
+      obsRecBYErr <- ifelse((obsRecBY - recBY) / recBY == Inf, NA,
+                            (obsRecBY - recBY) / recBY)
+      obsRecRYErr <- ifelse((obsRecRY - recRY) / recRY == Inf, NA,
+                            (obsRecRY - recRY) / recRY)
       obsMixCatchErr <- ifelse((obsMixCatch - mixCatch) / mixCatch == Inf |
-                                 (obsMixCatch - mixCatch) / mixCatch == -Inf, NA,
-                               (obsMixCatch - mixCatch) / mixCatch)
+                                 (obsMixCatch - mixCatch) / mixCatch == -Inf,
+                               NA, (obsMixCatch - mixCatch) / mixCatch)
       obsSingCatchErr <- ifelse((obsSingCatch - singCatch) / singCatch == Inf |
-                                  (obsSingCatch - singCatch) / singCatch == -Inf, NA,
-                                (obsSingCatch - singCatch) / singCatch)
+                                  (obsSingCatch - singCatch) / singCatch == -Inf,
+                                NA, (obsSingCatch - singCatch) / singCatch)
       obsAmCatchErr <- ifelse((obsAmCatch - amCatch) / amCatch == Inf |
                                 (obsAmCatch - amCatch) / amCatch == -Inf, NA,
                               (obsAmCatch - amCatch) / amCatch)
@@ -1509,27 +1537,30 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                               S, obsS, recBY, obsRecBY, recRY,
                               mixCatch, singCatch, amCatch, migMort,
                               expRate, mixExpRate, singExpRate, tamSingER,
-                              sMSY[ , , n], sGen[ , , n], s75th[ , , n], s25th[ , , n],
-                              obsSErr, obsRecBYErr,
-                              obsRecRYErr, obsMixCatchErr, obsSingCatchErr, obsAmCatchErr,
-                              obsExpErr, forecastErr),
+                              sMSY[ , , n], sGen[ , , n], s75th[ , , n],
+                              s25th[ , , n], obsSErr, obsRecBYErr,
+                              obsRecRYErr, obsMixCatchErr, obsSingCatchErr,
+                              obsAmCatchErr, obsExpErr, forecastErr),
                             dim = c(nYears, nCU, length(varNames)))
       dimnames(plotTrialDat)[[3]] <- varNames
 
       # Figure settings
       fileName <- ifelse(variableCU == "TRUE",
-                         paste(cuNameOM, cuNameMP, "singleTrialFig.pdf", sep = "_"),
+                         paste(cuNameOM, cuNameMP, "singleTrialFig.pdf",
+                               sep = "_"),
                          paste(nameOM, nameMP, "singleTrialFig.pdf", sep = "_"))
-      pdf(file = paste(here("outputs/diagnostics", dirPath, fileName), sep = "/"),
-          height = 6, width = 7)
+      pdf(file = paste(here("outputs/diagnostics", dirPath, fileName),
+                       sep = "/"), height = 6, width = 7)
       if(exists("larB")){ # if larkin terms are present they need to be passed
         larBList <- list(larB, larB1, larB2, larB3)
         names(larBList) <- c("lag0", "lag1", "lag2", "lag3")
-        plotDiagCU(plotTrialDat, varNames, stkName, model, ricB, larBList = larBList, medAbundance,
-                     nPrime, extinct, focalCU = NULL)
+        plotDiagCU(plotTrialDat, varNames, stkName, model, ricB,
+                   larBList = larBList, medAbundance, nPrime, extinct,
+                   focalCU = NULL)
       } else {
-        plotDiagCU(plotTrialDat, varNames, stkName, model, ricB, larBList = NULL, medAbundance,
-                     nPrime, extinct, focalCU = NULL)
+        plotDiagCU(plotTrialDat, varNames, stkName, model, ricB,
+                   larBList = NULL, medAbundance, nPrime, extinct,
+                   focalCU = NULL)
       }
       dev.off()
     }
