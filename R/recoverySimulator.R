@@ -20,8 +20,8 @@
 # cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
 # srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
 # catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors=F)
-# ricPars <- read.csv(here("data/fraserDat/rickerMCMCPars.csv"), stringsAsFactors=F)
-# larkPars <- read.csv(here("data/fraserDat/larkinMCMCPars.csv"), stringsAsFactors=F)
+# ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors=F)
+# larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"), stringsAsFactors=F)
 # tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
 
 # cuCustomCorrMat <- read.csv(here("data/fraserDat/prodCorrMatrix.csv"), stringsAsFactors=F)
@@ -39,8 +39,8 @@
 # uniqueProd <- TRUE
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
-# nTrials <- 100
-# simPar <- simParF[20,]
+# nTrials <- 500
+# simPar <- simParF[23,]
 # multipleMPs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 
 
@@ -1623,10 +1623,12 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       ppnChangeNoNA <- which(is.na(ppnChange)[1:nYears] == "FALSE")
       ppnYrsCOS[n, k] <- ifelse(length(ppnChangeNoNA) == 0,
                                 0,
-                                length(which(ppnChange[1:nYears] > -0.3)) / length(ppnChangeNoNA))
+                                length(which(ppnChange[1:nYears] > -0.3)) /
+                                  length(ppnChangeNoNA))
       ppnYrsWSP[n, k] <-ifelse(length(ppnChangeNoNA) == 0,
                                0,
-                               length(which(ppnChange[1:nYears] > -0.25)) / length(ppnChangeNoNA))
+                               length(which(ppnChange[1:nYears] > -0.25)) /
+                                 length(ppnChangeNoNA))
       #invert to make positive (i.e. same directionality as above BMs)
       S[, k][which(S[, k] == 0.00005)] <- 0
     }
@@ -1644,61 +1646,73 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     singTACArray[ , , n] <- singTAC
     totalCatchArray[ , , n] <- totalCatch
 
-    #Store trial and CU specific means, variances, and proportions to add to aggregate data frame
-    #id variables for plotting
+    #Store trial and CU specific means, variances, and proportions to add to
+    #aggregate data frame
     #NOTE CHANGE IF FIXED ERs VARY AMONG CUs
     targetER[n, ] <- ifelse(harvContRule == "fixedER",
                             rep(canER, nCU),
-                            apply(targetTamER[(nPrime+1):nYears, ], 2, function(x)
-                              mean(x, na.rm = TRUE)))
+                            apply(targetTamER[(nPrime+1):nYears, ], 2,
+                                  function(x) mean(x, na.rm = TRUE)))
     #data of interest
-    medS[n, ] <- apply(na.omit(S[(nPrime + 1):nYears, ]), 2, median) #med spawner abundance through time per trial
-    varS[n, ] <- apply(na.omit(S[(nPrime + 1):nYears, ]), 2, cv) #cv spawner abundance through time per trial
-    medObsS[n, ] <- apply(na.omit(obsS[(nPrime + 1):nYears, ]), 2, median)
-    varObsS[n, ] <- apply(na.omit(obsS[(nPrime + 1):nYears, ]), 2, cv)
-    medRecRY[n, ] <- apply(na.omit(recRY[(nPrime + 1):nYears, ]), 2, median) #med spawner abundance through time per trial
-    varRecRY[n, ] <- apply(na.omit(recRY[(nPrime + 1):nYears, ]), 2, cv) #cv spawner abundance through time per trial
-    medRecBY[n, ] <- apply(na.omit(recBY[(nPrime + 1):nYears, ]), 2, median) #avg spawner abundance through time per trial
-    varRecBY[n, ] <- apply(na.omit(recBY[(nPrime + 1):nYears, ]), 2, cv) #cv spawner abundance through time per trial
-    medObsRecRY[n, ] <- apply(na.omit(obsRecRY[(nPrime + 1):nYears, ]), 2, median)
-    varObsRecRY[n, ] <- apply(na.omit(obsRecRY[(nPrime + 1):nYears, ]), 2, cv)
-    medObsRecBY[n, ] <- apply(na.omit(obsRecBY[(nPrime + 1):nYears, ]), 2, median)
-    varObsRecBY[n, ] <- apply(na.omit(obsRecBY[(nPrime + 1):nYears, ]), 2, cv)
-    medAlpha[n, ] <- apply(na.omit(alphaMat[(nPrime + 1):nYears, ]), 2, median) #avg productivity through time per trial
-    varAlpha[n, ] <- apply(na.omit(alphaMat[(nPrime + 1):nYears, ]), 2, cv) #cv productivity through time per trial
+    yrsSeq <- seq(from = nPrime+1, to = nYears, by = 1)
+    #median and CVs of true or obs PMs through time per trial
+    medS[n, ] <- apply(na.omit(S[yrsSeq, ]), 2, median)
+    varS[n, ] <- apply(na.omit(S[yrsSeq, ]), 2, cv)
+    medObsS[n, ] <- apply(na.omit(obsS[yrsSeq, ]), 2, median)
+    varObsS[n, ] <- apply(na.omit(obsS[yrsSeq, ]), 2, cv)
+    medRecRY[n, ] <- apply(na.omit(recRY[yrsSeq, ]), 2, median)
+    varRecRY[n, ] <- apply(na.omit(recRY[yrsSeq, ]), 2, cv)
+    medRecBY[n, ] <- apply(na.omit(recBY[yrsSeq, ]), 2, median)
+    varRecBY[n, ] <- apply(na.omit(recBY[yrsSeq, ]), 2, cv)
+    medObsRecRY[n, ] <- apply(na.omit(obsRecRY[yrsSeq, ]), 2,
+                              median)
+    varObsRecRY[n, ] <- apply(na.omit(obsRecRY[yrsSeq, ]), 2, cv)
+    medObsRecBY[n, ] <- apply(na.omit(obsRecBY[yrsSeq, ]), 2,
+                              median)
+    varObsRecBY[n, ] <- apply(na.omit(obsRecBY[yrsSeq, ]), 2, cv)
+    medAlpha[n, ] <- apply(na.omit(alphaMat[yrsSeq, ]), 2, median)
+    varAlpha[n, ] <- apply(na.omit(alphaMat[yrsSeq, ]), 2, cv)
     medBeta[n, ] <- if (is.null(nrow(beta))) {
       beta
     } else {
       apply(na.omit(beta), 2, median)
     }#avg capacity through time per trial
-    medTotalCatch[n, ] <- apply(totalCatch[(nPrime + 1):nYears, ], 2, median, na.rm=TRUE) #avg catch through time per trial
-    varTotalCatch[n, ] <- apply(totalCatch[(nPrime + 1):nYears, ], 2, cv) #cv catch through time per trial
-    stblTotalCatch[n, ] <- apply(totalCatch[(nPrime + 1):nYears, ], 2,
-                                 function(x) 1 / cv(x)) #stability catch through time per trial
-    medObsTotalCatch[n, ] <- apply(obsTotalCatch[(nPrime + 1):nYears, ], 2, median, na.rm=TRUE) #avg obs catch through time per trial
-    varObsTotalCatch[n, ] <- apply(obsTotalCatch[(nPrime + 1):nYears, ], 2, cv) #cv obs catch through time per trial
-    stblObsTotalCatch[n, ] <- apply(obsTotalCatch[(nPrime + 1):nYears, ], 2,
-                                    function(x) 1 / cv(x)) #stability obs catch through time per trial
-    medForgoneCatch[n, ] <- apply(forgoneCatch[(nPrime + 1):nYears, ], 2, median) #median TAC lost due to overlap constraints
-    medTotalER[n, ] <- apply(expRate[(nPrime + 1):nYears, ], 2, median, na.rm=TRUE)
-    medTotalObsER[n, ] <- apply(obsExpRate[(nPrime + 1):nYears, ], 2, median, na.rm=TRUE)
-    medTAMSingER[n, ] <- apply(tamSingER[(nPrime + 1):nYears, ], 2, median, na.rm=TRUE) #median signle stock ER relative to escapement across sim period
-    ppnYrsUpperBM[n, ] <- apply(na.omit(counterUpperBM[(nPrime + 1):nYears, ]), 2, mean) #ppn of years true abundance above true upper BM per trial
-    ppnYrsLowerBM[n, ] <- apply(na.omit(counterLowerBM[(nPrime + 1):nYears, ]), 2, mean) #ppn of years true abundance above true lower BM per trial
-    ppnYrsUpperObsBM[n, ] <- apply(na.omit(counterUpperObsBM[(nPrime + 1):nYears, ]), 2, mean) #ppn of years observed abundance above estimated upper BM per trial
-    ppnYrsLowerObsBM[n, ] <- apply(na.omit(counterLowerObsBM[(nPrime + 1):nYears, ]), 2, mean) #ppn of years observed abundance above estimated lower BM per trial
+    medTotalCatch[n, ] <- apply(totalCatch[yrsSeq, ], 2, median, na.rm = TRUE)
+    varTotalCatch[n, ] <- apply(totalCatch[yrsSeq, ], 2, cv)
+    #stability in catch
+    stblTotalCatch[n, ] <- apply(totalCatch[yrsSeq, ], 2, function(x) 1 / cv(x))
+    medObsTotalCatch[n, ] <- apply(obsTotalCatch[yrsSeq, ], 2, median,
+                                   na.rm=TRUE)
+    varObsTotalCatch[n, ] <- apply(obsTotalCatch[yrsSeq, ], 2, cv)
+    stblObsTotalCatch[n, ] <- apply(obsTotalCatch[yrsSeq, ], 2,
+                                    function(x) 1 / cv(x))
+    #median TAC lost due to overlap constraints
+    medForgoneCatch[n, ] <- apply(forgoneCatch[yrsSeq, ], 2, median)
+    medTotalER[n, ] <- apply(expRate[yrsSeq, ], 2, median, na.rm=TRUE)
+    medTotalObsER[n, ] <- apply(obsExpRate[yrsSeq, ], 2, median, na.rm=TRUE)
+    #median single stock ER relative to escapement across sim period
+    medTAMSingER[n, ] <- apply(tamSingER[yrsSeq, ], 2, median, na.rm=TRUE)
+    #ppn of years true abundance above true upper BM per trial
+    ppnYrsUpperBM[n, ] <- apply(na.omit(counterUpperBM[yrsSeq, ]), 2, mean)
+    ppnYrsLowerBM[n, ] <- apply(na.omit(counterLowerBM[yrsSeq, ]), 2, mean)
+    ppnYrsUpperObsBM[n, ] <- apply(na.omit(counterUpperObsBM[yrsSeq, ]), 2,
+                                   mean)
+    ppnYrsLowerObsBM[n, ] <- apply(na.omit(counterLowerObsBM[yrsSeq, ]), 2,
+                                   mean)
     #PMs for early period
     medEarlyS[n, ] <- apply(na.omit(S[(nPrime + 1):endEarly, ]), 2, median)
-    medEarlyRecRY[n, ] <- apply(na.omit(recRY[(nPrime + 1):endEarly, ]), 2, median)
-    medEarlyTotalCatch[n, ] <- apply(na.omit(totalCatch[(nPrime + 1):endEarly, ]), 2, median)
+    medEarlyRecRY[n, ] <- apply(na.omit(recRY[(nPrime + 1):endEarly, ]), 2,
+                                median)
+    medEarlyTotalCatch[n, ] <- apply(na.omit(
+      totalCatch[(nPrime + 1):endEarly, ]), 2, median)
     #aggregate data
-    meanSingExpRate[(nPrime + 1):nYears, n] <- apply(singExpRate[(nPrime + 1):nYears, ], 1, mean) #average single stock ER
-    ppnCUsUpperBM[(nPrime + 1):nYears, n] <- apply(counterUpperBM[(nPrime + 1):nYears, ], 1, mean) #ppn of CUs in each year above BM
-    ppnCUsLowerBM[(nPrime + 1):nYears, n] <- apply(counterLowerBM[(nPrime + 1):nYears, ], 1, mean)
-    ppnCUsUpperObsBM[(nPrime + 1):nYears, n] <- apply(counterUpperObsBM[(nPrime + 1):nYears, ], 1, mean)
-    ppnCUsLowerObsBM[(nPrime + 1):nYears, n] <- apply(counterLowerObsBM[(nPrime + 1):nYears, ], 1, mean)
-    ppnCUsExtinct[(nPrime + 1):nYears, n] <- apply(extinct[(nPrime + 1):nYears, ], 1, mean) #ppn CUs extinct in each year of simulation
-    ppnConstrained[(nPrime + 1):nYears, n] <- apply(overlapConstraint[(nPrime + 1):nYears, ], 1, mean)
+    meanSingExpRate[yrsSeq, n] <- apply(singExpRate[yrsSeq, ], 1, mean)
+    ppnCUsUpperBM[yrsSeq, n] <- apply(counterUpperBM[yrsSeq, ], 1, mean)
+    ppnCUsLowerBM[yrsSeq, n] <- apply(counterLowerBM[yrsSeq, ], 1, mean)
+    ppnCUsUpperObsBM[yrsSeq, n] <- apply(counterUpperObsBM[yrsSeq, ], 1, mean)
+    ppnCUsLowerObsBM[yrsSeq, n] <- apply(counterLowerObsBM[yrsSeq, ], 1, mean)
+    ppnCUsExtinct[yrsSeq, n] <- apply(extinct[yrsSeq, ], 1, mean)
+    ppnConstrained[yrsSeq, n] <- apply(overlapConstraint[yrsSeq, ], 1, mean)
   } #End n trials
 
 
@@ -1708,30 +1722,33 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   meanSMSY <- arrayMean(sMSY) # CU's average BMs through time and trials
   meanSGen <- arrayMean(sGen)
   cuList <- list(nameOM, keyVar, plotOrder, harvContRule, stkName, stkID,
-                 manUnit, targetER, meanSMSY, meanSGen,
-                 medS, varS, medObsS, varObsS,
-                 medRecRY, varRecRY, medRecBY, varRecBY, medObsRecRY, varObsRecRY, medAlpha,
-                 varAlpha, medBeta, medTotalCatchEarly, medTotalCatch,
-                 varTotalCatch, (1 / varTotalCatch), medObsTotalCatch,
-                 varObsTotalCatch, (1 / varObsTotalCatch), medTotalER,
-                 medTotalObsER, medTAMSingER, medForgoneCatch, counterEarlyUpperBM,
-                 counterEarlyLowerBM, ppnYrsUpperBM, ppnYrsLowerBM,
-                 ppnYrsUpperObsBM, ppnYrsLowerObsBM, ppnYrsCOS, ppnYrsWSP,
-                 medEarlyS, medEarlyRecRY, medEarlyTotalCatch)
-  names(cuList) <- c("opMod", "keyVar", "plotOrder", "hcr", "stkName", "stkNumber", "manUnit", "targetER",
-                     "meanSMSY", "meanSGen", "medSpawners", "varSpawners",
-                     "medObsSpawners", "varObsSpawners", "medRecRY", "varRecRY", "medRecBY",
-                     "varRecBY", "medObsRecRY",
-                     "varObsRecRY", "medAlpha", "varAlpha", "medBeta", "medEarlyCatch", "medCatch",
+                 manUnit, targetER, meanSMSY, meanSGen, medS, varS, medObsS,
+                 varObsS, medRecRY, varRecRY, medRecBY, varRecBY, medObsRecRY,
+                 varObsRecRY, medAlpha, varAlpha, medBeta, medTotalCatchEarly,
+                 medTotalCatch, varTotalCatch, (1 / varTotalCatch),
+                 medObsTotalCatch, varObsTotalCatch, (1 / varObsTotalCatch),
+                 medTotalER, medTotalObsER, medTAMSingER, medForgoneCatch,
+                 counterEarlyUpperBM, counterEarlyLowerBM, ppnYrsUpperBM,
+                 ppnYrsLowerBM, ppnYrsUpperObsBM, ppnYrsLowerObsBM, ppnYrsCOS,
+                 ppnYrsWSP, medEarlyS, medEarlyRecRY, medEarlyTotalCatch)
+  names(cuList) <- c("opMod", "keyVar", "plotOrder", "hcr", "stkName",
+                     "stkNumber", "manUnit", "targetER", "meanSMSY", "meanSGen",
+                     "medSpawners", "varSpawners", "medObsSpawners",
+                     "varObsSpawners", "medRecRY", "varRecRY", "medRecBY",
+                     "varRecBY", "medObsRecRY", "varObsRecRY", "medAlpha",
+                     "varAlpha", "medBeta", "medEarlyCatch", "medCatch",
                      "varCatch", "stblCatch", "medObsCatch", "varObsCatch",
-                     "stblObsCatch", "medTotalER", "medObsTotalER", "medTAMSingER", "medForegoneCatch",
-                     "counterEarlyUpper", "counterEarlyLower", "ppnYrsUpper", "ppnYrsLower", "ppnYrsEstUpper", "ppnYrsEstLower",
-                     "ppnYrsCOS", "ppnYrsWSP",
-                     "medEarlyS", "medEarlyRecRY", "medEarlyTotalCatch")
+                     "stblObsCatch", "medTotalER", "medObsTotalER",
+                     "medTAMSingER", "medForegoneCatch", "counterEarlyUpper",
+                     "counterEarlyLower", "ppnYrsUpper", "ppnYrsLower",
+                     "ppnYrsEstUpper", "ppnYrsEstLower", "ppnYrsCOS",
+                     "ppnYrsWSP", "medEarlyS", "medEarlyRecRY",
+                     "medEarlyTotalCatch")
   fileName <- ifelse(variableCU == "TRUE",
                      paste(cuNameOM, cuNameMP, "cuDat.RData", sep = "_"),
                      paste(nameOM, nameMP, "cuDat.RData", sep = "_"))
-  saveRDS(cuList, file = paste(here("outputs/simData"), dirPath, fileName, sep = "/"))
+  saveRDS(cuList, file = paste(here("outputs/simData"), dirPath, fileName,
+                               sep = "/"))
 
   # CU- and trial-specific time series data (e.g. used to calculate synchrony)
   synchList <- list(nameOM, plotOrder, nPrime, spwnrArray, recArray, logRSArray,
@@ -1741,31 +1758,36 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   fileName <- ifelse(variableCU == "TRUE",
                      paste(cuNameOM, cuNameMP, "synchArrays.RData", sep = "_"),
                      paste(nameOM, nameMP, "synchArrays.RData", sep = "_"))
-  saveRDS(synchList, file = paste(here("outputs/simData"), dirPath, fileName, sep = "/"))
+  saveRDS(synchList, file = paste(here("outputs/simData"), dirPath, fileName,
+                                  sep = "/"))
 
   #_____________________________________________________________________
   ## Aggregate outputs
   # Generate array of median, upper and lower quantiles that are passed to plotting function
-  agNames <- c("Ag Spawners", "Obs Ag Spawners",
-    "Ag Recruits RY", "Obs Ag Recruits RY", "Ag Catch", "Obs Ag Catch", "Exp Rate",
-    "Obs Exp Rate", "Prop Open Fishery", "Change Ag Catch",
-    "Prop Above Upper BM", "Prop Above Lower BM", "Obs Prop Above Upper BM", "Obs Prop Above Lower BM")
-  agDat <- array(c(sAg, obsSAg, recRYAg, obsRecRYAg, catchAg, obsCatchAg, expRateAg,
-                   obsExpRateAg,
-                   ppnOpenFishery, ppnCUsUpperBM, ppnCUsLowerBM, ppnCUsUpperObsBM,
-                   ppnCUsLowerObsBM),
+  agNames <- c("Ag Spawners", "Obs Ag Spawners", "Ag Recruits RY",
+               "Obs Ag Recruits RY", "Ag Catch", "Obs Ag Catch", "Exp Rate",
+               "Obs Exp Rate", "Prop Open Fishery", "Change Ag Catch",
+               "Prop Above Upper BM", "Prop Above Lower BM",
+               "Obs Prop Above Upper BM", "Obs Prop Above Lower BM")
+  agDat <- array(c(sAg, obsSAg, recRYAg, obsRecRYAg, catchAg, obsCatchAg,
+                   expRateAg, obsExpRateAg, ppnOpenFishery, ppnCUsUpperBM,
+                   ppnCUsLowerBM, ppnCUsUpperObsBM, ppnCUsLowerObsBM),
                  dim = c(nYears, nTrials, length(agNames)))
   dimnames(agDat)[[3]] <- agNames
 
 
   # Save aggregate data as list to create TS plot
-  agTSList <- c(list(nameOM, keyVar, plotOrder, harvContRule, targetExpRateAg, firstYr, nPrime, nYears),
+  agTSList <- c(list(nameOM, keyVar, plotOrder, harvContRule, targetExpRateAg,
+                     firstYr, nPrime, nYears),
                 plyr::alply(agDat, 3, .dims = TRUE))
-  names(agTSList)[1:8] <- c("opMod", "keyVar", "plotOrder", "hcr", "targetExpRate", "firstYr", "nPrime", "nYears")
+  names(agTSList)[1:8] <- c("opMod", "keyVar", "plotOrder", "hcr",
+                            "targetExpRate", "firstYr", "nPrime", "nYears")
   fileName <- ifelse(variableCU == "TRUE",
-                     paste(cuNameOM, cuNameMP, "aggTimeSeries.RData", sep = "_"),
+                     paste(cuNameOM, cuNameMP, "aggTimeSeries.RData",
+                           sep = "_"),
                      paste(nameOM, nameMP, "aggTimeSeries.RData", sep = "_"))
-  saveRDS(agTSList, file = paste(here("outputs/simData"), dirPath, fileName, sep = "/"))
+  saveRDS(agTSList, file = paste(here("outputs/simData"), dirPath, fileName,
+                                 sep = "/"))
 
   # Store aggregate data as data frame; each variable is a vector of single, trial-specific values
   aggDat <- data.frame(opMod = rep(nameOM, length.out = nTrials),
