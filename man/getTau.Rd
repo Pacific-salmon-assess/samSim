@@ -13,10 +13,9 @@ getTau(ppnMat, plotTaus = TRUE)
 function are plotted allowing users to visually identify minimum.}
 }
 \value{
-A list containing
-1) objFun - a vector of tau-specific objective function values
-2) bestTau - a numeric representing the tau value that minimizes the
-objective function
+A list containing a vector of tau-specific objective function values
+(*objFun*) and a numeric representing the tau value that minimizes the
+objective function (*bestTau*).
 }
 \description{
 Main function used to estimate variation in multivariate proportion data.
