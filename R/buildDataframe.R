@@ -42,20 +42,25 @@ buildDataCU <- function(dirNames, cuVars, keyVarName, selectedCUs = NULL) {
       if (is.null(selectedCUs == TRUE)) {
         cuList <- genOutputList(dirNames[i], subDirs[j], agg = FALSE)
       } else {
-        cuList <- genOutputList(dirNames[i], subDirs[j], selectedCUs = selectedCUs,
+        cuList <- genOutputList(dirNames[i], subDirs[j],
+                                selectedCUs = selectedCUs,
                                 agg = FALSE)
       }
 
       nCU <- length(cuList[[1]]$stkName)
-      keyVarValue <- rep(sapply(cuList, function(x) unique(x$keyVar)), each  = nCU)
-      plotOrder <- rep(sapply(cuList, function(x) unique(x$plotOrder)), each = nCU)
+      keyVarValue <- rep(sapply(cuList, function(x) unique(x$keyVar)),
+                         each  = nCU)
+      plotOrder <- rep(sapply(cuList, function(x) unique(x$plotOrder)),
+                       each = nCU)
       cuName <- as.vector(sapply(cuList, function(x) x$stkName))
       muName <- as.vector(sapply(cuList, function(x) x$manUnit))
       singleScenDat = NULL
       for (k in seq_along(cuVars)) {
         dum <- data.frame(keyVar = keyVarValue,
-                          mp = rep(sapply(cuList, function(x) x$hcr), each = nCU),
-                          om = rep(sapply(cuList, function(x) x$opMod), each = nCU),
+                          mp = rep(sapply(cuList, function(x) x$hcr),
+                                   each = nCU),
+                          om = rep(sapply(cuList, function(x) x$opMod),
+                                   each = nCU),
                           plotOrder = as.factor(plotOrder),
                           cuName = as.factor(cuName),
                           muName = as.factor(muName),
@@ -121,14 +126,20 @@ buildDataAgg <- function(dirNames, agVars, keyVarName) {
       agList <- genOutputList(dirNames[i], subDirs[j], agg = TRUE)
       singleScenDat = NULL
       for (k in seq_along(agVars)) {
-        dum <- data.frame(keyVar = sapply(agList, function(x) unique(as.character(x$keyVar))),
-                          mp = sapply(agList, function(x) unique(x$hcr)),
+        dum <- data.frame(keyVar = sapply(agList, function(x)
+                            unique(as.character(x$keyVar))),
                           om = sapply(agList, function(x) unique(x$opMod)),
-                          plotOrder = sapply(agList, function(x) unique(x$plotOrder)),
+                          mp = sapply(agList, function(x) unique(x$manProc)),
+                          hcr = sapply(agList, function(x) unique(x$hcr)),
+                          plotOrder = sapply(agList, function(x)
+                            unique(x$plotOrder)),
                           var = rep(agVars[k], length.out = length(agList)),
-                          avg = as.vector(sapply(agList, function(x) median(x[[agVars[k]]]))),
-                          lowQ = as.vector(sapply(agList, function(x) qLow(x[[agVars[k]]]))),
-                          highQ = as.vector(sapply(agList, function(x) qHigh(x[[agVars[k]]]))),
+                          avg = as.vector(sapply(agList, function(x)
+                            median(x[[agVars[k]]]))),
+                          lowQ = as.vector(sapply(agList, function(x)
+                            qLow(x[[agVars[k]]]))),
+                          highQ = as.vector(sapply(agList, function(x)
+                            qHigh(x[[agVars[k]]]))),
                           row.names = NULL
         )
         singleScenDat <- rbind(singleScenDat, dum, row.names = NULL)

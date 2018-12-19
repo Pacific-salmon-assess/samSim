@@ -15,7 +15,7 @@
 
 #Temporary inputs
 # here <- here::here
-# simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorr.csv"),
+# simParF <- read.csv(here("data/manProcScenarios/fraserMPInputs_varyMixPpnHCRs.csv"),
 #                     stringsAsFactors = F)
 # cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
 # srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
@@ -24,6 +24,8 @@
 # larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"), stringsAsFactors=F)
 # tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
 
+# simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorr.csv"),
+#                     stringsAsFactors = F)
 # cuCustomCorrMat <- read.csv(here("data/fraserDat/prodCorrMatrix.csv"), stringsAsFactors=F)
 # erCorrMat <- read.csv(here("data/fraserDat/erMortCorrMatrix.csv"), stringsAsFactors=F,
 #                       row.names = NULL)
@@ -39,8 +41,8 @@
 # uniqueProd <- TRUE
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
-# nTrials <- 500
-# simPar <- simParF[23,]
+# nTrials <- 5
+# simPar <- simParF[9,]
 # multipleMPs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 
 
@@ -106,15 +108,17 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   }
   #minimum exploitation rate applied with TAM rule even at low abundance
   minER <- cuPar$minER
-  if (simPar$enRouteMort == FALSE) {
-    enRouteMR <- rep(0, length.out = nrow(cuPar))
-    enRouteSig <- rep(0, length.out = nrow(cuPar))
-  } else {
+  if (!is.null(simPar$enRouteMort)) {
+    if (simPar$enRouteMort == TRUE) {
     # ER mort rate (i.e. between marine and term. fisheries);
     # taken from in-river difference between estimates (post-2000)
     enRouteMR <- cuPar$meanDBE
     enRouteSig <- cuPar$sdDBE
-  }
+    } #end if enRouteMort == TRUE
+  } else {
+    enRouteMR <- rep(0, length.out = nrow(cuPar))
+    enRouteSig <- rep(0, length.out = nrow(cuPar))
+  } #end if !is.null(enRouteMort)
   #adjust en route mortality variation for sensitivity analysis
   enRouteSig <- enRouteSig * simPar$adjustEnRouteSig
   if (is.null(cuPar$medMA)) {
@@ -354,7 +358,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   keyVar <- switch(simPar$keyVar,
                    "prodRegime" = prod,
                    "synch" = correlCU,
-                   "expRate" = ifelse(harvContRule == "TAM", harvContRule, canER),
+                   "expRate" = ifelse(harvContRule == "TAM", harvContRule,
+                                      canER),
                    "ppnMix" = ppnMix,
                    "sigma" = adjSig,
                    "endYear" = endYr,
@@ -1777,10 +1782,10 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
 
   # Save aggregate data as list to create TS plot
-  agTSList <- c(list(nameOM, keyVar, plotOrder, harvContRule, targetExpRateAg,
-                     firstYr, nPrime, nYears),
+  agTSList <- c(list(nameOM, keyVar, plotOrder, nameMP, harvContRule,
+                     targetExpRateAg, firstYr, nPrime, nYears),
                 plyr::alply(agDat, 3, .dims = TRUE))
-  names(agTSList)[1:8] <- c("opMod", "keyVar", "plotOrder", "hcr",
+  names(agTSList)[1:9] <- c("opMod", "keyVar", "plotOrder", "manProc", "hcr",
                             "targetExpRate", "firstYr", "nPrime", "nYears")
   fileName <- ifelse(variableCU == "TRUE",
                      paste(cuNameOM, cuNameMP, "aggTimeSeries.RData",
