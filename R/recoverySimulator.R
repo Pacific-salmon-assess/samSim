@@ -1069,7 +1069,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           lowRefPtMU[y, m] <- tamFRP[tamFRP$cyc == cycle[y] &
                                        tamFRP$manUnit == muName[m], "lowRefPt"]
           highRefPtMU[y, m] <- tamFRP[tamFRP$cyc == cycle[y] &
-                                        tamFRP$manUnit == muName[m],"highRefPt"]
+                                        tamFRP$manUnit == muName[m],
+                                      "highRefPt"]
           #if forecasted recruitment within an MU is over lower ref pt,
           #assume fishery should be open
           openFishery[y, m] <- ifelse(sum(foreRecRY[y, CUs]) > lowRefPtMU[y, m],
@@ -1082,7 +1083,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           #should be open
           openFishery[y, m] <- ifelse(sum((mixCatch[y - 1, CUs] +
                                              singCatch[y - 1, CUs])) /
-                                        sum(recRY[y - 1, CUs])<lowRefPtMU[y, m],
+                                        sum(recRY[y - 1, CUs]) <
+                                        lowRefPtMU[y, m],
                                       1, 0)
           if (y == nPrime + 1) {
             #quick fix since catch data for last hist. year not in right format
@@ -1094,7 +1096,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       if (harvContRule == "TAM") {
         #should fisheries be constrained
         overlapConstraint[y, ] <- constrain(foreRecRYManU[y, ], highRefPt[y, ],
-                                            manAdjustment, manUnit)$muConstrained
+                                            manAdjustment,
+                                            manUnit)$muConstrained
       }
 
       #Calculate catches w/ error; will be redrawn each year to add unique error
@@ -1131,7 +1134,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       mixTAC[y, ] <- tacs[['mixTAC']] * truePpn
       mixTAC[is.na(mixTAC)] <- 0
 
-      #NOTE THAT USE OF FORECAST PPN CAUSES MIX AND SINGLE TO DIVERGE
+      #NOTE THAT USE OF FORECAST PPN FOR SINGLE STOCK FISHERIES CAUSES THEM
+      #TO DIVERGE RELATIVE TO MIXED (use true ppns)
       singTAC[y ,] <- if (ppnMix == "flex") {
         #if using flexing secondary HCR single fishery TAC = the foregone TAC
         #from the mixed-stock fishery
@@ -1145,12 +1149,13 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       if (singleHCR == "forecast") {
         #mortality adjustment is used to scale spawner abundance down based on
         #average en route mortality and a constant that determines where fishery
-        #occurs (preFMigMort)
+        #occurs (preFMigMort; note that this defaults to 1, i.e. 100% before)
         mortAdjustment <- sapply(manAdjustment, function(x)
           ifelse(preFMigMort == 0, 1, preFMigMort * (1 + x))
         )
-        singCUStatus[y, ] <- (foreRecRY[y, ] / mortAdjustment) - amTAC[y, ] -
-          mixTAC[y, ]
+        singCUStatus[y, ] <- pmax(0,
+                                  (foreRecRY[y, ] / mortAdjustment) -
+                                    amTAC[y, ] - mixTAC[y, ])
       }
 
       #If a single stock HCR is in effect, assess status based on forecast or
