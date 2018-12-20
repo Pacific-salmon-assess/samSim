@@ -42,7 +42,7 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 5
-# simPar <- simParF[9,]
+# simPar <- simParF[12,]
 # multipleMPs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 
 
@@ -420,6 +420,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   ppnCUsLowerObsBM <- matrix(NA, nrow = nYears, ncol = nTrials)
   ppnCUsExtinct <- matrix(NA, nrow = nYears, ncol = nTrials)
   ppnConstrained <- matrix(NA, nrow = nYears, ncol = nTrials)
+  ppnCUsOpenSingle <- matrix(NA, nrow = nYears, ncol = nTrials)
   meanSingExpRate <- matrix(NA, nrow = nYears, ncol = nTrials)
   sGeoMean <- matrix(NA, nrow = nYears, ncol = nCU)
   ppnSLow <- matrix(0, nrow = nTrials, ncol = nCU)
@@ -1144,23 +1145,34 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         tacs[['singTAC']] * forecastPpn
       }
 
-      #Should single stock TAC be taken?
       #Secondary HCR option 1 uses forecasted spawner abundance
-      if (singleHCR == "forecast") {
-        #mortality adjustment is used to scale spawner abundance down based on
-        #average en route mortality and a constant that determines where fishery
-        #occurs (preFMigMort; note that this defaults to 1, i.e. 100% before)
-        mortAdjustment <- sapply(manAdjustment, function(x)
-          ifelse(preFMigMort == 0, 1, preFMigMort * (1 + x))
-        )
-        singCUStatus[y, ] <- pmax(0,
-                                  (foreRecRY[y, ] / mortAdjustment) -
-                                    amTAC[y, ] - mixTAC[y, ])
-      }
+      # if (singleHCR == "forecast") {
+      #   #mortality adjustment is used to scale spawner abundance down based on
+      #   #average en route mortality and a constant that determines where fishery
+      #   #occurs (preFMigMort; note that this defaults to 1, i.e. 100% before)
+      #   mortAdjustment <- sapply(manAdjustment, function(x)
+      #     ifelse(preFMigMort == 0, 1, preFMigMort * (1 + x))
+      #   )
+      #   singCUStatus[y, ] <- pmax(0,
+      #                             (foreRecRY[y, ] / mortAdjustment) -
+      #                               amTAC[y, ] - mixTAC[y, ])
+      # }
 
+      ## Apply single stock harvest control rules
       #If a single stock HCR is in effect, assess status based on forecast or
       #retro calculation.
       if (singleHCR != FALSE) {
+        if (singleHCR == "forecast") {
+          #mortality adjustment is used to scale spawner abundance down based on
+          #average en route mortality and a constant that determines where fishery
+          #occurs (preFMigMort; note that this defaults to 1, i.e. 100% before)
+          mortAdjustment <- sapply(manAdjustment, function(x)
+            ifelse(preFMigMort == 0, 1, preFMigMort * (1 + x))
+          )
+          singCUStatus[y, ] <- pmax(0,
+                                    (foreRecRY[y, ] / mortAdjustment) -
+                                      amTAC[y, ] - mixTAC[y, ])
+        }
         for (k in 1:nCU) {
           if (model[k] == "ricker") {
             #Secondary HCR option 2 uses median obsS abundance over previous gen
@@ -1175,7 +1187,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             if (singCUStatus[y, k] >= upperBM[y - 1, k]) {
               counterSingleBMHigh[y, k] <- 1
             }
-          }
+          } #end if (model[k] == "ricker")
           #Larkin HCR only applies to dominant line (no median)
           if (model[k] == "larkin" & cycle[y] == domCycle[k]) {
             if (singleHCR == "retro") {
@@ -1189,13 +1201,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             if (singCUStatus[y, k] >= upperBM[y - 1, k]) {
               counterSingleBMHigh[y, k] <- 1
             }
-          }
-        }
-      }
-
-      ## Apply secondary HCR as appropriate
-      if (singleHCR != FALSE) {
-        for (k in 1:nCU) {
+          } #end if (model[k] == "larkin")
+          ## Apply secondary HCR as appropriate
           if (moveTAC == TRUE) {
             #identify which CUs in the MU are above their upper OCP and in the
             #same Mu
@@ -1205,14 +1212,38 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               movedTAC <- singTAC[y, k] * forecastPpn[healthyCUs]
               singTAC[y, healthyCUs] <- singTAC[y, healthyCUs] + movedTAC
               singTAC[y, k] <- 0
-            }
-          } else { #if TAC is not being moved, simply set low abundance CUs to 0
-            if (counterSingleBMLow[y, k] == 0) {
-              singTAC[y, k] <- 0
-            }
-          }
-        }
+            } #end if counterSingleBMLow[y, k] == 0
+          } #end if moveTAC == TRUE
+        } #end for k in 1:nCU
+      } #end if singleHCR != FALSE
+
+      # if there is no single stock HCR applied than all CUs assumed to be
+      # "above" the lower BM so that TAC is taken
+      if (singleHCR == FALSE) {
+        counterSingleBMLow[y, ] <- 1
       }
+      singTAC[y, ] <- singTAC[y, ] * counterSingleBMLow[y, ]
+
+      ## Apply secondary HCR as appropriate
+      # if (singleHCR != FALSE) {
+      #   for (k in 1:nCU) {
+      #     if (moveTAC == TRUE) {
+      #       #identify which CUs in the MU are above their upper OCP and in the
+      #       #same Mu
+      #       if (counterSingleBMLow[y, k] == 0) {
+      #         healthyCUs <- which(counterSingleBMHigh[y, ] > 0 &
+      #                               manUnit %in% manUnit[k])
+      #         movedTAC <- singTAC[y, k] * forecastPpn[healthyCUs]
+      #         singTAC[y, healthyCUs] <- singTAC[y, healthyCUs] + movedTAC
+      #         singTAC[y, k] <- 0
+      #       }
+      #     } else { #if TAC is not being moved, simply set low abundance CUs to 0
+      #       if (counterSingleBMLow[y, k] == 0) {
+      #         singTAC[y, k] <- 0
+      #       }
+      #     }
+      #   }
+      # }
       singTAC[is.na(singTAC)] <- 0
       canTAC[y, ] <- apply(rbind(mixTAC[y, ], singTAC[y, ]), 2, sum)
       totalTAC[y, ] <- apply(rbind(amTAC[y, ], mixTAC[y, ], singTAC[y, ]), 2,
@@ -1533,14 +1564,15 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
       # Combine relevant data into array passed to plotting function
       varNames <- c("Productivity", "Est Productivity", "Est Beta",
-                    "Spawners", "Obs Spawners", "Recruits BY", "Obs Recruits BY",
-                    "Recruits RY",
+                    "Spawners", "Obs Spawners", "Recruits BY",
+                    "Obs Recruits BY", "Recruits RY",
                     "Mix Catch", "Single Catch", "US Catch", "En Route Mort",
                     "Total Exp Rate", "Mix Exp Rate", "Single Exp Rate",
                     "TAM Single ER",
                     "Smsy", "Sgen", "S 75th Percentile", "S 25th Percentile",
                     "Obs Spawners Err", "Obs RecBY Err",
-                    "Obs RecRY Err", "Obs Mix Catch Err", "Obs Single Catch Err",
+                    "Obs RecRY Err", "Obs Mix Catch Err",
+                    "Obs Single Catch Err",
                     "Obs US Catch Err", "Obs Exp Rate Err", "Forecast Err"
         )
       plotTrialDat <- array(c(alphaMat, estRicA[ , , n], estRicB[ , , n],
@@ -1664,7 +1696,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                             apply(targetTamER[(nPrime+1):nYears, ], 2,
                                   function(x) mean(x, na.rm = TRUE)))
     #data of interest
-    yrsSeq <- seq(from = nPrime+1, to = nYears, by = 1)
+    yrsSeq <- seq(from = nPrime + 1, to = nYears, by = 1)
     #median and CVs of true or obs PMs through time per trial
     medS[n, ] <- apply(na.omit(S[yrsSeq, ]), 2, median)
     varS[n, ] <- apply(na.omit(S[yrsSeq, ]), 2, cv)
@@ -1723,6 +1755,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     ppnCUsLowerObsBM[yrsSeq, n] <- apply(counterLowerObsBM[yrsSeq, ], 1, mean)
     ppnCUsExtinct[yrsSeq, n] <- apply(extinct[yrsSeq, ], 1, mean)
     ppnConstrained[yrsSeq, n] <- apply(overlapConstraint[yrsSeq, ], 1, mean)
+    ppnCUsOpenSingle[yrsSeq, n] <- apply(counterSingleBMLow[yrsSeq, ], 1,
+                                            mean)
   } #End n trials
 
 
@@ -1773,7 +1807,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
   #_____________________________________________________________________
   ## Aggregate outputs
-  # Generate array of median, upper and lower quantiles that are passed to plotting function
+  # Generate array of median, upper and lower quantiles that are passed to
+  # plotting function
   agNames <- c("Ag Spawners", "Obs Ag Spawners", "Ag Recruits RY",
                "Obs Ag Recruits RY", "Ag Catch", "Obs Ag Catch", "Exp Rate",
                "Obs Exp Rate", "Prop Open Fishery", "Change Ag Catch",
@@ -1836,7 +1871,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                        ppnYrsHighCatch = apply(highCatchAgBM[(nPrime + 1):nYears, ], 2, mean), #proportion of years in management period aggregate catch is above summed catch thresholds
                        ppnYrsCUsLower = apply(ppnLowerBM[(nPrime + 1):nYears, ], 2, mean), #proportion of years at least 50% of CUs are above lower BM
                        ppnYrsCUsUpper = apply(ppnUpperBM[(nPrime + 1):nYears, ], 2, mean), #proportion of years at least 50% of CUs are above upper BM
-                       ppnFisheriesOpen = apply(ppnOpenFishery[(nPrime + 1):nYears, ], 2, mean), #proportion of years all fisheries are open
+                       ppnMixedOpen = apply(ppnOpenFishery[(nPrime + 1):nYears, ], 2, mean), #proportion of years all fisheries are open
+                       ppnSingleOpen = apply(na.omit(ppnCUsOpenSingle), 2,
+                                                mean),
                        ppnCUUpper = apply(ppnCUsUpperBM[(nPrime + 1):nYears, ], 2, mean), #mean proportion of CUs above upper benchmark in last generations of management period
                        ppnCULower = apply(ppnCUsLowerBM[(nPrime + 1):nYears, ], 2, mean), #mean proportion of CUs above lower benchmark in last generations of management period
                        ppnCUEstUpper = apply(na.omit(ppnCUsUpperObsBM), 2, mean), #proportion of CUs estimated above upper benchmark in last 2 generations of management period
@@ -1845,7 +1882,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                        ppnCUStable = apply(na.omit(counterLateLowerBM), 1, mean), #proportion of CUs above lower benchmark in last generations of management period
                        ppnCUExtinct = ppnCUsExtinct[nYears, ], #proportion of CUs extinct at end of simulation period
                        ppnCUExtant = (1 - ppnCUsExtinct[nYears, ]), #proportion of CUs EXTANT at end of simulation period
-                       ppnCUConstrained = apply(na.omit(ppnConstrained), 2, mean),
+                       ppnCUConstrained = apply(na.omit(ppnConstrained), 2,
+                                                mean),
                        medSpawnersEarly = apply(sAg[(nPrime + 1):endEarly, ], 2, median),
                        medRecRYEarly = apply(recRYAg[(nPrime + 1):endEarly, ], 2, median),
                        medCatchEarly = apply(catchAg[(nPrime + 1):endEarly, ], 2, median) #median aggregate catch in first 2 generations of management period
