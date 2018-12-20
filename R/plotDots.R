@@ -50,7 +50,8 @@ plotCUDot <- function(cuDat, plotVar, group = "om", legendLab = NULL, xLab = NUL
     dum <- dum %>%
       mutate(groupingVar = as.factor(om))
   }
-  colPal <- viridis::viridis(length(levels(dum$groupingVar)), begin = 0, end = 1)
+  colPal <- viridis::viridis(length(levels(dum$groupingVar)), begin = 0,
+                             end = 1)
   names(colPal) <- levels(dum$groupingVar)
 
   p <- ggplot(dum, aes(x = keyVar, y = avg, ymin = lowQ, ymax = highQ,
@@ -66,7 +67,8 @@ plotCUDot <- function(cuDat, plotVar, group = "om", legendLab = NULL, xLab = NUL
           legend.text = element_text(size = 0.95 * legendSize),
           legend.title = element_text(size = legendSize)) +
     facet_wrap(~ cuName, scales = "free_y")
-  if (length(unique(dum$groupingVar)) < 2) { #remove legend if no grouping variables
+  #remove legend if no grouping variables
+  if (length(unique(dum$groupingVar)) < 2) {
     p <- p  +
       scale_color_manual(values = colPal, guide = FALSE) +
       geom_pointrange(position = position_dodge(width = 0))
@@ -145,7 +147,8 @@ plotAgDot <- function(agDat, group = "om", legendLab = "Operating\nModel",
           legend.title = element_text(size = legendSize)) +
     # scale_shape_discrete(name = legendLab) +
     facet_wrap(~ var, scales = "free_y")
-  if (length(unique(dum$groupVar)) < 2) { #remove legend if no grouping variables
+  #remove legend if no grouping variables
+  if (length(unique(dum$groupVar)) < 2) {
     p <- p  +
       scale_color_manual(values = colPal, guide = FALSE) +
       geom_pointrange(position = position_dodge(width = 0))

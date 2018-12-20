@@ -106,7 +106,7 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
         mutate(facetVar = as.factor(om))
     }
 
-    p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg, shape = mp,
+    p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg, shape = hcr,
                              alpha = keyVar, fill = cuName)) +
       geom_point(size = dotSize) +
       theme_sleekX() +
@@ -120,7 +120,7 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
       scale_alpha_discrete(range = c(0.3, 1), name = legendLab)  +
       scale_fill_manual(values = colPal, name = "CU") +
       facet_wrap(~ facetVar, scales = "free")
-    if (length(unique(wideDum$mp)) < 2) {
+    if (length(unique(wideDum$hcr)) < 2) {
       p <- p +
         guides(shape = "none")
     } else {
@@ -129,7 +129,8 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
     }
     if (facet == "mu") {
       p <- p +
-        guides(fill = guide_legend(override.aes = list(shape = 21, colour = "black",
+        guides(fill = guide_legend(override.aes = list(shape = 21,
+                                                       colour = "black",
                                                        fill = colPal)))
     }
     if (facet == "cu" | facet == "mp" | facet == "om") {
@@ -218,7 +219,7 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners", catchVar = "medCatch"
       mutate(facetVar = as.factor(om))
   }
 
-  p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg, shape = mp,
+  p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg, shape = hcr,
                            alpha = keyVar)) +
     geom_point(size = dotSize, fill = "black") +
     theme_sleekX() +
@@ -231,7 +232,7 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners", catchVar = "medCatch"
     scale_shape_manual(values = c(21, 25), name = "Control Rule") +
     scale_alpha_discrete(range = c(0.3, 1), name = legendLab)  +
     facet_wrap(~ facetVar, scales = "free")
-  if (length(unique(wideDum$mp)) < 2) {
+  if (length(unique(wideDum$hcr)) < 2) {
     p <- p +
       guides(shape = "none")
   } else {
