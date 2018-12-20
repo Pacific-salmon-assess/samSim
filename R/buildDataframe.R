@@ -34,8 +34,8 @@ buildDataCU <- function(dirNames, cuVars, keyVarName, selectedCUs = NULL) {
   cuData = NULL #construct CU dataframe
   for (i in seq_along(dirNames)) {
     #alternatively ID OMs based on prespecified directory
-    subDirs <- list.dirs(path = paste(here("outputs/simData"), dirNames[i],
-                                      sep = "/"),
+    subDirs <- list.dirs(path = paste(here::here("outputs/simData"),
+                                      dirNames[i], sep = "/"),
                          full.names = FALSE, recursive = FALSE)
 
     for (j in seq_along(subDirs)) {
@@ -118,8 +118,8 @@ buildDataAgg <- function(dirNames, agVars, keyVarName) {
   agData = NULL #construct aggregate dataframe
   for (i in seq_along(dirNames)) {
     #alternatively ID OMs based on prespecified directory
-    subDirs <- list.dirs(path = paste(here("outputs/simData"), dirNames[i],
-                                      sep = "/"),
+    subDirs <- list.dirs(path = paste(here::here("outputs/simData"),
+                                      dirNames[i], sep = "/"),
                          full.names = FALSE, recursive = FALSE)
 
     for (j in seq_along(subDirs)) {

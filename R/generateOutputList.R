@@ -26,24 +26,36 @@
 #' TO BE COMPLETED
 #'
 #' @export
-genOutputList <- function(dirName, subDirName = NULL, selectedCUs = NULL, agg = TRUE,
-                          aggTS = FALSE) {
-  dirPath <- ifelse(is.null(subDirName), dirName, paste(dirName, subDirName, sep="/"))
+genOutputList <- function(dirName, subDirName = NULL, selectedCUs = NULL,
+                          agg = TRUE, aggTS = FALSE) {
+  dirPath <- ifelse(is.null(subDirName), dirName, paste(dirName, subDirName,
+                                                        sep="/"))
 
   if (agg == TRUE) {
     if (aggTS == TRUE) {
-      arrayNames <- list.files(paste(here("outputs/simData"), dirPath, sep="/"), pattern="\\Series.RData$")
+      arrayNames <- list.files(paste(here("outputs/simData"), dirPath, sep="/"),
+                               pattern="\\Series.RData$")
+      if (is.null(arrayNames)) {
+        warning("Necessary output data missing")
+      }
       aggList <- list()
       for(i in 1:length(arrayNames)){ #make list of lists!
-        aggList[[i]] <- readRDS(paste(here("outputs/simData"), dirPath, arrayNames[i], sep="/"))
+        aggList[[i]] <- readRDS(paste(here("outputs/simData"), dirPath,
+                                      arrayNames[i], sep="/"))
       }
       names(aggList) <- arrayNames
       return(aggList)
     } else {
-      listNames <- list.files(paste(here("outputs/simData"), dirPath, sep="/"), pattern="*aggDat.csv")
+      listNames <- list.files(paste(here::here("outputs/simData"), dirPath,
+                                    sep="/"),
+                              pattern="*aggDat.csv")
+      if (is.null(listNames)) {
+        warning("Necessary output data missing")
+      }
       aggList <- list()
       for(i in 1:length(listNames)){
-        aggList[[i]] <- read.csv(paste(here("outputs/simData"), dirPath, listNames[i], sep="/"))
+        aggList[[i]] <- read.csv(paste(here::here("outputs/simData"), dirPath,
+                                       listNames[i], sep="/"))
       }
       names(aggList) <- listNames
       return(aggList)
@@ -51,11 +63,16 @@ genOutputList <- function(dirName, subDirName = NULL, selectedCUs = NULL, agg = 
   }
 
   if (agg == FALSE) {
-    dfNames <- list.files(paste(here("outputs/simData"), dirPath, sep="/"), pattern="\\cuDat.RData$")
+    dfNames <- list.files(paste(here("outputs/simData"), dirPath, sep="/"),
+                          pattern="\\cuDat.RData$")
+    if (is.null(dfNames)) {
+      warning("Necessary output data missing")
+    }
     cuList <- list()
     newNames <- NULL
     for(i in 1:length(dfNames)){ #make list of lists!
-      cuList[[i]] <- readRDS(paste(here("outputs/simData"), dirPath, dfNames[i], sep="/"))
+      cuList[[i]] <- readRDS(paste(here("outputs/simData"), dirPath, dfNames[i],
+                                   sep="/"))
       newName <- unlist(strsplit(dfNames[i], "_cuDat"))[1] #identify and assign truncated name to CU-specific list
       # newNames <- c(newNames, paste("fixed", newName, sep = ""))
       newNames <- c(newNames, newName)
