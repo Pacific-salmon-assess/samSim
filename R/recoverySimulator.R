@@ -262,6 +262,11 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       larSig <- (srParsLark[["sigma"]])
     }
   }
+  # adjust sigma (Ricker only) following Holt and Folkes 2015 if a
+  # transformation term is present and TRUE
+  if (is.null(simPar$arSigTransform) == FALSE & simPar$arSigTransform == TRUE) {
+    ricSig <- sqrt(ricSig^2 / (1 - rho^2))
+  }
   alpha <- ifelse(model == "ricker", ricA, larA)
   beta <- ifelse(model == "ricker", ricB, larB)
   if (is.null(simPar$adjustBeta) == FALSE) {
