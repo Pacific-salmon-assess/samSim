@@ -42,9 +42,9 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 5
-# simPar <- simParF[9,]
+# simPar <- simParF[11,]
 # multipleMPs <- TRUE #only false when running scenarios with multiple OMs and only one MP
-#
+
 
 recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                         variableCU=FALSE, multipleMPs=TRUE, ricPars,
@@ -1153,72 +1153,64 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       ## Apply single stock harvest control rules
       #If a single stock HCR is in effect, assess status based on forecast or
       #retro calculation.
-      # if (singleHCR != FALSE) {
-      #   # if (singleHCR == "forecast") {
-      #     #mortality adjustment is used to scale spawner abundance down based on
-      #     #average en route mortality and a constant that determines where fishery
-      #     #occurs (preFMigMort; note that this defaults to 1, i.e. 100% before)
-      #     mortAdjustment <- sapply(manAdjustment, function(x)
-      #       ifelse(preFMigMort == 0, 1, preFMigMort * (1 + x))
-      #     )
-      #     # singCUStatus[y, ] <- pmax(0,
-      #     #                           (foreRecRY[y, ] / mortAdjustment) -
-      #     #                             amTAC[y, ] - mixTAC[y, ])
-      #   # }
-      #   for (k in 1:nCU) {
-      #     if (singleHCR == "forecast") {
-      #       singCUStatus[y, k] <- max(0,
-      #                                 (foreRecRY[y, k] / mortAdjustment[k]) -
-      #                                   amTAC[y, k] - mixTAC[y, k])
-      #     }
-      #     if (model[k] == "ricker") {
-      #       #Secondary HCR option 2 uses median obsS abundance over previous gen
-      #       #Needs to be in for loop because calc depends on whether stock is
-      #       #cyclic or not; should eventually be replaced w/ estimated BMs
-      #       if (singleHCR == "retro") {
-      #         singCUStatus[y, k] <- median(obsS[(y - 1):(y - gen), k])
-      #       }
-      #       if (singCUStatus[y, k] >= lowerBM[y - 1, k]) {
-      #         counterSingleBMLow[y, k] <- 1
-      #       }
-      #       if (singCUStatus[y, k] >= upperBM[y - 1, k]) {
-      #         counterSingleBMHigh[y, k] <- 1
-      #       }
-      #     } #end if (model[k] == "ricker")
-      #     #Larkin HCR only applies to dominant line (no median)
-      #     if (model[k] == "larkin" & cycle[y] == domCycle[k]) {
-      #       if (singleHCR == "retro") {
-      #         singCUStatus[y, k] <- obsS[y - gen, k]
-      #       }
-      #       #NOTE that BMs for Larkin stocks use only dominant cycle line so
-      #       #aligning lowerBM with cycle line is not necessary
-      #       if (singCUStatus[y, k] >= lowerBM[y - 1, k]) {
-      #         counterSingleBMLow[y, k] <- 1
-      #       }
-      #       if (singCUStatus[y, k] >= upperBM[y - 1, k]) {
-      #         counterSingleBMHigh[y, k] <- 1
-      #       }
-      #     } #end if (model[k] == "larkin")
-      #     ## Apply secondary HCR as appropriate
-      #     if (moveTAC == TRUE) {
-      #       #identify which CUs in the MU are above their upper OCP and in the
-      #       #same Mu
-      #       if (counterSingleBMLow[y, k] == 0) {
-      #         healthyCUs <- which(counterSingleBMHigh[y, ] > 0 &
-      #                               manUnit %in% manUnit[k])
-      #         movedTAC <- singTAC[y, k] * forecastPpn[healthyCUs]
-      #         singTAC[y, healthyCUs] <- singTAC[y, healthyCUs] + movedTAC
-      #         singTAC[y, k] <- 0
-      #       } #end if counterSingleBMLow[y, k] == 0
-      #     } #end if moveTAC == TRUE
-      #   } #end for k in 1:nCU
-      # } #end if singleHCR != FALSE
-      #
+      if (singleHCR != FALSE) {
+        mortAdjustment <- sapply(manAdjustment, function(x)
+          ifelse(preFMigMort == 0, 1, preFMigMort * (1 + x))
+        )
+        for (k in 1:nCU) {
+          if (singleHCR == "forecast") {
+            singCUStatus[y, k] <- max(0,
+                                      (foreRecRY[y, k] / mortAdjustment[k]) -
+                                        amTAC[y, k] - mixTAC[y, k])
+          }
+          if (model[k] == "ricker") {
+            #Secondary HCR option 2 uses median obsS abundance over previous gen
+            #Needs to be in for loop because calc depends on whether stock is
+            #cyclic or not; should eventually be replaced w/ estimated BMs
+            if (singleHCR == "retro") {
+              singCUStatus[y, k] <- median(obsS[(y - 1):(y - gen), k])
+            }
+            if (singCUStatus[y, k] >= lowerBM[y - 1, k]) {
+              counterSingleBMLow[y, k] <- 1
+            }
+            if (singCUStatus[y, k] >= upperBM[y - 1, k]) {
+              counterSingleBMHigh[y, k] <- 1
+            }
+          } #end if (model[k] == "ricker")
+          #Larkin HCR only applies to dominant line (no median)
+          if (model[k] == "larkin" & cycle[y] == domCycle[k]) {
+            if (singleHCR == "retro") {
+              singCUStatus[y, k] <- obsS[y - gen, k]
+            }
+            #NOTE that BMs for Larkin stocks use only dominant cycle line so
+            #aligning lowerBM with cycle line is not necessary
+            if (singCUStatus[y, k] >= lowerBM[y - 1, k]) {
+              counterSingleBMLow[y, k] <- 1
+            }
+            if (singCUStatus[y, k] >= upperBM[y - 1, k]) {
+              counterSingleBMHigh[y, k] <- 1
+            }
+          } #end if (model[k] == "larkin")
+          ## Apply secondary HCR as appropriate
+          if (moveTAC == TRUE) {
+            #identify which CUs in the MU are above their upper OCP and in the
+            #same Mu
+            if (counterSingleBMLow[y, k] == 0) {
+              healthyCUs <- which(counterSingleBMHigh[y, ] > 0 &
+                                    manUnit %in% manUnit[k])
+              movedTAC <- singTAC[y, k] * forecastPpn[healthyCUs]
+              singTAC[y, healthyCUs] <- singTAC[y, healthyCUs] + movedTAC
+              singTAC[y, k] <- 0
+            } #end if counterSingleBMLow[y, k] == 0
+          } #end if moveTAC == TRUE
+        } #end for k in 1:nCU
+      } #end if singleHCR != FALSE
+
       # # if there is no single stock HCR applied than all CUs assumed to be
       # # "above" the lower BM so that TAC is taken
-      # if (singleHCR == FALSE) {
+      if (singleHCR == FALSE) {
         counterSingleBMLow[y, ] <- 1
-      # }
+      }
       singTAC[y, ] <- singTAC[y, ] * counterSingleBMLow[y, ]
 
 
