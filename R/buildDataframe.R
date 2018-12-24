@@ -57,7 +57,7 @@ buildDataCU <- function(dirNames, cuVars, keyVarName, selectedCUs = NULL) {
       singleScenDat = NULL
       for (k in seq_along(cuVars)) {
         dum <- data.frame(keyVar = keyVarValue,
-                          mp = rep(sapply(cuList, function(x) x$hcr),
+                          mp = rep(sapply(cuList, function(x) x$manProc),
                                    each = nCU),
                           om = rep(sapply(cuList, function(x) x$opMod),
                                    each = nCU),
