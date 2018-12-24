@@ -73,8 +73,8 @@ genOutputList <- function(dirName, subDirName = NULL, selectedCUs = NULL,
     for(i in 1:length(dfNames)){ #make list of lists!
       cuList[[i]] <- readRDS(paste(here("outputs/simData"), dirPath, dfNames[i],
                                    sep="/"))
-      newName <- unlist(strsplit(dfNames[i], "_cuDat"))[1] #identify and assign truncated name to CU-specific list
-      # newNames <- c(newNames, paste("fixed", newName, sep = ""))
+      #identify and assign truncated name to CU-specific list
+      newName <- unlist(strsplit(dfNames[i], "_cuDat"))[1]
       newNames <- c(newNames, newName)
     }
     names(cuList) <- newNames
@@ -83,8 +83,9 @@ genOutputList <- function(dirName, subDirName = NULL, selectedCUs = NULL,
       cuNumbers <- which(cuList[[1]][["stkName"]] %in% selectedCUs)
       cuList <- lapply(cuList, function(lst) {
         tempList <- vector("list", length = length(lst))
-        tempList[1:4] <- lst[c("opMod", "keyVar", "plotOrder", "hcr")]
-        for (i in 5:length(lst)) {
+        tempList[1:5] <- lst[c("opMod", "keyVar", "plotOrder", "manProc",
+                               "hcr")]
+        for (i in 6:length(lst)) {
           if (is.matrix(lst[[i]]) == TRUE){
             temp <- lst[[i]][, cuNumbers]
           }
