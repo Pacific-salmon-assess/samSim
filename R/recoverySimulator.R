@@ -1107,9 +1107,12 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       }
 
       #Calculate catches w/ error; will be redrawn each year to add unique error
-      mixOutErr <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0, mixOUSig))
       migMortErr <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0, enRouteSig))
-      singOutErr <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0, singOUSig))
+      mixOutErr <- rnorm(nCU, 0, mixOUSig)
+      singOutErr <- rnorm(nCU, 0, singOUSig)
+      #switch to additive outcome uncertainty error
+      # mixOutErr <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0, mixOUSig))
+      # singOutErr <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0, singOUSig))
 
       #add correlated ER mortality (commented out due to weak impacts on PMs)
       # migMortErr <- if (simPar$corrMort == TRUE) {
@@ -1226,16 +1229,17 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         NA
       }
       #calculate realized TAC
+      #switch to additive outcome uncertainty error
       amCatch[y, ] <- pmin(pmax(recRY[y, ] - extinctThresh, 0),
-                           amTAC[y, ] * mixOutErr)
+                           amTAC[y, ] * (1 + mixOutErr))
       remRec1 <- recRY[y, ] - amCatch[y, ]
       mixCatch[y, ] <- pmin(pmax(remRec1 - extinctThresh, 0),
-                            mixTAC[y, ] * mixOutErr)
+                            mixTAC[y, ] * (1 + mixOutErr))
       remRec2 <- remRec1 - mixCatch[y, ]
       migMortRate[y, ] <- enRouteMR * migMortErr
       migMort1 <- remRec2 * (preFMigMort * migMortRate[y, ])
       singCatch[y, ] <- pmin(pmax(remRec2 - migMort1 - extinctThresh, 0),
-                             singTAC[y, ] * singOutErr)
+                             singTAC[y, ] * (1 + singOutErr))
       remRec3 <- (remRec2 - migMort1 - singCatch[y, ])
       migMort2 <- remRec3 * ((1 - preFMigMort) * migMortRate[y, ])
       migMort[y, ] <- migMort1 + migMort2
