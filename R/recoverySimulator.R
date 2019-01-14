@@ -23,7 +23,7 @@
 # ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors=F)
 # larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"), stringsAsFactors=F)
 # tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
-
+#
 # simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorr.csv"),
 #                     stringsAsFactors = F)
 # cuCustomCorrMat <- read.csv(here("data/fraserDat/prodCorrMatrix.csv"), stringsAsFactors=F)
@@ -466,6 +466,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   varObsRecBY <- matrix(NA, nrow = nTrials, ncol = nCU)
   medAlpha <- matrix(NA, nrow = nTrials, ncol = nCU)
   varAlpha <- matrix(NA, nrow = nTrials, ncol = nCU)
+  medEstAlpha <- matrix(NA, nrow = nTrials, ncol = nCU)
+  varEstAlpha <- matrix(NA, nrow = nTrials, ncol = nCU)
   medBeta <- matrix(NA, nrow = nTrials, ncol = nCU)
   medTotalCatchEarly <- matrix(NA, nrow = nTrials, ncol = nCU)
   medTotalCatch <- matrix(NA, nrow = nTrials, ncol = nCU)
@@ -1690,6 +1692,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     varObsRecBY[n, ] <- apply(na.omit(obsRecBY[yrsSeq, ]), 2, cv)
     medAlpha[n, ] <- apply(na.omit(alphaMat[yrsSeq, ]), 2, median)
     varAlpha[n, ] <- apply(na.omit(alphaMat[yrsSeq, ]), 2, cv)
+    medEstAlpha[n, ] <- apply(na.omit(estRicA[yrsSeq, , n]), 2, median)
+    varEstAlpha[n, ] <- apply(na.omit(estRicA[yrsSeq, , n]), 2, cv)
     medBeta[n, ] <- if (is.null(nrow(beta))) {
       beta
     } else {
@@ -1744,7 +1748,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   cuList <- list(nameOM, keyVar, plotOrder, nameMP, harvContRule, stkName,
                  stkID, manUnit, targetER, meanSMSY, meanSGen, medS, varS,
                  medObsS, varObsS, medRecRY, varRecRY, medRecBY, varRecBY,
-                 medObsRecRY, varObsRecRY, medAlpha, varAlpha, medBeta,
+                 medObsRecRY, varObsRecRY, medAlpha, varAlpha, medEstAlpha,
+                 varEstAlpha, medBeta,
                  medTotalCatch, varTotalCatch, (1 / varTotalCatch),
                  medObsTotalCatch, varObsTotalCatch, (1 / varObsTotalCatch),
                  medTotalER, medTotalObsER, medTAMSingER, medForgoneCatch,
@@ -1756,7 +1761,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                      "meanSGen", "medSpawners", "varSpawners", "medObsSpawners",
                      "varObsSpawners", "medRecRY", "varRecRY", "medRecBY",
                      "varRecBY", "medObsRecRY", "varObsRecRY", "medAlpha",
-                     "varAlpha", "medBeta", "medCatch",
+                     "varAlpha", "medEstAlpha", "varEstAlpha", "medBeta",
+                     "medCatch",
                      "varCatch", "stblCatch", "medObsCatch", "varObsCatch",
                      "stblObsCatch", "medTotalER", "medObsTotalER",
                      "medTAMSingER", "medForegoneCatch", "counterEarlyUpper",
