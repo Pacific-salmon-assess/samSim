@@ -62,7 +62,9 @@ Model key
 -	These are lower than management targets (16.5% for all MUs but E Stu) because 	management targets are applied to fish after accounting for en route mortality 	losses; the model now reflects this and 16.5% ERs are default 
 
 #### `camGenDat/forecastEstimates.csv`
--	MU-specific estimates of pre-season, in-season (3 days after 50% migration 	date) and post-season (meeting after TAC date) of run size from 2006-2017
+-	MU-specific estimates of pre-season, in-season (3 days after 50% migration date 	through Area 20 as determined post-season) and post-season (meeting after TAC date) 	of run size from 2006-2017
+-	TAC and catch values (50% and post-season for both) used to parameterize OU
+	-	Catches exclude FAE
 -	Error calculated as estimate/total run, with total run size coming from 	`frTotalCatch.csv`
 -	Use mean and sd of in-season values to parameterize forecast error in closed-	loop model; added to fraserCUPars.csv
 -	Raw data provided as .xls file `ManagementTables2005-2017` by PSC; summaries 	available in FRP annual reports
