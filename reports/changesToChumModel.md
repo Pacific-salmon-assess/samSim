@@ -483,3 +483,8 @@ Potential issues
 -	As alternative to retrospective HCR (i.e. based on median obs S over prev 	generation), add one based on forecasted spawner abundance
 -	Calculated using CU-specific forecasts of recruitment, adjusted downward by 	mean mortality rate if ER occurs before the fishery does, minus amTAC minus 	mixTAC
 -	Reference points are still the same, i.e. TAC is only taken if forecast is 	above lower BM
+
+
+### XXXXV) Switched outcome uncertainty to additive
+- Following C. Holt's suggestion OU is now additive (i.e. 1 + rnorm) rather than multiplicative
+- Also considered switching forecast error to additive but it appears to be commonly applied multiplicatively (e.g. Catalano and Jones 2014)
