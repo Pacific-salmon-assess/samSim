@@ -1157,6 +1157,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #If a single stock HCR is in effect, assess status based on forecast or
       #retro calculation.
       if (singleHCR != FALSE) {
+        # calculate mortAdjustment to scale down forecasted S abundance as a
+        # function of median pDBE
         mortAdjustment <- sapply(manAdjustment, function(x)
           ifelse(preFMigMort == 0, 1, preFMigMort * (1 + x))
         )
