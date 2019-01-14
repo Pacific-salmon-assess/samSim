@@ -16,6 +16,7 @@
 #' @param legendLab A character representing the legend title.
 #' @param xLab A character representing the x axis label.
 #' @param yLab A character representing the y axis label.
+#' @param plotTitle A character representing the main plot title.
 #' @return Returns a ggplot object.
 #'
 #' @examples
@@ -26,9 +27,9 @@
 #'          legendSize = 14)
 #'
 #' @export
-plotCUDot <- function(cuDat, plotVar, group = "om", legendLab = NULL, xLab = NULL,
-                      yLab = NULL, axisSize = 14, dotSize = 4, lineSize = 1,
-                      legendSize = 14) {
+plotCUDot <- function(cuDat, plotVar, group = "om", legendLab = NULL,
+                      xLab = NULL, yLab = NULL, plotTitle = NULL, axisSize = 14,
+                      dotSize = 4, lineSize = 1, legendSize = 14) {
   if (is.null(xLab) | is.null(yLab)) {
     warning("Suggest adding axis labels before interpreting plots")
   }
@@ -56,7 +57,7 @@ plotCUDot <- function(cuDat, plotVar, group = "om", legendLab = NULL, xLab = NUL
 
   p <- ggplot(dum, aes(x = keyVar, y = avg, ymin = lowQ, ymax = highQ,
                        color = groupingVar)) +
-    labs(x = xLab, y = yLab) +
+    labs(x = xLab, y = yLab, title = plotTitle) +
     geom_pointrange(fatten = dotSize, size = lineSize,
                     position = position_dodge(width = 0.65),
                     fill = "white") +
@@ -99,6 +100,7 @@ plotCUDot <- function(cuDat, plotVar, group = "om", legendLab = NULL, xLab = NUL
 #' @param legendLab A character representing the legend title.
 #' @param xLab A character representing the x axis label.
 #' @param yLab A character representing the y axis label.
+#' @param plotTitle A character representing the main plot title.
 #' @return Returns a ggplot object.
 #'
 #' @examples
@@ -112,8 +114,8 @@ plotCUDot <- function(cuDat, plotVar, group = "om", legendLab = NULL, xLab = NUL
 #'
 #' @export
 plotAgDot <- function(agDat, group = "om", legendLab = "Operating\nModel",
-                      xLab = NULL, yLab = NULL, axisSize = 14, dotSize = 4,
-                      lineSize = 1, legendSize = 14) {
+                      xLab = NULL, yLab = NULL, plotTitle = NULL, axisSize = 14,
+                      dotSize = 4, lineSize = 1, legendSize = 14) {
   if (is.null(xLab) | is.null(yLab)) {
     warning("Suggest adding axis labels before interpreting plots")
   }
@@ -136,7 +138,7 @@ plotAgDot <- function(agDat, group = "om", legendLab = "Operating\nModel",
 
   p <- ggplot(dum, aes(x = keyVar, y = avg, ymin = lowQ, ymax = highQ,
                        color = groupVar)) +
-    labs(x = xLab, y = yLab) +
+    labs(x = xLab, y = yLab, title = plotTitle) +
     geom_pointrange(fatten = dotSize, size = lineSize,
                     position = position_dodge(width = 0.65)) +
     theme_sleekX() +
