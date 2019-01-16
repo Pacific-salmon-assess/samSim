@@ -81,23 +81,31 @@ calcTAC <- function(foreRec, canER, harvContRule, amER, ppnMixVec, species = NUL
     if (harvContRule == "TAM") {
       totalTAC <- rep(NA, length = length(foreRec))
       for (k in seq_along(foreRec)) {
-        if (foreRec[k] < lowFRP[k]) { #if forecast below lower RP, en route mort not accounted for; minEr used
+        #if forecast below lower RP, en route mort not accounted for; minEr used
+        if (foreRec[k] < lowFRP[k]) {
           totalTAC[k] <- minER[k] * foreRec[k]
         }
-        if ((foreRec[k] > lowFRP[k]) & (foreRec[k] < highFRP[k])) { #if stock is between ref points, ERs are either scaled to adjusted forecast or minER
+        #if stock is between ref points, ERs are either scaled to adjusted
+        #forecast or minER
+        if ((foreRec[k] > lowFRP[k]) & (foreRec[k] < highFRP[k])) {
           escTarget <- lowFRP[k]
-          adjTarget <- escTarget * (1 + manAdjustment[k]) # escapement goal is adjusted up based on pMA and forecast (equivalent to esc target + MA)
+          # escapement goal is adjusted up based on pMA and forecast (equivalent
+          # to esc target + MA)
+          adjTarget <- escTarget * (1 + manAdjustment[k])
           calcER <- ifelse(foreRec[k] > adjTarget,
                            (foreRec[k] - adjTarget) / foreRec[k],
                            0)
-          #if forecast greater than adjusted target, potential TAC = difference between the two (converted to er for next line)
+          #if forecast greater than adjusted target, potential TAC = difference
+          #between the two (converted to er for next line)
           tacER <- ifelse(calcER > minER[k],
                           calcER,
                           minER[k])
           totalTAC[k] <- tacER * foreRec[k]
         }
-        if (foreRec[k] > highFRP[k]) { #if stock is above upper reference point, ERs set to max ()
-          escTarget <- ((1 - maxER) * foreRec[k]) #escapement target increases w/ abundance (i.e. constant ER)
+        #if stock is above upper reference point, ERs set to max ()
+        if (foreRec[k] > highFRP[k]) {
+          #escapement target increases w/ abundance (i.e. constant ER)
+          escTarget <- ((1 - maxER) * foreRec[k])
           adjTarget <- escTarget * (1 + manAdjustment[k])
           calcER <- ifelse(foreRec[k] > adjTarget,
                            (foreRec[k] - adjTarget) / foreRec[k],
@@ -110,6 +118,7 @@ calcTAC <- function(foreRec, canER, harvContRule, amER, ppnMixVec, species = NUL
       }
     }
     #adjust total TAC to account for AFE (400k fish) when calculating us TAC
+    #divide 400k allocation evenly among all CUs
     afe <- totalTAC / sum(unique(totalTAC)) * 0.4
     amTAC <- amER * (totalTAC - afe)
     canTAC <- totalTAC - amTAC
