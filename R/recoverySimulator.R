@@ -15,7 +15,7 @@
 
 #Temporary inputs
 # here <- here::here
-# simParF <- read.csv(here("data/manProcScenarios/fraserMPInputs_varyMixPpnHCRs.csv"),
+# simParF <- read.csv(here("data/manProcScenarios/fraserMPInputs_varyMixPpnHCRs_refError.csv"),
 #                     stringsAsFactors = F)
 # cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
 # srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
@@ -23,7 +23,7 @@
 # ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors=F)
 # larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"), stringsAsFactors=F)
 # tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
-#
+
 # simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorr.csv"),
 #                     stringsAsFactors = F)
 # cuCustomCorrMat <- read.csv(here("data/fraserDat/prodCorrMatrix.csv"), stringsAsFactors=F)
@@ -1110,11 +1110,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
       #Calculate catches w/ error; will be redrawn each year to add unique error
       migMortErr <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0, enRouteSig))
-      mixOutErr <- rnorm(nCU, 0, mixOUSig)
-      singOutErr <- rnorm(nCU, 0, singOUSig)
-      #switch to additive outcome uncertainty error
-      # mixOutErr <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0, mixOUSig))
-      # singOutErr <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0, singOUSig))
+      # mixOutErr <- rnorm(nCU, 0, mixOUSig)
+      # singOutErr <- rnorm(nCU, 0, singOUSig)
 
       #add correlated ER mortality (commented out due to weak impacts on PMs)
       # migMortErr <- if (simPar$corrMort == TRUE) {
@@ -1213,14 +1210,12 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         } #end for k in 1:nCU
       } #end if singleHCR != FALSE
 
-      # # if there is no single stock HCR applied than all CUs assumed to be
-      # # "above" the lower BM so that TAC is taken
+      # if there is no single stock HCR applied than all CUs assumed to be
+      # "above" the lower BM so that TAC is taken
       if (singleHCR == FALSE) {
         counterSingleBMLow[y, ] <- 1
       }
       singTAC[y, ] <- singTAC[y, ] * counterSingleBMLow[y, ]
-
-
       singTAC[is.na(singTAC)] <- 0
       canTAC[y, ] <- apply(rbind(mixTAC[y, ], singTAC[y, ]), 2, sum)
       totalTAC[y, ] <- apply(rbind(amTAC[y, ], mixTAC[y, ], singTAC[y, ]), 2,
@@ -1232,20 +1227,18 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       } else {
         NA
       }
-      #calculate realized TAC
-      #switch to additive outcome uncertainty error
-      amCatch[y, ] <- pmin(pmax(recRY[y, ] - extinctThresh, 0),
-                           amTAC[y, ] * (1 + mixOutErr))
-      remRec1 <- recRY[y, ] - amCatch[y, ]
-      mixCatch[y, ] <- pmin(pmax(remRec1 - extinctThresh, 0),
-                            mixTAC[y, ] * (1 + mixOutErr))
-      remRec2 <- remRec1 - mixCatch[y, ]
+
+      # Calculate realized catches
+      amCatch[y, ] <- calcRealCatch(recRY[y, ], amTAC[y, ], sigma = mixOUSig)
+      remRec1 <- pmax(recRY[y, ] - amCatch[y, ], 0)
+      mixCatch[y, ] <- calcRealCatch(remRec1, mixTAC[y, ], sigma = mixOUSig)
+      remRec2 <- pmax(remRec1 - mixCatch[y, ] - extinctThresh, 0)
       migMortRate[y, ] <- enRouteMR * migMortErr
       migMort1 <- remRec2 * (preFMigMort * migMortRate[y, ])
-      singCatch[y, ] <- pmin(pmax(remRec2 - migMort1 - extinctThresh, 0),
-                             singTAC[y, ] * (1 + singOutErr))
-      remRec3 <- (remRec2 - migMort1 - singCatch[y, ])
-      migMort2 <- remRec3 * ((1 - preFMigMort) * migMortRate[y, ])
+      remRec3 <- pmax(remRec2 - migMort1 - extinctThresh, 0)
+      singCatch[y, ] <- calcRealCatch(remRec3, singTAC[y, ], sigma = singOUSig)
+      remRec4 <- pmax(remRec3 - singCatch[y, ] - extinctThresh, 0)
+      migMort2 <- remRec4 * ((1 - preFMigMort) * migMortRate[y, ])
       migMort[y, ] <- migMort1 + migMort2
       #summary catch calculations
       totalCatch[y, ] <- amCatch[y, ] + mixCatch[y, ] + singCatch[y, ]

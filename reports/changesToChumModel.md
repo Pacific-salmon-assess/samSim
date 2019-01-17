@@ -485,6 +485,21 @@ Potential issues
 -	Reference points are still the same, i.e. TAC is only taken if forecast is 	above lower BM
 
 
-### XXXXV) Switched outcome uncertainty to additive
+### XXXXV) Switched outcome uncertainty to additive (Jan 4)
 - Following C. Holt's suggestion OU is now additive (i.e. 1 + rnorm) rather than multiplicative
 - Also considered switching forecast error to additive but it appears to be commonly applied multiplicatively (e.g. Catalano and Jones 2014)
+
+
+### XXXXVI) Switched outcome uncertainty to beta distribution (Jan 16)
+-	Parameterized harvest rate outcome uncertainty for Fraser River sockeye using deviations between mid-season TAC and run size estimates vs. post-season catch and run size estimates
+	-	Could not parameterize TAC because target TAC is often 0 creating a bimodal distribution that is complicated to replicate
+	-	Details in `salmon-sim/estimateOU.R`
+-	As a result modified `samSim/recoverySim.R` to apply OU on ER rather than TAC by adding a `calcRealCatch` function that receives target TAC as inputs
+	-	Also switched from additive normal to beta distribution following S. Anderson's advice
+	-	Parameterized w/ data in `estimateOU.R` script
+	-	Requires back-calculation; see `synchSalmon/ouSimulationTests.Rmd` for details
+
+
+### XXXXVII) Remove forecast uncertainty from TAM rule calculations (Jan 16)
+-	K Holt noted that using forecasted recruitment to set TAC and then applying outcome uncertainty from observed data would result in inflated error rates
+-	Note that forecasts of recruitment are still generated for use in single stock harvest control rules

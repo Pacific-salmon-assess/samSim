@@ -54,7 +54,7 @@ unconstrained American TAC, and unconstrained Canadian TAC (latter two for
 reference purposes only).
 }
 \description{
-This function calculateds total allowable catch (TAC) for different MUs using
+This function calculates total allowable catch (TAC) for different MUs using
 either a) a fixed exploitation rate or b) a simplified version of the total
 allowable mortality rule currently used to manage the fishery. Total
 allowable catch is divided between one American and two Canadian fisheries
