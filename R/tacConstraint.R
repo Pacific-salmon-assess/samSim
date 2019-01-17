@@ -15,18 +15,20 @@
 #' number of unique values will be equal to \code{nMU} because this is the
 #' scale at which in-season forecasts are available.
 #'
-#' @param forecast A numeric vector representing MU-specific estimates of
-#' spawner abundance.
+#' **Note** Originally formatted with forecasted abundance but replaced with
+#' true to avoid inflating outcome uncertainty.
+#'
+#' @param rec A numeric vector representing MU-specific return abundance.
 #' @param highFRP A numeric vector representing MU-specific upper fishery
-#' reference points. When forecasted abundance is above this value
+#' reference points. When return abundance is above this value
 #' _adjacent_ MUs do not need to be constrained.
 #' @param manAdjustment A numeric vector representing MU-specific management
-#' adjustments. These values are used to adjust forecasted spawner abundance
+#' adjustments. These values are used to adjust spawner abundance
 #' to account for en route mortality (i.e. they increase the target escapement
 #' goal).
 #' @param manUnit A character vector identifying the MU that each CU belongs to.
 #' @return Returns a two-element list of binary vectors. In \code{muAboveFRP}
-#' ones represent MUs that are forecasted above their FRP after incorporating
+#' ones represent MUs with return abundance above their FRP after incorporating
 #' management adjustments. In \code{muConstrained} ones represent MUs that
 #' should be constrained based on the abundance of _adjacent_ MUs.
 #'
@@ -34,22 +36,24 @@
 #' #Note that the function is intended to receive vectors rather than the DFs
 #' #used in this example to increase efficiency.
 #' head(exampleHCRList)
+#' names(exampleHCRList)[4] <- "recRYMU"
 #'
-#' forecast <- exampleHCRList$forecastMU
+#' rec <- exampleHCRList$recRYMU
 #' highFRP <- exampleHCRList$highFRP
 #' manAdjustment <- exampleHCRList$adjustment
 #' manUnit <- exampleHCRList$mu
-#' constrain(forecast, highFRP, manAdjustment, manUnit)
+#' constrain(rec, highFRP, manAdjustment, manUnit)
 #' @export
-constrain <- function(forecast, highFRP, manAdjustment, manUnit) {
+constrain <- function(rec, highFRP, manAdjustment, manUnit) {
   muName <- unique(manUnit)
-  nCU <- length(forecast)
+  nCU <- length(rec)
   nMU <- length(muName)
   muAboveFRP <- rep(0, nCU)
   conFinal <- rep(0, nCU)
-  # Check 1: what is forecast relative to reference point after adjusting downwards w/ pMA
+  # Check 1: what is recruitment relative to reference point after adjusting
+  # downwards w/ pMA
   for (k in 1:nCU) {
-    if (forecast[k] > highFRP[k] * (1 + manAdjustment[k])) {
+    if (rec[k] > highFRP[k] * (1 + manAdjustment[k])) {
       muAboveFRP[k] <- 1
     }
   }
@@ -65,10 +69,12 @@ constrain <- function(forecast, highFRP, manAdjustment, manUnit) {
       conFinal[which(manUnit %in% muName[m])] <- ifelse(eSummAbove == 1, 0, 1)
     }
     if (muName[m] == "ESumm") {
-      conFinal[which(manUnit %in% muName[m])] <- ifelse(eStuAbove == 1 & summAbove == 1, 0, 1)
+      conFinal[which(manUnit %in% muName[m])] <- ifelse(eStuAbove == 1 &
+                                                          summAbove == 1, 0, 1)
     }
     if (muName[m] == "Summ") {
-      conFinal[which(manUnit %in% muName[m])] <- ifelse(eSummAbove == 1 & lateAbove == 1, 0, 1)
+      conFinal[which(manUnit %in% muName[m])] <- ifelse(eSummAbove == 1 &
+                                                          lateAbove == 1, 0, 1)
     }
     if (muName[m] == "Lat") {
       conFinal[which(manUnit %in% muName[m])] <- ifelse(summAbove == 1, 0, 1)

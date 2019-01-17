@@ -4,18 +4,17 @@
 \alias{constrain}
 \title{Constrain mixed-stock harvest}
 \usage{
-constrain(forecast, highFRP, manAdjustment, manUnit)
+constrain(rec, highFRP, manAdjustment, manUnit)
 }
 \arguments{
-\item{forecast}{A numeric vector representing MU-specific estimates of
-spawner abundance.}
+\item{rec}{A numeric vector representing MU-specific return abundance.}
 
 \item{highFRP}{A numeric vector representing MU-specific upper fishery
-reference points. When forecasted abundance is above this value
+reference points. When return abundance is above this value
 _adjacent_ MUs do not need to be constrained.}
 
 \item{manAdjustment}{A numeric vector representing MU-specific management
-adjustments. These values are used to adjust forecasted spawner abundance
+adjustments. These values are used to adjust spawner abundance
 to account for en route mortality (i.e. they increase the target escapement
 goal).}
 
@@ -23,7 +22,7 @@ goal).}
 }
 \value{
 Returns a two-element list of binary vectors. In \code{muAboveFRP}
-ones represent MUs that are forecasted above their FRP after incorporating
+ones represent MUs with return abundance above their FRP after incorporating
 management adjustments. In \code{muConstrained} ones represent MUs that
 should be constrained based on the abundance of _adjacent_ MUs.
 }
@@ -43,15 +42,19 @@ any constraints occurs in \code{calcTAC} function.
 **Note** Although all input vectors have length equal to \code{nCU}, the
 number of unique values will be equal to \code{nMU} because this is the
 scale at which in-season forecasts are available.
+
+**Note** Originally formatted with forecasted abundance but replaced with
+true to avoid inflating outcome uncertainty.
 }
 \examples{
 #Note that the function is intended to receive vectors rather than the DFs
 #used in this example to increase efficiency.
 head(exampleHCRList)
+names(exampleHCRList)[4] <- "recRYMU"
 
-forecast <- exampleHCRList$forecastMU
+rec <- exampleHCRList$recRYMU
 highFRP <- exampleHCRList$highFRP
 manAdjustment <- exampleHCRList$adjustment
 manUnit <- exampleHCRList$mu
-constrain(forecast, highFRP, manAdjustment, manUnit)
+constrain(rec, highFRP, manAdjustment, manUnit)
 }

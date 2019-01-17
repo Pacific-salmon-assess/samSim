@@ -1103,15 +1103,13 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       ppnOpenFishery[y, n] <- mean(openFishery[y, ])
       if (harvContRule == "TAM") {
         #should fisheries be constrained
-        overlapConstraint[y, ] <- constrain(foreRecRYManU[y, ], highRefPt[y, ],
+        overlapConstraint[y, ] <- constrain(recRYManU[y, ], highRefPt[y, ],
                                             manAdjustment,
                                             manUnit)$muConstrained
       }
 
       #Calculate catches w/ error; will be redrawn each year to add unique error
       migMortErr <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0, enRouteSig))
-      # mixOutErr <- rnorm(nCU, 0, mixOUSig)
-      # singOutErr <- rnorm(nCU, 0, singOUSig)
 
       #add correlated ER mortality (commented out due to weak impacts on PMs)
       # migMortErr <- if (simPar$corrMort == TRUE) {
@@ -1124,7 +1122,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       ppnMixVec <- ifelse(ppnMix == "flex",
                           rep(1, length.out = nCU),
                           rep(as.numeric(ppnMix), length.out = nCU))
-      tacs <- calcTAC(foreRec = foreRecRYManU[y, ], canER = canER,
+      #replace forecasted recruitment with true recruitment (by MU)
+      tacs <- calcTAC(rec = recRYManU[y, ], canER = canER,
                       harvContRule = harvContRule, amER = amER,
                       ppnMixVec = ppnMixVec,
                       species = species, manAdjustment = manAdjustment,

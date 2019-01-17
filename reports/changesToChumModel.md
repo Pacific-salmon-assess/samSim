@@ -498,8 +498,12 @@ Potential issues
 	-	Also switched from additive normal to beta distribution following S. Anderson's advice
 	-	Parameterized w/ data in `estimateOU.R` script
 	-	Requires back-calculation; see `synchSalmon/ouSimulationTests.Rmd` for details
+	-	**Note** even though the observed data indicate a positive bias in realized exploitation rates (i.e. target often 0, realized never is) the beta distribution is centered on 0 so overfishing may be unrealistically uncommon
 
 
-### XXXXVII) Remove forecast uncertainty from TAM rule calculations (Jan 16)
+### XXXXVII) Remove forecast uncertainty from overlap constraint and TAM rule calculations (Jan 16)
 -	K Holt noted that using forecasted recruitment to set TAC and then applying outcome uncertainty from observed data would result in inflated error rates
+-	As a result ER relative to FRPs are now set based on true abundance
+	-	Secondary benefit is that now OU in fixed ER and TAM rules are more closely equivalent
+	-	Applies to `calcTAC` and `constrain` functions
 -	Note that forecasts of recruitment are still generated for use in single stock harvest control rules

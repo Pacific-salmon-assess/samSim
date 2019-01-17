@@ -4,12 +4,14 @@
 \alias{calcTAC}
 \title{Calculate total allowable catch}
 \usage{
-calcTAC(foreRec, canER, harvContRule, amER, ppnMixVec, species = NULL,
+calcTAC(rec, canER, harvContRule, amER, ppnMixVec, species = NULL,
   manAdjustment = NULL, lowFRP = NULL, highFRP = NULL,
   minER = NULL, maxER = NULL, overlapConstraint = NULL,
   constrainMix = TRUE)
 }
 \arguments{
+\item{rec}{A numeric representing MU-specific return abundance.}
+
 \item{canER}{A numeric representing the target Canadian exploitation rate if
 \code{harvContRule = fixedER}}
 
@@ -41,9 +43,6 @@ applied when MU is above its higher FRP.}
 \item{overlapConstraint}{A numeric representing whether a given MU's TAC
 should be constrained or not.}
 
-\item{forecast}{A numeric representing an MU-specific estimate of spawner
-abundance.}
-
 \item{ppnMix}{A numeric representing the proportion of the Canadian TAC
 allocated to mixed stock fisheries.}
 }
@@ -64,8 +63,8 @@ allowable catch is divided between one American and two Canadian fisheries
 All values should be passed as single values using apply family or for loops
 because if statements are common.
 
-In the case of the TAM rule TAC is based on forecasted abundance relative to
-two fishery reference points. This determines whether exploitation is based
+In the case of the TAM rule TAC is based on  abundance relative to two
+fishery reference points. This determines whether exploitation is based
 on a minimum exploitation rate, fixed escapement goal, or maximum
 exploitation rate. Note that abundance relative to reference points is
 adjusted downwards to account for anticipated en route mortality
@@ -75,23 +74,27 @@ are at sufficiently low abundance to limit a given fishery (see
 \code{overlapConstraint} for additional details).
 }
 \examples{
-#Note that the function is intended to receive vectors rather than the DFs
+#Note that the function is intended to receive vectors rather than the DF
 #used in this example to increase efficiency within the full closed-loop
 simulation.
 head(exampleHCRList)
+names(exampleHCRList)[4] <- "recRYMU"
 
-forecast <- exampleHCRList$forecastMU
+rec <- exampleHCRList$recRYMU
 lowFRP <- exampleHCRList$lowFRP
 highFRP <- exampleHCRList$highFRP
 manAdjustment <- exampleHCRList$adjustment
 manUnit <- exampleHCRList$mu
-overlapConstraint <- constrain(forecast, highFRP, manAdjustment, manUnit)$muConstrained
+overlapConstraint <- constrain(rec, highFRP, manAdjustment,
+                               manUnit)$muConstrained
 
 ## Fixed ER version
-calcTAC(forecast, canER = 0.4, harvContRule = "fixedER", amER = 0.1, ppnMix = 1,
+calcTAC(rec, canER = 0.4, harvContRule = "fixedER", amER = 0.1, ppnMix = 1,
         species = "sockeye")
-calcTAC(forecast, canER, harvContRule = "TAM", amER = 0.1, ppnMix = 1,
+## TAM version
+calcTAC(rec, canER, harvContRule = "TAM", amER = 0.1, ppnMix = 1,
         species = "sockeye", manAdjustment = manAdjustment, lowFRP = lowFRP,
         highFRP = highFRP,  minER = 0.1, maxER = 0.6,
         overlapConstraint = overlapConstraint)
+
 }

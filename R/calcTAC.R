@@ -9,8 +9,8 @@
 #' All values should be passed as single values using apply family or for loops
 #' because if statements are common.
 #'
-#' In the case of the TAM rule TAC is based on forecasted abundance relative to
-#' two fishery reference points. This determines whether exploitation is based
+#' In the case of the TAM rule TAC is based on  abundance relative to two
+#' fishery reference points. This determines whether exploitation is based
 #' on a minimum exploitation rate, fixed escapement goal, or maximum
 #' exploitation rate. Note that abundance relative to reference points is
 #' adjusted downwards to account for anticipated en route mortality
@@ -19,8 +19,7 @@
 #' are at sufficiently low abundance to limit a given fishery (see
 #' \code{overlapConstraint} for additional details).
 #'
-#' @param forecast A numeric representing an MU-specific estimate of spawner
-#' abundance.
+#' @param rec A numeric representing MU-specific return abundance.
 #' @param canER A numeric representing the target Canadian exploitation rate if
 #' \code{harvContRule = fixedER}
 #' @param harvContRule A character signifying whether TACs are based on a fixed
@@ -50,70 +49,77 @@
 #' reference purposes only).
 #'
 #' @examples
-#' #Note that the function is intended to receive vectors rather than the DFs
+#' #Note that the function is intended to receive vectors rather than the DF
 #' #used in this example to increase efficiency within the full closed-loop
 #' simulation.
 #' head(exampleHCRList)
+#' names(exampleHCRList)[4] <- "recRYMU"
 #'
-#' forecast <- exampleHCRList$forecastMU
+#' rec <- exampleHCRList$recRYMU
 #' lowFRP <- exampleHCRList$lowFRP
 #' highFRP <- exampleHCRList$highFRP
 #' manAdjustment <- exampleHCRList$adjustment
 #' manUnit <- exampleHCRList$mu
-#' overlapConstraint <- constrain(forecast, highFRP, manAdjustment, manUnit)$muConstrained
+#' overlapConstraint <- constrain(rec, highFRP, manAdjustment,
+#'                                manUnit)$muConstrained
 #'
 #' ## Fixed ER version
-#' calcTAC(forecast, canER = 0.4, harvContRule = "fixedER", amER = 0.1, ppnMix = 1,
+#' calcTAC(rec, canER = 0.4, harvContRule = "fixedER", amER = 0.1, ppnMix = 1,
 #'         species = "sockeye")
-#' calcTAC(forecast, canER, harvContRule = "TAM", amER = 0.1, ppnMix = 1,
+#' ## TAM version
+#' calcTAC(rec, canER, harvContRule = "TAM", amER = 0.1, ppnMix = 1,
 #'         species = "sockeye", manAdjustment = manAdjustment, lowFRP = lowFRP,
 #'         highFRP = highFRP,  minER = 0.1, maxER = 0.6,
 #'         overlapConstraint = overlapConstraint)
+#'
 #' @export
-calcTAC <- function(foreRec, canER, harvContRule, amER, ppnMixVec, species = NULL,
+calcTAC <- function(rec, canER, harvContRule, amER, ppnMixVec, species = NULL,
                     manAdjustment = NULL, lowFRP = NULL, highFRP = NULL,
                     minER = NULL, maxER = NULL, overlapConstraint = NULL,
                     constrainMix = TRUE) {
   if (species == "sockeye") {
     if (harvContRule == "fixedER") {
-      totalTAC <- foreRec * canER
+      totalTAC <- rec * canER
     }
     if (harvContRule == "TAM") {
-      totalTAC <- rep(NA, length = length(foreRec))
-      for (k in seq_along(foreRec)) {
-        #if forecast below lower RP, en route mort not accounted for; minEr used
-        if (foreRec[k] < lowFRP[k]) {
-          totalTAC[k] <- minER[k] * foreRec[k]
+      if (length(minER) == 1) { #adjust input data to appropriate vector length
+        minER <- rep(minER, length.out = length(rec))
+      }
+      totalTAC <- rep(NA, length = length(rec))
+      for (k in seq_along(rec)) {
+        #if recruitment below lower RP, en route mort not accounted for; minEr used
+        if (rec[k] < lowFRP[k]) {
+          totalTAC[k] <- minER[k] * rec[k]
         }
         #if stock is between ref points, ERs are either scaled to adjusted
-        #forecast or minER
-        if ((foreRec[k] > lowFRP[k]) & (foreRec[k] < highFRP[k])) {
+        #recruitment or minER
+        if ((rec[k] > lowFRP[k]) & (rec[k] < highFRP[k])) {
           escTarget <- lowFRP[k]
-          # escapement goal is adjusted up based on pMA and forecast (equivalent
-          # to esc target + MA)
+          # escapement goal is adjusted up based on pMA and recruitment
+          # (equivalent to esc target + MA)
           adjTarget <- escTarget * (1 + manAdjustment[k])
-          calcER <- ifelse(foreRec[k] > adjTarget,
-                           (foreRec[k] - adjTarget) / foreRec[k],
+          calcER <- ifelse(rec[k] > adjTarget,
+                           (rec[k] - adjTarget) / rec[k],
                            0)
-          #if forecast greater than adjusted target, potential TAC = difference
+          #if recruitment greater than adjusted target, potential TAC = diff
           #between the two (converted to er for next line)
           tacER <- ifelse(calcER > minER[k],
                           calcER,
                           minER[k])
-          totalTAC[k] <- tacER * foreRec[k]
+          totalTAC[k] <- tacER * rec[k]
         }
         #if stock is above upper reference point, ERs set to max ()
-        if (foreRec[k] > highFRP[k]) {
+        if (rec[k] > highFRP[k]) {
           #escapement target increases w/ abundance (i.e. constant ER)
-          escTarget <- ((1 - maxER) * foreRec[k])
+          escTarget <- ((1 - maxER) * rec[k])
           adjTarget <- escTarget * (1 + manAdjustment[k])
-          calcER <- ifelse(foreRec[k] > adjTarget,
-                           (foreRec[k] - adjTarget) / foreRec[k],
+          calcER <- ifelse(rec[k] > adjTarget,
+                           (rec[k] - adjTarget) / rec[k],
                            0)
           tacER <- ifelse(calcER > minER[k],
                           calcER,
                           minER[k])
-          totalTAC[k] <- tacER * foreRec[k]
+          totalTAC[k] <- tacER * rec[k]
         }
       }
     }
@@ -125,17 +131,17 @@ calcTAC <- function(foreRec, canER, harvContRule, amER, ppnMixVec, species = NUL
   } else {
     #sockeye is odd in that Americans get a proportion of total TAC, not total
     #escapement; all other fisheries simplify by calculating simultaneously
-    amTAC <- amER * foreRec
-    canTAC <- canER * foreRec
+    amTAC <- amER * rec
+    canTAC <- canER * rec
   }
   mixTAC <- canTAC * ppnMixVec
   unconMixTAC <- mixTAC
   singTAC <- (canTAC * (1 -  ppnMixVec))
   if (harvContRule == "TAM") {
     if (constrainMix == TRUE) {
-      for (k in seq_along(foreRec)) {
+      for (k in seq_along(rec)) {
         #apply overlap constraints to marine fisheries if above lower FRP
-        if (foreRec[k] > lowFRP[k] & overlapConstraint[k] == 1) {
+        if (rec[k] > lowFRP[k] & overlapConstraint[k] == 1) {
           mixTAC[k] <- 0.75 * mixTAC[k]
         }
       }
