@@ -29,12 +29,12 @@ wtdCV <- function(datMat, weightMat = NULL, weight = TRUE) {
     stop("Input matrices have unequal number of components")
   }
   #temporal mean of aggregate abundance
-  aggAbund <- sum(apply(weightMat, 2, function (x) mean(x, na.rm = TRUE)))
+  aggAbund <- sum(apply(weightMat, 2, function (x) mean(x)))
   #wtd mean of aggregate abundance
-  wtdAbund <- apply(weightMat, 2, function (x) mean(x, na.rm = TRUE) / aggAbund)
+  wtdAbund <- apply(weightMat, 2, function (x) mean(x) / aggAbund)
   wtdCV <- sum(wtdAbund * apply(datMat, 2,
-                                function(x) sqrt(var(x, na.rm = TRUE)) /
-                                  mean(x, na.rm = TRUE)), na.rm = TRUE)
+                                function(x) sqrt(var(x)) /
+                                  mean(x)))
   unWtdCV <- mean(apply(datMat, 2,
                         function(x) sqrt(var(x, na.rm = TRUE)) /
                           mean(x, na.rm = TRUE)), na.rm = TRUE)

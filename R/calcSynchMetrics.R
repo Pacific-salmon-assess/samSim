@@ -50,22 +50,18 @@ calcSynchMetrics <- function(synchList, windowSize = 10, log = FALSE,
     resid <- exp(synchList$recDev)
     prod <- exp(synchList$logRS)
   }
-  migMort <- synchList$migMort
   nYears <- dim(recBY)[1]
   nTrials <- dim(recBY)[3]
 
   synchRecBY <- matrix(NA, nrow = nYears, ncol = nTrials)
   synchProd <- matrix(NA, nrow = nYears, ncol = nTrials)
   synchSpwn <- matrix(NA, nrow = nYears, ncol = nTrials)
-  synchMort <- matrix(NA, nrow = nYears, ncol = nTrials)
   compCVRecBY <- matrix(NA, nrow = nYears, ncol = nTrials)
   compCVProd <- matrix(NA, nrow = nYears, ncol = nTrials)
   compCVSpwn <- matrix(NA, nrow = nYears, ncol = nTrials)
-  compCVMort <- matrix(NA, nrow = nYears, ncol = nTrials)
   corrRecBY <- matrix(NA, nrow = nYears, ncol = nTrials)
   corrProd <- matrix(NA, nrow = nYears, ncol = nTrials)
   corrSpwn <- matrix(NA, nrow = nYears, ncol = nTrials)
-  corrMort <- matrix(NA, nrow = nYears, ncol = nTrials)
 
   weightArray <- recBY
   wt <- TRUE
@@ -85,9 +81,6 @@ calcSynchMetrics <- function(synchList, windowSize = 10, log = FALSE,
       synchSpwn[ , n] <- rollapplyr(spwn[ , , n], width = windowSize,
                                     function(x) community.sync(x)$obs,
                                     fill = NA, by.column = FALSE)
-      synchMort[ , n] <- rollapplyr(migMort[ , , n], width = windowSize,
-                                    function(x) community.sync(x)$obs,
-                                    fill = NA, by.column = FALSE)
     }
     if (compCV == TRUE) {
       compCVRecBY[ , n] <- rollapplyr(recBY[ , , n], width = windowSize,
@@ -102,10 +95,6 @@ calcSynchMetrics <- function(synchList, windowSize = 10, log = FALSE,
                                      function(x) wtdCV(x, weightMat = weightArray[ , , n],
                                                        weight = wt),
                                      fill = NA, by.column = FALSE)
-      compCVMort[ , n] <- rollapplyr(migMort[ , , n], width = windowSize,
-                                     function(x) wtdCV(x, weightMat = weightArray[ , , n],
-                                                       weight = wt),
-                                     fill = NA, by.column = FALSE)
     }
     if (corr == TRUE) {
       corrRecBY[ , n] <- rollapplyr(recBY[ , , n], width = windowSize,
@@ -117,16 +106,13 @@ calcSynchMetrics <- function(synchList, windowSize = 10, log = FALSE,
       corrSpwn[ , n] <- rollapplyr(spwn[ , , n], width = windowSize,
                                    function(x) meancorr(x)$obs,
                                    fill = NA, by.column = FALSE)
-      corrMort[ , n] <- rollapplyr(migMort[ , , n], width = windowSize,
-                                   function(x) meancorr(x)$obs,
-                                   fill = NA, by.column = FALSE)
     }
   }
-  outputList <- list(synchRecBY, synchProd, synchSpwn, synchMort, compCVRecBY,
-                     compCVProd, compCVSpwn, compCVMort, corrRecBY, corrProd,
-                     corrSpwn, corrMort)
-  names(outputList) <- c("synchRecBY", "synchProd", "synchSpwn", "synchMort",
-                         "compCVRecBY", "compCVProd", "compCVSpwn", "compCVMort",
-                         "corrRecBY", "corrProd", "corrSpwn", "corrMort")
+  outputList <- list(synchRecBY, synchProd, synchSpwn, compCVRecBY,
+                     compCVProd, compCVSpwn, corrRecBY, corrProd,
+                     corrSpwn)
+  names(outputList) <- c("synchRecBY", "synchProd", "synchSpwn",
+                         "compCVRecBY", "compCVProd", "compCVSpwn",
+                         "corrRecBY", "corrProd", "corrSpwn")
   return(outputList)
 }
