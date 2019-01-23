@@ -210,18 +210,23 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     larB3 <- cuPar$larkBeta3
     larSig <- cuPar$larkSigma
   }
-  if (uniqueProd == FALSE) { #coerce all stocks to have the same alpha parameter (regardless of model structure), others will vary
+  #coerce all stocks to have the same alpha parameter (regardless of model
+  # structure), others will vary
+  if (uniqueProd == FALSE) {
     ricA <- rep(mean(cuPar$alpha), length.out = nCU)
     larA <- rep(mean(cuPar$alpha), length.out = nCU)
     ricSig <- rep(mean(cuPar$sigma), length.out = nCU)
     larSig <- rep(mean(cuPar$sigma), length.out = nCU)
   }
   if (prod != "med" & is.null(ricPars) == TRUE) {
-    stop("Full SR parameter dataset necessary to simulate alternative productivity scenarios")
+    stop("Full SR parameter dataset necessary to simulate alternative
+         productivity scenarios")
   }
-  if (is.null(ricPars) == FALSE) { #change from median values if .csv of par dist is passed
-    dum <- getSRPars(pars = ricPars, alphaOnly = TRUE, highP = 0.95, lowP = 0.05,
-                     stks = stkID) #following code could be pulled from here and added to getSRPars()
+  #change from median values if .csv of par dist is passed
+  if (is.null(ricPars) == FALSE) {
+    dum <- getSRPars(pars = ricPars, alphaOnly = TRUE, highP = 0.95,
+                     lowP = 0.05, stks = stkID)
+    #following code could be pulled from here and added to getSRPars()
     if (prod == "low") {
       srPars <- dum$pLow
     }
@@ -233,7 +238,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     }
     if (prod == "decline") {
       srPars <- dum$pMed
-      finalRicA <- as.numeric(dum$pLow[["alpha"]]) #floor value to which A declines equals lower probabily
+      #floor value to which A declines equals lower probabily
+      finalRicA <- as.numeric(dum$pLow[["alpha"]])
     }
     ricA <- srPars[["alpha"]]
     ricB <- srPars[["beta0"]]
@@ -252,7 +258,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       }
       if (prod == "decline") {
         srParsLark <- dum$pMed
-        finalLarA <- as.numeric(dum$pLow[["alpha"]]) #floor value to which A declines
+        #floor value to which A declines
+        finalLarA <- as.numeric(dum$pLow[["alpha"]])
       }
       larA <- (srParsLark[["alpha"]])
       larB <- (srParsLark[["beta0"]])
@@ -269,6 +276,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   }
   alpha <- ifelse(model == "ricker", ricA, larA)
   beta <- ifelse(model == "ricker", ricB, larB)
+  #note that unlike other stochasticity parameters beta and sigma are adjusted
+  #with a scalar
   if (is.null(simPar$adjustBeta) == FALSE) {
     beta <- beta * simPar$adjustBeta
   }
