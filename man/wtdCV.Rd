@@ -4,20 +4,14 @@
 \alias{wtdCV}
 \title{Calculate weighted component CV}
 \usage{
-wtdCV(datMat, weightMat = NULL, weight = TRUE)
+wtdCV(datMat, weight = TRUE)
 }
 \arguments{
 \item{datMat}{A numeric matrix, generally representing a time series of
 component specific abundances.}
 
-\item{weightMat}{An optional numeric matrix that is passed if mean CV is
-being weighted by a different variable than that in datMat. **Note that**
-**if weightMat is passed, aggregate variability will no longer equal**
-**sqrt(phi) * CVc.**}
-
 \item{weight}{A logical argument that specifies whether CV should be
-weighted or not. **Note that if weightMat is passed, aggregate variability**
-**will no longer equal sqrt(phi) * CVc.**}
+weighted or not.}
 }
 \value{
 Returns a numeric representing mean CV.
@@ -29,6 +23,6 @@ mean abundance. Based on equation 4 in Thibaut and Connolly 2013.
 }
 \examples{
 r <- recMatrix[1:10, ]
-wtdCV(r, weightMat = NULL, weight = TRUE)
+wtdCV(r, weight = TRUE)
 
 }

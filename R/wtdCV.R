@@ -6,32 +6,31 @@
 #'
 #' @param datMat A numeric matrix, generally representing a time series of
 #' component specific abundances.
-#' @param weightMat An optional numeric matrix that is passed if mean CV is
-#' being weighted by a different variable than that in datMat. **Note that**
-#' **if weightMat is passed, aggregate variability will no longer equal**
-#' **sqrt(phi) * CVc.**
 #' @param weight A logical argument that specifies whether CV should be
-#' weighted or not. **Note that if weightMat is passed, aggregate variability**
-#' **will no longer equal sqrt(phi) * CVc.**
+#' weighted or not.
 #' @return Returns a numeric representing mean CV.
 #'
 #' @examples
 #' r <- recMatrix[1:10, ]
-#' wtdCV(r, weightMat = NULL, weight = TRUE)
+#' wtdCV(r, weight = TRUE)
 #'
 #' @export
 
-wtdCV <- function(datMat, weightMat = NULL, weight = TRUE) {
-  if (is.null(weightMat)) { #if weightMat is NULL assume datMat is a matrix of abundance
-    weightMat <- datMat
+wtdCV <- function(datMat, weight = TRUE) {
+  # need to replace any all 0 columns with v. small numbers for following calc
+  # to work, but want to make sure NAs aren't changed
+  for (i in 1:ncol(datMat)) {
+    dum <- datMat[ , i]
+    if (sum(dum, na.rm = TRUE) == 0) {
+      dum[dum == 0] <- 1e-9
+    }
+    datMat[ , i] <- dum
   }
-  if (ncol(datMat) != ncol(weightMat)){
-    stop("Input matrices have unequal number of components")
-  }
+
   #temporal mean of aggregate abundance
-  aggAbund <- sum(apply(weightMat, 2, function (x) mean(x)))
+  aggAbund <- sum(apply(datMat, 2, function (x) mean(x)))
   #wtd mean of aggregate abundance
-  wtdAbund <- apply(weightMat, 2, function (x) mean(x) / aggAbund)
+  wtdAbund <- apply(datMat, 2, function (x) mean(x) / aggAbund)
   wtdCV <- sum(wtdAbund * apply(datMat, 2,
                                 function(x) sqrt(var(x)) /
                                   mean(x)))
