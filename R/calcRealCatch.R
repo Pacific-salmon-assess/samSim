@@ -41,11 +41,17 @@ calcRealCatch <- function(rec, tac, sigma = 0.1) {
   mu <- pmax(0.00001, tac / tempRec)
 
   #calc realized harvest rates and catches
-  #pmax necessary to prevent crashes with very small target TAC
-  location <- pmax(0.1,
-                   mu^2 * (((1 - mu) / 0.06^2) - (1 / mu)))
-  shape <- pmax(0.00001,
-                location * (1 / mu - 1))
-  realER <- rbeta(length(mu), location, shape, ncp = 0)
-  realER * rec
+  if (sigma != 0) {
+    #pmax necessary to prevent crashes with very small target TAC
+    location <- pmax(0.1,
+                     mu^2 * (((1 - mu) / sigma^2) - (1 / mu)))
+    shape <- pmax(0.00001,
+                  location * (1 / mu - 1))
+    realER <- rbeta(length(mu), location, shape, ncp = 0)
+    realCatch <- realER * rec
+  }
+  if (sigma == 0) {
+    realCatch <- mu * rec
+  }
+  realCatch
 }
