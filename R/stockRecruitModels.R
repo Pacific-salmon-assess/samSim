@@ -6,7 +6,7 @@
 #' multivariate normally distributed errors. Note that internal \code{if}
 #' statements prevent it from being vectorized so must be passed single values,
 #' i.e. all vectors for inputs and outputs are length 1. Note that by default
-#' utminus1 and rho are NULL, resulting in a standard Ricker model.
+#' prevErr and rho are NULL, resulting in a standard Ricker model.
 #'
 #' @param S A numeric vector of spawner abundances.
 #' @param a A numeric vector of alpha values, i.e. productivity at low spawner
@@ -17,10 +17,11 @@
 #' using \code{rmvnorm()} and relevant process variance estimates (sigma).
 #' @param rho A numeric vector of rho values, i.e. AR1 coefficient.
 #' outside of model using multivariate normal (or equivalent) distribution.
-#' @param utminus1 A numeric vector representing recruitment deviations from
+#' @param prevErr A numeric vector representing recruitment deviations from
 #' previous brood year.
 #' @return Returns a list of R, a numeric representing recruit abundance, and
-#' \code{err.next} which is used to generate subsequent process error.
+#' \code{errNext} which is used to generate subsequent process error (i.e. next
+#' year's prevErr.
 #'
 #' @examples
 #' #Spawner and recruit values represent millions of fish, stock-recruit
@@ -31,31 +32,37 @@
 #'
 #' #with autoregressive error
 #' rickerModel(S = 1.1, a = 1.8, b = 1.2, error = 0.3, rho = 0.2,
-#' utminus1 = 0.7)
+#' prevErr = 0.7)
 #'
 #' @export
 
-rickerModel <- function(S, a, b, error, rho = NULL, utminus1 = NULL) {
-  err <- utminus1 * rho + error
+rickerModel <- function(S, a, b, error, rho = NULL, prevErr = NULL) {
+  if (is.null(rho)) {
+    rho <- 0
+  }
+  if (is.null(prevErr)) {
+    prevErr <- 0
+  }
+  err <- prevErr * rho + error
   if (a >= 0) {
     if (b != 0 & S > 0) {
       R <- S * exp(a - b * S) * exp(err)
-      err.next <- log(R / S) - (a - b * S) + error
+      errNext <- log(R / S) - (a - b * S)
     }
     if (b == 0 & S > 0) {
       R <- S * exp(err)
-      err.next <- log(R / S) - 0
+      errNext <- log(R / S)
     }
   }
   if (a < 0 & S > 0) {
     R <- S * exp(a) * exp(error)
-    err.next <- log(R / S) - 0 + error
+    errNext <- log(R / S)
   }
   if (S == 0) {
     R <- 0
-    err.next <- err
+    errNext <- err
   }
-  return(list(R, err.next))
+  return(list(R, errNext))
 }
 
 #------------------------------------------------------------------------------

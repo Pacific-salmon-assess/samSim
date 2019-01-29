@@ -1412,7 +1412,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           if (model[k] == "ricker") {
             dum <- rickerModel(S[y, k], alphaMat[y, k], beta[k],
                                error = errorCU[y, k], rho = rho,
-                               laggedError[y - 1, k])
+                               prevErr = laggedError[y - 1, k])
             laggedError[y, k] <- dum[[2]]
           }
           if (model[k] == "larkin") {

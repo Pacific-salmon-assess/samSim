@@ -4,7 +4,7 @@
 \alias{rickerModel}
 \title{Generate recruit abundance with Ricker model}
 \usage{
-rickerModel(S, a, b, error, rho = NULL, utminus1 = NULL)
+rickerModel(S, a, b, error, rho = NULL, prevErr = NULL)
 }
 \arguments{
 \item{S}{A numeric vector of spawner abundances.}
@@ -21,12 +21,13 @@ using \code{rmvnorm()} and relevant process variance estimates (sigma).}
 \item{rho}{A numeric vector of rho values, i.e. AR1 coefficient.
 outside of model using multivariate normal (or equivalent) distribution.}
 
-\item{utminus1}{A numeric vector representing recruitment deviations from
+\item{prevErr}{A numeric vector representing recruitment deviations from
 previous brood year.}
 }
 \value{
 Returns a list of R, a numeric representing recruit abundance, and
-\code{err.next} which is used to generate subsequent process error.
+\code{errNext} which is used to generate subsequent process error (i.e. next
+year's prevErr.
 }
 \description{
 This function calculates recruitment from Ricker curve with AR(1) process
@@ -35,7 +36,7 @@ ization). Uses parameters from arima.mle (a, -b, sig, rho in log space) with
 multivariate normally distributed errors. Note that internal \code{if}
 statements prevent it from being vectorized so must be passed single values,
 i.e. all vectors for inputs and outputs are length 1. Note that by default
-utminus1 and rho are NULL, resulting in a standard Ricker model.
+prevErr and rho are NULL, resulting in a standard Ricker model.
 }
 \examples{
 #Spawner and recruit values represent millions of fish, stock-recruit
@@ -46,6 +47,6 @@ rickerModel(S = 1.1, a = 1.8, b = 1.2, error = 0.3)
 
 #with autoregressive error
 rickerModel(S = 1.1, a = 1.8, b = 1.2, error = 0.3, rho = 0.2,
-utminus1 = 0.7)
+prevErr = 0.7)
 
 }
