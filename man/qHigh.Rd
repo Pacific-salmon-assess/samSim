@@ -10,9 +10,9 @@ qHigh(x)
 \item{x}{A numeric vector.}
 }
 \value{
-Returns a numeric representing either the 10th or 90th percentile.
+Returns a numeric representing either the 5th or 95th percentile.
 }
 \description{
 Two simple wrapper functions for \code{quantile()} that are used in plotting
-functions. qLow defaults to the 10th percentile and qHigh to the 90th.
+functions. qLow defaults to the 5th percentile and qHigh to the 95th.
 }
