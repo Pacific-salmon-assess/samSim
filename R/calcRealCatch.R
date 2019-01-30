@@ -9,6 +9,10 @@
 #' catches are generated using  beta distributed outcome uncertainty (as in
 #' Anderson et al. 2015 J. App. Ecol.).
 #'
+#' For simplicity's sake when TAC is zero, realized HR is zero. Therefore to
+#' represent "significant" catch even when TAC is zero, pass large sigma values
+#' and a small, non-zero TAC value.
+#'
 #' **Note** the sigma values representing the standard deviation of the shape
 #' parameter for the beta distribution are **not** equivalent to the SD of a
 #' normal distribution. Values larger than ~0.2 can result in U-shaped realized
@@ -27,31 +31,50 @@
 #' head(exampleHCRList)
 #' exRec <- exampleHCRList$recRY
 #' exTAC <- 0.2 * exRec
-#' dum <- calcRealCatch(exRec, exTAC, sigma = 0.1)
-#'
-#' hist(dum$realER)
-#' hist(dum$realCatch)
+#' calcRealCatch(exRec, exTAC, sigma = 0.1)
 #'
 #' @export
 calcRealCatch <- function(rec, tac, sigma = 0.1) {
   #hack to replace 0s and let function run without looping
   tempRec <- rec
   tempRec[tempRec == 0] <- 0.00001
-  #calc target ER
-  mu <- pmax(0.00001, tac / tempRec)
-
-  #calc realized harvest rates and catches
-  if (sigma != 0) {
-    #pmax necessary to prevent crashes with very small target TAC
-    location <- pmax(0.1,
-                     mu^2 * (((1 - mu) / sigma^2) - (1 / mu)))
-    shape <- pmax(0.00001,
-                  location * (1 / mu - 1))
-    realER <- rbeta(length(mu), location, shape, ncp = 0)
-    realCatch <- realER * rec
-  }
   if (sigma == 0) {
+    mu <- tac / tempRec
     realCatch <- mu * rec
   }
+
+  if (sigma > 0) {
+    ## Run as loop if 0s are present, otherwise vectorize
+    if (any(tac == 0)) {
+      nCU <- length(rec)
+      realCatch <- rep(NA, length.out = nCU)
+      for (k in seq_along(rec)) {
+        #calc target ER
+        mu <- tac[k] / tempRec[k]
+        if (mu != 0) {
+          location <- mu^2 * (((1 - mu) / sigma^2) - (1 / mu))
+          shape <- location * (1 / mu - 1)
+          realER <- rbeta(1, location, shape, ncp = 0)
+          realCatch[k] <- realER * rec[k]
+        } else {
+          #if TAC is 0 then realCatch is 0
+          realCatch[k] <- 0
+        }
+      } #end CU loop
+    } else {
+      mu <- tac / tempRec
+      location <- mu^2 * (((1 - mu) / sigma^2) - (1 / mu))
+      shape <- location * (1 / mu - 1)
+      realER <- rbeta(length(mu), location, shape, ncp = 0)
+      realCatch <- realER * rec
+    } #end vectorized version
+  }
+
+  #warning message for nonsensical values
+  if (any(is.na(realCatch))) {
+    stop("Realized ER can't be calculated; check that target HR and sigma
+               are reasonable")
+  }
+
   realCatch
 }

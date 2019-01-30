@@ -30,6 +30,10 @@ total allowable catches are back-converted to exploitation rates and realized
 catches are generated using  beta distributed outcome uncertainty (as in
 Anderson et al. 2015 J. App. Ecol.).
 
+For simplicity's sake when TAC is zero, realized HR is zero. Therefore to
+represent "significant" catch even when TAC is zero, pass large sigma values
+and a small, non-zero TAC value.
+
 **Note** the sigma values representing the standard deviation of the shape
 parameter for the beta distribution are **not** equivalent to the SD of a
 normal distribution. Values larger than ~0.2 can result in U-shaped realized
@@ -40,9 +44,6 @@ default value (0.1) from Pestes et al. 2008 for Cultus Lake sockeye salmon.
 head(exampleHCRList)
 exRec <- exampleHCRList$recRY
 exTAC <- 0.2 * exRec
-dum <- calcRealCatch(exRec, exTAC, sigma = 0.1)
-
-hist(dum$realER)
-hist(dum$realCatch)
+calcRealCatch(exRec, exTAC, sigma = 0.1)
 
 }
