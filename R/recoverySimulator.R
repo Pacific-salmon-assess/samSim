@@ -52,6 +52,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                         erCorrMat=NULL, dirName, nTrials=100, uniqueProd=TRUE) {
   set.seed(123)
 
+  # Silence warnings present in R 3.5.1
+  options(warnPartialMatchArgs = FALSE)
   #_______________________________________________________________________
   ## Set up input arguments
   # Simulation parameters (biological, observation, and management)
@@ -1614,44 +1616,49 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     }
 
     # Calculate CU-specific trends across geometric means
-    # (ASK CARRIE TO CHECK BECAUSE UNSURE ABOUT HER TS LENGTH)
-    for (k in 1:nCU) {
-      S[, k] <- ifelse(S[, k] == 0, 0.00005, S[, k])
-      #ask C Holt how this is generated, right now running blind
-      nYrsGeoMean <- nYears - nPrime
-      #generate geo mean spwnr abundance w.out NAs
-      sGeoMean[(nPrime - gen):nYears, k] <- genMean(S[(nPrime - gen):nYears, k],
-                                                    gen)
-      lnSGeoMean <- log(sGeoMean)
-      ppnSLow[n, k] <- length(which(sGeoMean[, k] < 0.1)) / nYrsGeoMean
-      sl <- NA
-      ppnChange <- rep(NA, nYears)
-      # calculate slope over 12 year period i.e.,from year j-11 to j
-      for (j in (nPrime + (3 * gen - 1)):nYears) {
-        if (extinct[j, k] == 0) { #only calculate slopes when non-extinct
-          if (is.na(lnSGeoMean[j - (3 * gen - 1), k]) == "FALSE") {
-            sl[j] <- quickLm(xVec = c(1:(3 * gen)),
-                             yVec = lnSGeoMean[(j - (3 * gen - 1)):j, k])[[2]]
-            ppnChange[j] <- exp(sl[j] * 3 * gen) - 1
+    ## NOTE: even with quickLm these functions are a big bottleneck
+    ## Make an optional output PM (rather than default) based on simPar
+    if (!is.null(simPar$statusTrendPM)) {
+      if (simPar$statusTrendPM == TRUE) {
+        for (k in 1:nCU) {
+          S[, k] <- ifelse(S[, k] == 0, 0.00005, S[, k])
+          #ask C Holt how this is generated, right now running blind
+          nYrsGeoMean <- nYears - nPrime
+          #generate geo mean spwnr abundance w.out NAs
+          strtGMean <- nPrime - gen
+          sGeoMean[strtGMean:nYears, k] <- genMean(S[strtGMean:nYears, k], gen)
+          lnSGeoMean <- log(sGeoMean)
+          ppnSLow[n, k] <- length(which(sGeoMean[, k] < 0.1)) / nYrsGeoMean
+          sl <- NA
+          ppnChange <- rep(NA, nYears)
+          # calculate slope over 12 year period i.e.,from year j-11 to j
+          for (j in (nPrime + (3 * gen - 1)):nYears) {
+            if (extinct[j, k] == 0) { #only calculate slopes when non-extinct
+              if (is.na(lnSGeoMean[j - (3 * gen - 1), k]) == "FALSE") {
+                sl[j] <- quickLm(xVec = c(1:(3 * gen)),
+                                 yVec = lnSGeoMean[(j - (3 * gen - 1)):j, k])[[2]]
+                ppnChange[j] <- exp(sl[j] * 3 * gen) - 1
+              }
+            }
+            if (extinct[j, k] == 1) {
+              ppnChange[j] <- NA
+            }
           }
-        }
-        if (extinct[j, k] == 1) {
-          ppnChange[j] <- NA
+
+          ppnChangeMat[, k, n] <- ppnChange
+          ppnChangeNoNA <- which(is.na(ppnChange)[1:nYears] == "FALSE")
+          ppnYrsCOS[n, k] <- ifelse(length(ppnChangeNoNA) == 0,
+                                    0,
+                                    length(which(ppnChange[1:nYears] > -0.3)) /
+                                      length(ppnChangeNoNA))
+          ppnYrsWSP[n, k] <-ifelse(length(ppnChangeNoNA) == 0,
+                                   0,
+                                   length(which(ppnChange[1:nYears] > -0.25)) /
+                                     length(ppnChangeNoNA))
+          #invert to make positive (i.e. same directionality as above BMs)
+          S[, k][which(S[, k] == 0.00005)] <- 0
         }
       }
-
-      ppnChangeMat[, k, n] <- ppnChange
-      ppnChangeNoNA <- which(is.na(ppnChange)[1:nYears] == "FALSE")
-      ppnYrsCOS[n, k] <- ifelse(length(ppnChangeNoNA) == 0,
-                                0,
-                                length(which(ppnChange[1:nYears] > -0.3)) /
-                                  length(ppnChangeNoNA))
-      ppnYrsWSP[n, k] <-ifelse(length(ppnChangeNoNA) == 0,
-                               0,
-                               length(which(ppnChange[1:nYears] > -0.25)) /
-                                 length(ppnChangeNoNA))
-      #invert to make positive (i.e. same directionality as above BMs)
-      S[, k][which(S[, k] == 0.00005)] <- 0
     }
 
     #__________________________________________________________________________
