@@ -1,0 +1,107 @@
+---
+title: "benchmarking.Rmd"
+author: "Cam Freshwater"
+date: "January 30, 2019"
+output: html_document
+---
+
+Conduct some trial simulation runs to try to improve run times.
+
+```{r loadData, echo=TRUE}
+listOfPackages <- c("plyr", "here", "parallel", "doParallel", "foreach", 
+                    "reshape2", "tidyverse", "tictoc", "synchrony", "zoo", 
+                    "Rcpp", "RcppArmadillo", "bench", "samSim", "profvis")
+
+here <- here::here
+
+newPackages <- listOfPackages[!(listOfPackages %in% 
+                                  installed.packages()[ , "Package"])]
+if(length(newPackages)) install.packages(newPackages)
+lapply(listOfPackages, require, character.only = TRUE)
+
+simPar <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorr.csv"), 
+                   stringsAsFactors = F)
+cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors = F)
+srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors = F)
+catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), 
+                     stringsAsFactors = F)
+ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors = F)
+larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"), stringsAsFactors = F)
+tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors = F)
+
+
+nTrials <- 10
+## General robustness runs
+simParTrim <- subset(simPar,
+                     scenario == "lowSig" | scenario == "medSig" |
+                       scenario == "highSig")
+
+scenNames <- unique(simParTrim$scenario)
+dirNames <- sapply(scenNames, function(x) paste(x, unique(simParTrim$species),
+                                                sep = "_"))
+```
+
+First run a profiler to try to identify likely bottlenecks.
+
+```{r profileRecoverySim, echo = TRUE}
+profvis({
+  recoverySim(simParTrim[1, ], cuPar, catchDat = catchDat, srDat = srDat, 
+                variableCU = FALSE, ricPars, larkPars = larkPars, 
+                tamFRP = tamFRP, cuCustomCorrMat = NULL, dirName = dirNames[1], 
+                nTrials = 5, multipleMPs = FALSE)
+})
+```
+
+Even with quickLM function there was a major bottleneck when calculating CU-specific trends using geometric means. These are useful BMs but not always used. Added two if statements `if (!is.null(simPar$statusTrendPM))` and `if (simPar$statusTrendPM == TRUE)` so that they are only calculated when needed. Otherwise no obvious bottlenecks besides plotting diagnostics (which only happens once).
+
+```{r compareSingleAndParallel, echo = TRUE}
+# Single core 
+tic()
+  for(i in seq_along(dirNames)) {
+    d <- subset(simParTrim, scenario == scenNames[i])
+    simsToRun <- split(d, seq(nrow(d)))
+    lapply(simsToRun, function(x) {
+      recoverySim(x, cuPar, catchDat=catchDat, srDat=srDat, variableCU=FALSE,
+                  ricPars, larkPars=larkPars, tamFRP=tamFRP, dirName=dirNames[i],
+                  nTrials=nTrials, multipleMPs=TRUE)
+    })
+  }
+toc()
+
+# Six cores
+tic()
+for (i in seq_along(dirNames)) {
+  dirName <- dirNames[i]
+  d <- subset(simParTrim, scenario == scenNames[i])
+  simsToRun <- split(d, seq(nrow(d)))
+  Ncores <- detectCores()
+  cl <- makeCluster(Ncores - 2) #save two cores
+  registerDoParallel(cl)
+  clusterEvalQ(cl, c(library(MASS),
+                  library(here),
+                  library(sensitivity),
+                  library(mvtnorm),
+                  library(scales), #shaded colors for figs
+                  library(viridis), #color blind gradient palette
+                  library(gsl), 
+                  library(dplyr),
+                  library(Rcpp),
+                  library(RcppArmadillo),
+                  library(sn),
+                  library(samSim)))
+  #export custom function and objects
+  clusterExport(cl, c("simsToRun", "recoverySim", "cuPar", "dirName", "nTrials",
+                      "catchDat", "srDat", "ricPars", "dirName", "larkPars", 
+                      "tamFRP"), envir = environment()) 
+  parLapply(cl, simsToRun, function(x) {
+    recoverySim(x, cuPar, catchDat = catchDat, srDat = srDat, 
+                variableCU = FALSE, ricPars, larkPars = larkPars, 
+                tamFRP = tamFRP, cuCustomCorrMat = NULL, dirName = dirName, 
+                nTrials = nTrials, multipleMPs = FALSE)
+  })
+  stopCluster(cl) #end cluster
+}
+toc()
+```
+
+Running in parallel is ~150% faster even with low number of trials - relative gains will increase since there is some time associated with ramping up and shutting down cores.
