@@ -15,7 +15,8 @@
 
 #Temporary inputs
 # here <- here::here
-# simParF <- read.csv(here("data/manProcScenarios/fraserMPInputs_varyMixPpnHCRs_refError.csv"),
+# simParF <- read.csv(here("data", "manProcScenarios",
+#                          "fraserMPInputs_varyMixPpnHCRs_baseAnalysis.csv"),
 #                     stringsAsFactors = F)
 # cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
 # srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
@@ -41,8 +42,8 @@
 # uniqueProd <- TRUE
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
-# nTrials <- 5
-# simPar <- simParF[11,]
+# nTrials <- 10
+# simPar <- simParF[6,]
 # multipleMPs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 
 
@@ -1147,6 +1148,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #Adjust TAC by proportions so that CU-specific harvest rates can be calc;
       #Adjust mixed fishery TAC by true ppns because these are not influenced by
       #management, single TAC by forecasted ppns
+      # Note: with sockeye amTAC often lower than expected (~17%) due to AFE
       amTAC[y, ] <- tacs[['amTAC']] * truePpn
       amTAC[is.na(amTAC)] <- 0
       mixTAC[y, ] <- tacs[['mixTAC']] * truePpn

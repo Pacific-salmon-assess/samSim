@@ -18,7 +18,10 @@ calcTAC(rec, canER, harvContRule, amER, ppnMixVec, species = NULL,
 \item{harvContRule}{A character signifying whether TACs are based on a fixed
 exploitation rate (\code{fixedER}) or the simplified TAM rule (\code{TAM}).}
 
-\item{amER}{A numeric representing the target American exploitation rate.}
+\item{amER}{A numeric representing the target American exploitation rate.
+**Note** that American catch is a function of TAC not escapement for Fraser
+sockeye and takes into account the Aboriginal Fishery Exclusion (400k fish).
+Thus their catch/harvest rate is generally below the input parameter.}
 
 \item{species}{A character that can currently take either \code{chum} or
 \code{sockeye} values. Determines how American TAC is partitioned relative

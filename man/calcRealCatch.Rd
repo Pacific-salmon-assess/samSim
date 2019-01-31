@@ -39,6 +39,10 @@ parameter for the beta distribution are **not** equivalent to the SD of a
 normal distribution. Values larger than ~0.2 can result in U-shaped realized
 exploitation rates. Distribution should be parameterized based on data or use
 default value (0.1) from Pestes et al. 2008 for Cultus Lake sockeye salmon.
+
+**Note** small target harvest rates and/or high sigmas can produce negative
+location parameters which result in NAs; replace with small values
+(see betaDistributionBounds.Rmd for details) .
 }
 \examples{
 head(exampleHCRList)

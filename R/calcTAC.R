@@ -25,6 +25,9 @@
 #' @param harvContRule A character signifying whether TACs are based on a fixed
 #' exploitation rate (\code{fixedER}) or the simplified TAM rule (\code{TAM}).
 #' @param amER A numeric representing the target American exploitation rate.
+#' **Note** that American catch is a function of TAC not escapement for Fraser
+#' sockeye and takes into account the Aboriginal Fishery Exclusion (400k fish).
+#' Thus their catch/harvest rate is generally below the input parameter.
 #' @param ppnMix A numeric representing the proportion of the Canadian TAC
 #' allocated to mixed stock fisheries.
 #' @param species A character that can currently take either \code{chum} or
@@ -121,11 +124,12 @@ calcTAC <- function(rec, canER, harvContRule, amER, ppnMixVec, species = NULL,
                           minER[k])
           totalTAC[k] <- tacER * rec[k]
         }
-      }
-    }
+      } #end for k in seq_along
+    } #end if harvContRule == TAC
     #adjust total TAC to account for AFE (400k fish) when calculating us TAC
-    #divide 400k allocation evenly among all CUs
-    afe <- totalTAC / sum(unique(totalTAC)) * 0.4
+    #divide 400k allocation evenly among all CUs; pmin used to constrain amTAC
+    #to positive values (i.e. if afe greater than cu-specific TAC)
+    afe <- pmin(totalTAC, totalTAC / sum(unique(totalTAC)) * 0.4)
     amTAC <- amER * (totalTAC - afe)
     canTAC <- totalTAC - amTAC
   } else {

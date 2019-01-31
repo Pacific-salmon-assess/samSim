@@ -1,0 +1,93 @@
+---
+title: "bounds for beta dist parameters"
+author: "Cam Freshwater"
+date: "January 31, 2019"
+output: html_document
+---
+
+Quick simulation exercise to identify reasonable bounds for scale and location parameters in beta distribution for outcome uncertainty. Used to constrain `calcRealCatch()` and reduce errors.
+
+```{r changeMu, echo=TRUE, warning=FALSE}
+muSeq <- seq(0.0001, 0.01, length.out = 100)
+locationSeq <- rep(NA, length.out = 100)
+shapeSeq <- rep(NA, length.out = 100)
+realERSeq <- rep(NA, length.out = 100)
+refSigma <- 0.07
+
+for (i in seq_along(muSeq)) {
+  locationSeq[i] <- muSeq[i]^2 * (((1 - muSeq[i]) / refSigma^2) - (1 / muSeq[i]))
+  shapeSeq[i] <- locationSeq[i] * (1 / muSeq[i] - 1)
+  realERSeq[i] <- rbeta(1, locationSeq[i], shapeSeq[i], ncp = 0)
+}
+minValue <- min(which(!is.na(realERSeq)))
+locationSeq[minValue-1]
+shapeSeq[minValue-1]
+muSeq[minValue-1]
+refMu <- muSeq[minValue]
+refMu #last stable mu
+```
+
+Both shape and location parameters need to be non-negative. For the reference sigma value that appears to occur at mu ~= 0.005. Next look at changing sigma.
+
+```{r changeSigma, echo=TRUE, warning=FALSE}
+sigmaSeq <- seq(0.005, 0.3, length.out = 100) #unlikely to use sigma below 0.005
+locationSeq <- rep(NA, length.out = 100)
+shapeSeq <- rep(NA, length.out = 100)
+realERSeq <- rep(NA, length.out = 100)
+
+for (i in seq_along(sigmaSeq)) {
+  locationSeq[i] <- refMu^2 * (((1 - refMu) / sigmaSeq[i]^2) - (1 / refMu))
+  shapeSeq[i] <- locationSeq[i] * (1 / refMu - 1)
+  realERSeq[i] <- rbeta(1, locationSeq[i], shapeSeq[i], ncp = 0)
+}
+maxValue <- max(which(!is.na(realERSeq)))
+locationSeq[maxValue+1]
+shapeSeq[maxValue+1]
+```
+
+Unsurprisingly the minimum value for mu and the maximum for sigma are inversely related. To get around this see if constraining location to be a very small value works.
+
+```{r changeMuTwo, echo=TRUE, warning=FALSE}
+refSigma <- 0.07
+realERMatrix <- matrix(NA, nrow = 1000, ncol = length(muSeq))
+colnames(realERMatrix) <- muSeq
+for (i in seq_along(muSeq)) {
+  locationSeq[i] <- pmax(0.0001,
+                         muSeq[i]^2 * (((1 - muSeq[i]) / refSigma^2) - 
+                                         (1 / muSeq[i])))
+  shapeSeq[i] <- locationSeq[i] * (1 / muSeq[i] - 1)
+  realERMatrix[ , i] <- rbeta(1000, locationSeq[i], shapeSeq[i], ncp = 0)
+}
+which(is.na(realERMatrix))
+
+##Confirm that it works with larger mu values
+bigMuSeq <- seq(0.95, 0.99, length.out = 100)
+colnames(realERMatrix) <- bigMuSeq
+for (i in seq_along(bigMuSeq)) {
+  locationSeq[i] <- pmax(0.0001,
+                         bigMuSeq[i]^2 * (((1 - bigMuSeq[i]) / refSigma^2) - 
+                                         (1 / bigMuSeq[i])))
+  shapeSeq[i] <- locationSeq[i] * (1 / bigMuSeq[i] - 1)
+  realERMatrix[ , i] <- rbeta(1000, locationSeq[i], shapeSeq[i], ncp = 0)
+}
+which(is.na(realERMatrix))
+```
+
+Appears to work for both very small and very large target HRs (though an original smaller value of 1e-5 was not stable) confirm with sigma and also check relationship between location parameter and harvest deviations assuming refMu.
+
+```{r changeSigmaTwo, echo=TRUE}
+realERMatrix <- matrix(NA, nrow = 1000, ncol = length(sigmaSeq))
+colnames(realERMatrix) <- sigmaSeq
+for (i in seq_along(sigmaSeq)) {
+  locationSeq[i] <- pmax(0.0001,
+                         refMu^2 * (((1 - refMu) / sigmaSeq[i]^2) - (1 / refMu)))
+  shapeSeq[i] <- locationSeq[i] * (1 / refMu - 1)
+  realERMatrix[ , i] <- rbeta(1000, locationSeq[i], shapeSeq[i], ncp = 0)
+}
+
+harvDevMat <- (refMu - realERMatrix) / refMu
+meanHarvDev <- apply(harvDevMat, 2, mean)
+plot(meanHarvDev ~ locationSeq)
+```
+
+Confirms that smaller location values give you larger deviations. Therefore coercing location to be small but non-positive shouldn't dramatically underestimate uncertainty. Add 0.0001 constraint to location in calcRealCatch.R function.

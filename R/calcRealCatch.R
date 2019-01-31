@@ -19,6 +19,10 @@
 #' exploitation rates. Distribution should be parameterized based on data or use
 #' default value (0.1) from Pestes et al. 2008 for Cultus Lake sockeye salmon.
 #'
+#' **Note** small target harvest rates and/or high sigmas can produce negative
+#' location parameters which result in NAs; replace with small values
+#' (see betaDistributionBounds.Rmd for details) .
+#'
 #' @param rec A numeric vector of length nCU representing CU-specific
 #' recruitment.
 #' @param tac A numeric vector of length nCU representing CU-specific target
@@ -49,10 +53,12 @@ calcRealCatch <- function(rec, tac, sigma = 0.1) {
       nCU <- length(rec)
       realCatch <- rep(NA, length.out = nCU)
       for (k in seq_along(rec)) {
-        #calc target ER
-        mu <- tac[k] / tempRec[k]
+        #calc target ER (capped at 99% which may occur if other fisheries
+        #overfish due to OU)
+        mu <- min(0.99, tac[k] / tempRec[k])
         if (mu != 0) {
-          location <- mu^2 * (((1 - mu) / sigma^2) - (1 / mu))
+          location <- pmax(0.0001,
+                           mu^2 * (((1 - mu) / sigma^2) - (1 / mu)))
           shape <- location * (1 / mu - 1)
           realER <- rbeta(1, location, shape, ncp = 0)
           realCatch[k] <- realER * rec[k]
@@ -62,8 +68,11 @@ calcRealCatch <- function(rec, tac, sigma = 0.1) {
         }
       } #end CU loop
     } else {
-      mu <- tac / tempRec
-      location <- mu^2 * (((1 - mu) / sigma^2) - (1 / mu))
+      #calc target ER (capped at 99% which may occur if other fisheries
+      #overfish due to OU)
+      mu <- pmin(0.99, tac / tempRec)
+      location <- pmax(0.0001,
+                       mu^2 * (((1 - mu) / sigma^2) - (1 / mu)))
       shape <- location * (1 / mu - 1)
       realER <- rbeta(length(mu), location, shape, ncp = 0)
       realCatch <- realER * rec
