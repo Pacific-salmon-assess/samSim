@@ -304,18 +304,18 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     }
     correlCU <- as.matrix(cuCustomCorrMat)
   }
-  sigMat <- matrix(as.numeric(sig), nrow = 1, ncol = nCU) #calculate correlations among CUs
-  covMat <- t(sigMat) %*% sigMat #calculate shared variance
-  corMat <- covMat * correlCU #correct based on correlation
-  diag(corMat) <- as.numeric(sig^2) #add variance
+  #calculate correlations among CUs
+  sigMat <- matrix(as.numeric(sig), nrow = 1, ncol = nCU)
+  #calculate shared variance and correct based on correlation
+  covMat <- (t(sigMat) %*% sigMat) * correlCU
+  diag(covMat) <- as.numeric(sig^2) #add variance
 
   # Add correlations in en route mortality as above (CHANGE TO FUNCTION)
   # if (simPar$corrMort == TRUE) {
   #   mortSigMat <- matrix(as.numeric(enRouteSig), nrow = 1, ncol = nCU)
   #   covMat <- t(mortSigMat) %*% mortSigMat
-  #   correlMort <- as.matrix(erCorrMat)
-  #   corMortMat <- covMat * correlMort
-  #   diag(corMortMat) <- as.numeric(enRouteSig^2)
+  #   covMortMat <- as.matrix(erCorrMat) * correlMort
+  #   diag(covMortMat) <- as.numeric(enRouteSig^2)
   # }
 
   if (species == "pink") { ### PINK FUNCTIONALITY NEEDS TO BE TESTED
@@ -1124,7 +1124,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
       #add correlated ER mortality (commented out due to weak impacts on PMs)
       # migMortErr <- if (simPar$corrMort == TRUE) {
-      #   exp(rmvnorm(n = 1, mean = rep(0, nCU), sigma = corMortMat))
+      #   exp(rmvnorm(n = 1, mean = rep(0, nCU), sigma = covMortMat))
       # } else {
       #   exp(qnorm(runif(nCU, 0.0001, 0.9999), 0, enRouteSig))
       # }
@@ -1399,15 +1399,15 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         #draw process variance from skewed normal distribution
         errorCU[y, ] <- sn::rmst(n = 1, xi = rep(0, nCU),
                                  alpha = rep(log(0.65), nCU), nu = 1000,
-                                 Omega = corMat)
+                                 Omega = covMat)
       } else if (prod == "skewT") {
         #draw process variance from skewed T distribution
         errorCU[y, ] <- sn::rmst(n = 1, xi = rep(0, nCU),
                                  alpha = rep(log(0.65), nCU), nu = 2,
-                                 Omega = corMat)
+                                 Omega = covMat)
       } else { #otherwise draw from normal
         errorCU[y, ] <- mvtnorm::rmvnorm(n = 1, mean = rep(0, nCU),
-                                         sigma = corMat)
+                                         sigma = covMat)
       }
       for (k in 1:nCU) {
         if (S[y, k] > 0) {
@@ -1574,7 +1574,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                          paste(nameOM, nameMP, "singleTrialFig.pdf", sep = "_"))
       pdf(file = paste(here("outputs/diagnostics", dirPath, fileName),
                        sep = "/"), height = 6, width = 7)
-      if(exists("larB")){ # if larkin terms are present they need to be passed
+      if (exists("larB")) { # if larkin terms are present they need to be passed
         larBList <- list(larB, larB1, larB2, larB3)
         names(larBList) <- c("lag0", "lag1", "lag2", "lag3")
         plotDiagCU(plotTrialDat, varNames, stkName, model, ricB,
