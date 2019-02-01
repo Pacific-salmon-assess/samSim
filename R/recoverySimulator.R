@@ -44,11 +44,11 @@
 # dirName <- "TEST"
 # nTrials <- 10
 # simPar <- simParF[6,]
-# multipleMPs <- TRUE #only false when running scenarios with multiple OMs and only one MP
+# makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 
 
 recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
-                        variableCU=FALSE, multipleMPs=TRUE, ricPars,
+                        variableCU=FALSE, makeSubDirs=TRUE, ricPars,
                         larkPars=NULL, tamFRP=NULL, cuCustomCorrMat=NULL,
                         erCorrMat=NULL, dirName, nTrials=100, uniqueProd=TRUE,
                         random=FALSE) {
@@ -362,7 +362,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
              recursive = TRUE, showWarnings = FALSE)
 
   ## Create subdirectories if multiple OMs and MPs are being run
-  if (multipleMPs == TRUE) {
+  if (makeSubDirs == TRUE) {
     subDirName <- simPar$nameOM
     dir.create(paste(here("outputs/diagnostics"), dirName, subDirName,
                      sep = "/"),
@@ -372,7 +372,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                recursive = TRUE, showWarnings = FALSE)
   }
   #use this to generate figs/data in subsequent calls
-  dirPath <- ifelse(multipleMPs == TRUE,
+  dirPath <- ifelse(makeSubDirs == TRUE,
                     paste(dirName, subDirName, sep = "/"),
                     dirName)
 

@@ -507,3 +507,8 @@ Potential issues
 	-	Secondary benefit is that now OU in fixed ER and TAM rules are more closely equivalent
 	-	Applies to `calcTAC` and `constrain` functions
 -	Note that forecasts of recruitment are still generated for use in single stock harvest control rules
+
+
+### XXXXVIII) Add capacity for independent parallel chains (Feb. 1)
+-	Added `random = TRUE` argument to `recoverySim()` which disables the set seed function. As a result each simulation run begins on a random number, which allows for multiple identical scenarios to be run simultaneously.
+-	When comparing OMs or MPs this should always be set to FALSE (the default)
