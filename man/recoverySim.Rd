@@ -7,7 +7,7 @@
 recoverySim(simPar, cuPar, catchDat = NULL, srDat = NULL,
   variableCU = FALSE, multipleMPs = TRUE, ricPars, larkPars = NULL,
   tamFRP = NULL, cuCustomCorrMat = NULL, erCorrMat = NULL, dirName,
-  nTrials = 100, uniqueProd = TRUE)
+  nTrials = 100, uniqueProd = TRUE, random = FALSE)
 }
 \arguments{
 \item{y}{TO BE DEFINED}

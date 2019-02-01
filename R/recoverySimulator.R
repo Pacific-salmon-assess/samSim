@@ -50,8 +50,14 @@
 recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                         variableCU=FALSE, multipleMPs=TRUE, ricPars,
                         larkPars=NULL, tamFRP=NULL, cuCustomCorrMat=NULL,
-                        erCorrMat=NULL, dirName, nTrials=100, uniqueProd=TRUE) {
-  set.seed(123)
+                        erCorrMat=NULL, dirName, nTrials=100, uniqueProd=TRUE,
+                        random=FALSE) {
+  # If random = TRUE then each simulation will start at a different point
+  # i.e. should ALWAYS be FALSE except for convenience when running independent
+  # chains to test convergence
+  if (random == FALSE) {
+    set.seed(123)
+  }
 
   # Silence warnings present in R 3.5.1
   options(warnPartialMatchArgs = FALSE)
