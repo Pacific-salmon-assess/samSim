@@ -1089,6 +1089,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       }
 
       #is forecasted status consistent w/ fishery being open?
+      #NOTE THE OPENFISHERY PM SHOULD BE TWEAKED IF WE WANT TO INCLUDE IT IN
+      #PUBS
       for (m in 1:nMU) {
         CUs <- which(manUnit %in% muName[m])
         if (species == "sockeye") {
