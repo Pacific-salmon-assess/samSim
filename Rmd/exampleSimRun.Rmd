@@ -1,0 +1,106 @@
+---
+title: "Example samSim Run"
+author: "Cam Freshwater"
+date: "February 1, 2019"
+output: html_document
+---
+
+This document demonstrates an example simulation run with Fraser River sockeye salmon data. 
+
+**NOTE this document will be updated to reflect simpler examples in the future.**
+
+First install necessary packages and load data. Note that `samSim` depends heavily on a large number of other packages, but that the relevant functions are installed automatically with when it is built. The other packages are largely for data processing or to run the simulations in parallel (additional details below).
+
+```{r importData, echo=TRUE, warning=FALSE}
+## Check if necessary packages are available and install if necessary
+listOfPackages <- c("here", "parallel", "doParallel", "foreach", 
+                    "tidyverse", "tictoc", "samSim")
+newPackages <- listOfPackages[!(listOfPackages %in% 
+                                  installed.packages()[ , "Package"])]
+if (length(newPackages)) {
+  install.packages(newPackages)
+}
+lapply(listOfPackages, require, character.only = TRUE)
+
+
+## Load relevant input data
+# Simulation run parameters describing different scenarios
+simPar <- read.csv(here("data", "manProcScenarios",
+                         "fraserMPInputs_exampleSimPar.csv"),
+                       stringsAsFactors = F)
+# CU-specific parameters
+cuPar <- read.csv(here("data", "fraserDat", "fraserCUpars.csv"),
+                  stringsAsFactors=F)
+# Stock-recruit and catch data that are used to populate the simulation priming
+# period
+srDat <- read.csv(here("data", "fraserDat", "fraserRecDatTrim.csv"),
+                  stringsAsFactors=F)
+catchDat <- read.csv(here("data", "fraserDat", "fraserCatchDatTrim.csv"),
+                     stringsAsFactors=F)
+# Posterior values of  CU-specific stock recruitment parameters for Ricker and
+# Larkin models; when available, passed and used to calculate alpha, beta and
+# sigma parameters rather than passing point values 
+ricPars <- read.csv(here("data", "fraserDat", "pooledRickerMCMCPars.csv"),
+                    stringsAsFactors=F)
+larkPars <- read.csv(here("data", "fraserDat", "pooledLarkinMCMCPars.csv"),
+                     stringsAsFactors=F)
+# Fishery reference points necessary for the total allowable mortality rule (not
+# necessary for non-Fraser sockeye CUs or if fixedER HCR is being used)
+tamFRP <- read.csv(here("data", "fraserDat", "tamRefPts.csv"),
+                   stringsAsFactors=F)
+
+
+## Store relevant object names to help run simulation 
+scenNames <- unique(simPar$scenario)
+dirNames <- sapply(scenNames, function(x) paste(x, unique(simPar$species),
+                                                sep = "_"))
+```
+
+One argument in `recoverySim()` worth focusing on is `makeSubDirs`, which controls how model output is saved. `recoverySim()` automatically creates a directory based on the `dirName` argument. When `makeSubDirs = TRUE` (the default), the function also creates a subdirectory for each unique value of `simPar$nameOM`. This allows users to cluster similar OM/MPs together. Note that individual filenames are a combination of `nameOM` and `nameMP`.  For convenience sake dirName is often set to either `simPar$scenario` or `simPar$nameMP`, but not `simPar$nameOM` for obvious reasons. Thus scenarios but be saved in a unique directory OR have unique combinations of `nameOM` and `nameMP` to avoid being overwritten. Here we set `makeSubDirs = FALSE` because each scenario contains only one OM or MP. 
+
+```{r checkScenarios, echo = TRUE}
+length(unique(simPar$scenario)) == nrow(simPar)
+
+simPar %>% 
+  select(scenario, nameOM, nameMP)
+```
+
+
+By default `recoverySim()` calculates and stores a large number of CU-specific performance metrics each simulation year. Stable performance metric outputs also typically require several hundred to several thousand trials per scenario (i.e. unique combination of operating model and management procedure). As a result, while it is possible to run the simulations on a single core, it is not advisable except as an initial check to make sure that the provided inputs do not cause the model to crash.
+
+Here, the `parallel`, `doParallel`, and `foreach` packages are used to run multiple scenarios simultaneously.
+
+
+```{r runSim, echo=TRUE, warning=FALSE}
+## First check to ensure that a single scenario can be run (only a small number
+# of trials necessary)
+recoverySim(simPar[1, ], cuPar=cuPar, catchDat=catchDat, srDat=srDat,
+            variableCU=FALSE, ricPars=ricPars, larkPars=larkPars, tamFRP=tamFRP,
+            dirName="test", nTrials=2, makeSubDirs=FALSE, random=FALSE)
+
+
+## Define a larger number of simulations to be run (note still well below 
+## suggested number for stability)
+nTrials <- 150
+
+## Divide each scenario into a list element to pass to parLapply()
+simsToRun <- split(simPar, seq(nrow(simPar)))
+dirName <- "example"
+Ncores <- detectCores()
+cl <- makeCluster(Ncores - 1) #save one core
+registerDoParallel(cl)
+clusterEvalQ(cl, c(library(samSim)))
+clusterExport(cl, c("simsToRun", "cuPar", "nTrials", "dirName",
+                    "catchDat", "srDat", "ricPars", "larkPars",
+                    "tamFRP"), envir=environment())
+tic("run in parallel")
+parLapply(cl, simsToRun, function(x) {
+  recoverySim(x, cuPar=cuPar, catchDat=catchDat, srDat=srDat, variableCU=FALSE,
+              ricPars=ricPars, larkPars=larkPars, tamFRP=tamFRP,
+              dirName=dirName, nTrials=nTrials, makeSubDirs=FALSE,
+              random=FALSE)
+  })
+stopCluster(cl) #end cluster
+toc()
+
+```

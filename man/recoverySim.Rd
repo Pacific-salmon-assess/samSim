@@ -5,7 +5,7 @@
 \title{Recovery simulator}
 \usage{
 recoverySim(simPar, cuPar, catchDat = NULL, srDat = NULL,
-  variableCU = FALSE, multipleMPs = TRUE, ricPars, larkPars = NULL,
+  variableCU = FALSE, makeSubDirs = TRUE, ricPars, larkPars = NULL,
   tamFRP = NULL, cuCustomCorrMat = NULL, erCorrMat = NULL, dirName,
   nTrials = 100, uniqueProd = TRUE, random = FALSE)
 }
