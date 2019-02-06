@@ -25,7 +25,7 @@
 # larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"), stringsAsFactors=F)
 # tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
 
-# simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorr.csv"),
+# simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorrNoMort.csv"),
 #                     stringsAsFactors = F)
 # cuCustomCorrMat <- read.csv(here("data/fraserDat/prodCorrMatrix.csv"), stringsAsFactors=F)
 # erCorrMat <- read.csv(here("data/fraserDat/erMortCorrMatrix.csv"), stringsAsFactors=F,
@@ -43,7 +43,7 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 10
-# simPar <- simParF[6,]
+# simPar <- simParF[7,]
 # makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 
 
@@ -117,17 +117,16 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   }
   #minimum exploitation rate applied with TAM rule even at low abundance
   minER <- cuPar$minER
-  if (!is.null(simPar$enRouteMort)) {
-    if (simPar$enRouteMort == TRUE) {
+  if (simPar$enRouteMort == TRUE) {
     # ER mort rate (i.e. between marine and term. fisheries);
     # taken from in-river difference between estimates (post-2000)
     enRouteMR <- cuPar$meanDBE
     enRouteSig <- cuPar$sdDBE
-    } #end if enRouteMort == TRUE
-  } else {
+  }
+  if (is.null(simPar$enRouteMort) | simPar$enRouteMort == FALSE) {
     enRouteMR <- rep(0, length.out = nrow(cuPar))
     enRouteSig <- rep(0, length.out = nrow(cuPar))
-  } #end if !is.null(enRouteMort)
+  } #end if is.null(enRouteMort)
   #adjust en route mortality variation for sensitivity analysis
   enRouteSig <- enRouteSig * simPar$adjustEnRouteSig
   if (is.null(cuPar$medMA)) {
