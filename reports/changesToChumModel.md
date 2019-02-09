@@ -512,3 +512,9 @@ Potential issues
 ### XXXXVIII) Add capacity for independent parallel chains (Feb. 1)
 -	Added `random = TRUE` argument to `recoverySim()` which disables the set seed function. As a result each simulation run begins on a random number, which allows for multiple identical scenarios to be run simultaneously.
 -	When comparing OMs or MPs this should always be set to FALSE (the default)
+
+
+### 49) Adjust upper and lower productivity treatments (Feb 8.)
+- Change highProd and lowProd defaults to + or - 35% of median value
+- Based on observed difference between average productivity and max/min estimates from Kalman filter productivity estimates
+  - Details in `salmon-sim/scripts/frKalmanAClear.R`

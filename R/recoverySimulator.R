@@ -67,7 +67,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   nameOM <- simPar$nameOM
   nameMP <- simPar$nameMP
   plotOrder <- simPar$plotOrder
-  prod <- simPar$prodRegime #what is current prodRegime; requires list of posterior estimates for sampling
+  prod <- "low"#simPar$prodRegime #what is current prodRegime; requires list of posterior estimates for sampling
   harvContRule <- simPar$harvContRule
   bm <- simPar$benchmark
   species <- simPar$species #species (sockeye, chum, pink, coho)
@@ -236,13 +236,15 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                      lowP = 0.05, stks = stkID)
     #following code could be pulled from here and added to getSRPars()
     if (prod == "low") {
-      srPars <- dum$pLow
+      srPars <- dum$pMed %>%
+        dplyr::mutate(alpha = alpha * 0.65) #dum$pLow
     }
     if (prod == "med" | prod == "skew" | prod == "skewT") {
       srPars <- dum$pMed
     }
     if (prod == "high") {
-      srPars <- dum$pHigh
+      srPars <- dum$pMed %>%
+        dplyr::mutate(alpha = alpha * 1.35)#dum$pHigh
     }
     if (prod == "decline") {
       srPars <- dum$pMed
@@ -256,13 +258,15 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       dum <- getSRPars(pars = larkPars, alphaOnly = TRUE, highP = 0.95, lowP = 0.05,
                        stks = stkID)
       if (prod == "low") {
-        srParsLark <- dum$pLow
+        srParsLark <- dum$pMed %>%
+          dplyr::mutate(alpha = alpha * 0.65) #dum$pLow
       }
       if (prod == "med" | prod == "skew" | prod == "skewT") {
         srParsLark <- dum$pMed
       }
       if (prod == "high") {
-        srParsLark <- dum$pHigh
+        srParsLark <- dum$pMed %>%
+          dplyr::mutate(alpha = alpha * 1.35)#dum$pHigh
       }
       if (prod == "decline") {
         srParsLark <- dum$pMed
