@@ -25,7 +25,7 @@
 # larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"), stringsAsFactors=F)
 # tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
 
-# simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorrNoMort.csv"),
+# simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorr.csv"),
 #                     stringsAsFactors = F)
 # cuCustomCorrMat <- read.csv(here("data/fraserDat/prodCorrMatrix.csv"), stringsAsFactors=F)
 # erCorrMat <- read.csv(here("data/fraserDat/erMortCorrMatrix.csv"), stringsAsFactors=F,
@@ -43,9 +43,9 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 10
-# simPar <- simParF[7,]
+# simPar <- simParF[28,]
 # makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
-
+# random <- FALSE
 
 recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                         variableCU=FALSE, makeSubDirs=TRUE, ricPars,
@@ -67,7 +67,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   nameOM <- simPar$nameOM
   nameMP <- simPar$nameMP
   plotOrder <- simPar$plotOrder
-  prod <- "low"#simPar$prodRegime #what is current prodRegime; requires list of posterior estimates for sampling
+  prod <- simPar$prodRegime #what is current prodRegime; requires list of posterior estimates for sampling
   harvContRule <- simPar$harvContRule
   bm <- simPar$benchmark
   species <- simPar$species #species (sockeye, chum, pink, coho)
@@ -239,7 +239,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       srPars <- dum$pMed %>%
         dplyr::mutate(alpha = alpha * 0.65) #dum$pLow
     }
-    if (prod == "med" | prod == "skew" | prod == "skewT") {
+    if (prod == "med" | prod == "studT"| prod == "skew" | prod == "skewT") {
       srPars <- dum$pMed
     }
     if (prod == "high") {
@@ -255,13 +255,13 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     ricB <- srPars[["beta0"]]
     ricSig <- srPars[["sigma"]]
     if (is.null(larkPars) == FALSE) {
-      dum <- getSRPars(pars = larkPars, alphaOnly = TRUE, highP = 0.95, lowP = 0.05,
-                       stks = stkID)
+      dum <- getSRPars(pars = larkPars, alphaOnly = TRUE, highP = 0.95,
+                       lowP = 0.05, stks = stkID)
       if (prod == "low") {
         srParsLark <- dum$pMed %>%
           dplyr::mutate(alpha = alpha * 0.65) #dum$pLow
       }
-      if (prod == "med" | prod == "skew" | prod == "skewT") {
+      if (prod == "med" | prod == "studT"|  prod == "skew" | prod == "skewT") {
         srParsLark <- dum$pMed
       }
       if (prod == "high") {
@@ -1417,6 +1417,11 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         #draw process variance from skewed T distribution
         errorCU[y, ] <- sn::rmst(n = 1, xi = rep(0, nCU),
                                  alpha = rep(log(0.65), nCU), nu = 2,
+                                 Omega = covMat)
+      } else if (prod == "studT") {
+        #draw process variance from student T distribution
+        errorCU[y, ] <- sn::rmst(n = 1, xi = rep(0, nCU),
+                                 alpha = rep(0, nCU), nu = 2,
                                  Omega = covMat)
       } else { #otherwise draw from normal
         errorCU[y, ] <- mvtnorm::rmvnorm(n = 1, mean = rep(0, nCU),
