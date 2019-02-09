@@ -1,0 +1,1538 @@
+# here <- here::here
+# simParF <- read.csv(here("data", "manProcScenarios",
+#                          "fraserMPInputs_varyMixPpnHCRs_baseAnalysis.csv"),
+#                     stringsAsFactors = F)
+# cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
+# srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
+# catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors=F)
+# ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors=F)
+# larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"), stringsAsFactors=F)
+# tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
+
+## Misc. objects to run single trial w/ "reference" OM
+uniqueProd <- TRUE
+variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
+dirName <- "TEST"
+nTrials <- 10
+simPar <- simParF[35,]
+makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
+random <- FALSE
+
+
+
+
+codeCheck <- matrix(NA, nrow = nYears, ncol = 8)
+
+recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
+                        variableCU=FALSE, makeSubDirs=TRUE, ricPars,
+                        larkPars=NULL, tamFRP=NULL, cuCustomCorrMat=NULL,
+                        erCorrMat=NULL, dirName, nTrials=100, uniqueProd=TRUE,
+                        random=FALSE) {
+  # If random = TRUE then each simulation will start at a different point
+  # i.e. should ALWAYS be FALSE except for convenience when running independent
+  # chains to test convergence
+  if (random == FALSE) {
+    set.seed(123)
+  }
+
+  # Silence warnings present in R 3.5.1
+  options(warnPartialMatchArgs = FALSE)
+  #_______________________________________________________________________
+  ## Set up input arguments
+  # Simulation parameters (biological, observation, and management)
+  nameOM <- simPar$nameOM
+  nameMP <- simPar$nameMP
+  plotOrder <- simPar$plotOrder
+  prod <- simPar$prodRegime #what is current prodRegime; requires list of posterior estimates for sampling
+  harvContRule <- simPar$harvContRule
+  bm <- simPar$benchmark
+  species <- simPar$species #species (sockeye, chum, pink, coho)
+  simYears <- simPar$simYears #total length of simulation period
+  nTrials <- nTrials #number of trials to simulate
+  canER <- simPar$canER #baseline exploitation rate divided among mixed and single CU fisheries
+  ppnMix <- simPar$propMixHigh #ppn of Canadian harvest allocated to mixed stock fisheries when abundance is high (default)
+  constrainMix <- ifelse(is.null(simPar$constrain), TRUE, simPar$constrain) #if TRUE and HCR == TAM, then mixed stock fisheries are constrained
+  singleHCR <- ifelse(is.null(simPar$singleHCR), FALSE, simPar$singleHCR) #if TRUE single stock TAC is only harvested when BMs met
+  moveTAC <- ifelse(is.null(simPar$moveTAC), FALSE, simPar$moveTAC) #if TRUE single stock TAC for low abundance CUs is re-allocated
+  rho <- simPar$rho #autocorrelation coefficient in recruitment residuals
+  correlCU <- simPar$correlCU #correlation among CUs in recruitment deviations
+  adjSig <- simPar$adjustSig # used to scale CU specific sigma up or down
+  tauCatch <- simPar$tauCatch # CU-specific catch assignment error for observation model
+  obsSig <- simPar$obsSig #estimated spawner abundance error
+  mixOUSig <- simPar$mixOUSig #mixed fisheries outcome uncertainty error (same for canadian and US fisheries)
+  singOUSig <- simPar$singOUSig #single fisheries outcome uncertainty error; assumed to be same across CUs but could be varied
+  obsMixCatchSig <- simPar$obsMixCatchSig #estimated catch error in mixed-CU fisheries (same for canadian and US fisheries)
+  obsSingCatchSig <- simPar$obsSingCatchSig #estimated catch error in single CU fisheries
+  ageErr <- simPar$obsAgeErr #error assigning observed recruits to a brood year
+  lowCatchThresh <- simPar$lowCatchThresh #area specific-BM representing minimum catch levels
+  highCatchThresh <- simPar$highCatchThresh
+  extinctThresh <- simPar$extinctThresh #minimum number of spawners before set to 0
+  preFMigMort <- ifelse(is.null(simPar$preFMigMort), 1,
+                        as.numeric(simPar$preFMigMort)) #proportion of en route mortality occurring before single stock fisheries
+
+  ## CU-specific parameters
+  cuPar$stkName <- abbreviate(cuPar$stkName, minlength = 4)
+  if (species == "chum") {
+    larkPars <- NULL
+  }
+  cuPar <- with(cuPar, cuPar[order(as.numeric(stk)), ]) #temporary subset of CUs to examine
+  cuNameOM <- cuPar$nameOM
+  cuNameMP <- cuPar$nameMP
+  nCU <- nrow(cuPar) #number of CUs in analysis
+  stkName <- cuPar$stkName
+  stkID <- cuPar$stk
+  manUnit <- cuPar$manUnit #aggregate of CUs managed coherently
+  muName <- unique(manUnit)
+  nMU <- length(muName)
+  model <- cuPar$model #stock recruit model type (larkin, ricker)
+  domCycle <- cuPar$domCycle #which cycle line is dominant (for Larkin stocks only)
+  if (is.numeric(simPar$usER) == TRUE) {
+    amER <- rep(simPar$usER, length.out = nCU)
+  } else {
+    amER <- cuPar$usER #American exploitation rate shared
+  }
+  #minimum exploitation rate applied with TAM rule even at low abundance
+  minER <- cuPar$minER
+  if (simPar$enRouteMort == TRUE) {
+    # ER mort rate (i.e. between marine and term. fisheries);
+    # taken from in-river difference between estimates (post-2000)
+    enRouteMR <- cuPar$meanDBE
+    enRouteSig <- cuPar$sdDBE
+  }
+  if (is.null(simPar$enRouteMort) | simPar$enRouteMort == FALSE) {
+    enRouteMR <- rep(0, length.out = nrow(cuPar))
+    enRouteSig <- rep(0, length.out = nrow(cuPar))
+  } #end if is.null(enRouteMort)
+  #adjust en route mortality variation for sensitivity analysis
+  enRouteSig <- enRouteSig * simPar$adjustEnRouteSig
+  if (is.null(cuPar$medMA)) {
+    manAdjustment <- rep(0, length.out = nrow(cuPar))
+  } else {
+    #management adjustment to increase escapement goal based on median MU-level
+    #observations of pDBE since 2000
+    manAdjustment <- cuPar$medMA
+  }
+  forecastMean <- cuPar$meanForecast
+  forecastSig <- cuPar$sdForecast * simPar$adjustForecast
+  ageStruc <- matrix(c(cuPar$meanRec2, cuPar$meanRec3, cuPar$meanRec4, cuPar$meanRec5, cuPar$meanRec6), nrow=nCU, ncol=5) #mean proportion of each age class in returns
+  nAges <- ncol(ageStruc) #total number of ages at return in ageStruc matrix (does not mean that modeled populations actually contain 4 ages at maturity)
+  tauAge <- cuPar$tauCycAge * simPar$adjustAge #CU-specific variation in age-at-maturity, adjusted by scenario
+  medAbundance <- cbind(cuPar$medianRec, cuPar$lowQRec, cuPar$highQRec) #matrix of long term abundances (median, lower and upper quantile)
+  recCap <- 5 * cuPar$highQRec #default recruitment cap; if TS available will use 3x max obs (in following loop)
+
+  ## Stock-recruitment data
+  if (exists("srDat")) { #transform rec data if available
+    if (exists("catchDat")) { #add catch data if available
+      #catchDat comes first so that R can be pulled regardless of DF width
+      recDat <- Reduce(function(x, y) merge(x, y, by = c("stk", "yr")),
+                       list(catchDat, srDat))
+    } else{
+      recDat <- srDat
+    }
+    #remove stocks from SR dataset that aren't in CU parameter inputs
+    recDat <- recDat %>%
+      dplyr::filter(stk %in% cuPar$stk) %>%
+      dplyr::rowwise() %>%
+      dplyr::mutate(totalRec = sum(rec2, rec3, rec4, rec5, rec6))
+    if (length(unique(recDat$stk)) != length(unique(cuPar$stk))) {
+      stop("SR input dataset does not match parameter inputs")
+    }
+    # trim SR data so that empty rows are excluded; otherwise gaps may be
+    # retained when catch data is more up to date
+    recDat <- recDat[!is.na(recDat$totalRec), ]
+    maxYears <- recDat %>%
+      dplyr::group_by(stk) %>%
+      dplyr::summarise(maxYr = max(yr))
+    # crop any stks with time series that end at a late year
+    commonMaxYr <- min(maxYears$maxYr)
+    recDat <- recDat %>%
+      dplyr::filter(!yr > commonMaxYr)
+    recDat <- with(recDat, recDat[order(stk, yr),])
+    summRec <- recDat %>%
+      dplyr::group_by(stk) %>%
+      dplyr::summarise(tsLength = length(ets),
+                       maxRec = max(totalRec, na.rm = TRUE))
+    nPrime <- max(summRec[, "tsLength"])
+    recCap <- 3 * summRec$maxRec
+    dumFull <- vector("list", nCU)
+    #list of stk numbers to pass to following for loop
+    stkList <- unique(cuPar$stk)
+    #add NAs to front end of shorter TS to ensure all matrices are same length
+    for (k in 1:nCU) {
+      dum <- recDat[recDat$stk == stkList[k], ]
+      if (nrow(dum) < nPrime) {
+        empties <- nPrime - nrow(dum)
+        emptyMat <- matrix(NA, nrow = empties, ncol = ncol(recDat))
+        colnames(emptyMat) <- colnames(dum)
+        dum <- rbind(emptyMat, dum)
+      }
+      if(!is.null(dum["frfnCatch"])) {
+        dum <- dum %>%
+          dplyr::rename(singCatch = frfnCatch)
+      }
+      if(!is.null(dum["marCatch"])) {
+        dum <- dum %>%
+          dplyr::rename(mixCatch = marCatch)
+      }
+      #convert from tbbl to dataframe to silence unknown column warnings
+      dumFull[[k]] <- as.data.frame(dum)
+    }
+    recDat <- dumFull
+    #calculate firstYr here because catch and rec data may differ in length
+    firstYr <- min(sapply(recDat, function(x) min(x$yr, na.rm=TRUE)))
+  }
+
+  ## Stock-recruitment parameters
+  ricA <- cuPar$alpha
+  ricB <- cuPar$beta0
+  ricSig <- cuPar$sigma
+  if (species == "sockeye") {
+    larA <- cuPar$larkAlpha
+    larB <- cuPar$larkBeta0
+    larB1 <- cuPar$larkBeta1
+    larB2 <- cuPar$larkBeta2
+    larB3 <- cuPar$larkBeta3
+    larSig <- cuPar$larkSigma
+  }
+  #coerce all stocks to have the same alpha parameter (regardless of model
+  # structure), others will vary
+  if (uniqueProd == FALSE) {
+    ricA <- rep(mean(cuPar$alpha), length.out = nCU)
+    larA <- rep(mean(cuPar$alpha), length.out = nCU)
+    ricSig <- rep(mean(cuPar$sigma), length.out = nCU)
+    larSig <- rep(mean(cuPar$sigma), length.out = nCU)
+  }
+  if (prod != "med" & is.null(ricPars) == TRUE) {
+    stop("Full SR parameter dataset necessary to simulate alternative
+         productivity scenarios")
+  }
+  #change from median values if .csv of par dist is passed
+  if (is.null(ricPars) == FALSE) {
+    dum <- getSRPars(pars = ricPars, alphaOnly = TRUE, highP = 0.95,
+                     lowP = 0.05, stks = stkID)
+    #following code could be pulled from here and added to getSRPars()
+    if (prod == "low" | prod == "lowStudT") {
+      srPars <- dum$pMed %>%
+        dplyr::mutate(alpha = alpha * 0.65) #dum$pLow
+    }
+    if (prod == "med" | prod == "studT"| prod == "skew" | prod == "skewT") {
+      srPars <- dum$pMed
+    }
+    if (prod == "high") {
+      srPars <- dum$pMed %>%
+        dplyr::mutate(alpha = alpha * 1.35)#dum$pHigh
+    }
+    if (prod == "decline") {
+      srPars <- dum$pMed
+      #floor value to which A declines equals lower probabily
+      finalRicA <- as.numeric(dum$pLow[["alpha"]])
+    }
+    ricA <- srPars[["alpha"]]
+    ricB <- srPars[["beta0"]]
+    ricSig <- srPars[["sigma"]]
+    if (is.null(larkPars) == FALSE) {
+      dum <- getSRPars(pars = larkPars, alphaOnly = TRUE, highP = 0.95,
+                       lowP = 0.05, stks = stkID)
+      if (prod == "low" | prod == "lowStudT") {
+        srParsLark <- dum$pMed %>%
+          dplyr::mutate(alpha = alpha * 0.65) #dum$pLow
+      }
+      if (prod == "med" | prod == "studT" |  prod == "skew" | prod == "skewT") {
+        srParsLark <- dum$pMed
+      }
+      if (prod == "high") {
+        srParsLark <- dum$pMed %>%
+          dplyr::mutate(alpha = alpha * 1.35)#dum$pHigh
+      }
+      if (prod == "decline") {
+        srParsLark <- dum$pMed
+        #floor value to which A declines
+        finalLarA <- as.numeric(dum$pLow[["alpha"]])
+      }
+      larA <- (srParsLark[["alpha"]])
+      larB <- (srParsLark[["beta0"]])
+      larB1 <- (srParsLark[["beta1"]])
+      larB2 <- (srParsLark[["beta2"]])
+      larB3 <- (srParsLark[["beta3"]])
+      larSig <- (srParsLark[["sigma"]])
+    }
+  }
+  # adjust sigma (Ricker only) following Holt and Folkes 2015 if a
+  # transformation term is present and TRUE
+  if (is.null(simPar$arSigTransform) == FALSE & simPar$arSigTransform == TRUE) {
+    ricSig <- ricSig^2 * (1 - rho^2)
+  }
+  alpha <- ifelse(model == "ricker", ricA, larA)
+  beta <- ifelse(model == "ricker", ricB, larB)
+  #note that unlike other stochasticity parameters beta and sigma are adjusted
+  #with a scalar
+  if (is.null(simPar$adjustBeta) == FALSE) {
+    beta <- beta * simPar$adjustBeta
+  }
+  #adjust sigma up or down
+  sig <- ifelse(model == "ricker", ricSig, larSig) * adjSig
+  if (prod == "decline") {
+    startYr <- simPar$startYear
+    endYr <- simPar$endYear
+  }
+  if (prod == "decline") {
+    finalAlpha <- ifelse(model == "ricker", finalRicA, finalLarA)
+    trendAlpha <- abs(alpha - finalAlpha) / (startYr - endYr) #calculate rate of change in alpha
+  } else {
+    finalAlpha <- alpha #for stable trends use as placeholder for subsequent ifelse
+  }
+  residMatrix <- getResiduals(recDat, model) #pull residuals from observed data and save
+
+  # Add correlations in rec deviations
+  if (simPar$corrMat == TRUE) { #replace uniform correlation w/ custom matrix
+    if (nrow(cuCustomCorrMat) != nCU) {
+      stop("Custom correlation matrix does not match number of CUs")
+    }
+    correlCU <- as.matrix(cuCustomCorrMat)
+  }
+  #calculate correlations among CUs
+  sigMat <- matrix(as.numeric(sig), nrow = 1, ncol = nCU)
+  #calculate shared variance and correct based on correlation
+  covMat <- (t(sigMat) %*% sigMat) * correlCU
+  diag(covMat) <- as.numeric(sig^2) #add variance
+
+  # Add correlations in en route mortality as above (CHANGE TO FUNCTION)
+  # if (simPar$corrMort == TRUE) {
+  #   mortSigMat <- matrix(as.numeric(enRouteSig), nrow = 1, ncol = nCU)
+  #   covMat <- t(mortSigMat) %*% mortSigMat
+  #   covMortMat <- as.matrix(erCorrMat) * correlMort
+  #   diag(covMortMat) <- as.numeric(enRouteSig^2)
+  # }
+
+  if (species == "pink") { ### PINK FUNCTIONALITY NEEDS TO BE TESTED
+    gen <- 2
+    ageStruc <- c(1, 0, 0, 0)
+  } else {
+    if (species == "sockeye") {
+      gen <- 4
+    } else { #chum
+      gen <- 5
+    }
+  }
+
+  nYears <- nPrime + simYears #total model run length = TS priming period duration + specified simulation length
+  ppn2 <- ageStruc[, 1] #proportion at age parameters
+  ppn3 <- ageStruc[, 2]
+  ppn4 <- ageStruc[, 3]
+  ppn5 <- ageStruc[, 4]
+  ppn6 <- ageStruc[, 5]
+  cycle <- genCycle(min(recDat[[1]]$yr), nYears) #vector used to orient Larkin BM estimates and TAM rules
+  drawTrial <- round(runif(1, min = 0.5, max = nTrials)) #randomly selects trial to draw and plot
+  obsErrDat <- data.frame(mu = manUnit, #df used to store MU-specific observation errors; can't use matrix because mix of numeric and characters; updated annually
+                          cu = stkName,
+                          spwn = NA, #spawner obs error
+                          mixC = NA, #mixed fishery obs catch errror
+                          singC = NA, #single CU fishery obs catch error
+                          forecast = NA #forecasted recruitment error
+  )
+  earlyPeriod <- (nPrime + gen + 1):(nPrime + gen + 4) #defines years representing 4th generation after sim starts; used for some PMs
+  endEarly <- max(earlyPeriod)
+
+  #_____________________________________________________________________
+  ## Create directories (based on all scenarios in a sim run)
+  dir.create(paste(here("outputs/diagnostics"), dirName, sep = "/"),
+             recursive = TRUE, showWarnings = FALSE)
+  dir.create(paste(here("outputs/simData"), dirName, sep = "/"),
+             recursive = TRUE, showWarnings = FALSE)
+
+  ## Create subdirectories if multiple OMs and MPs are being run
+  if (makeSubDirs == TRUE) {
+    subDirName <- simPar$nameOM
+    dir.create(paste(here("outputs/diagnostics"), dirName, subDirName,
+                     sep = "/"),
+               recursive = TRUE, showWarnings = FALSE)
+    dir.create(paste(here("outputs/simData"), dirName, subDirName,
+                     sep = "/"),
+               recursive = TRUE, showWarnings = FALSE)
+  }
+  #use this to generate figs/data in subsequent calls
+  dirPath <- ifelse(makeSubDirs == TRUE,
+                    paste(dirName, subDirName, sep = "/"),
+                    dirName)
+
+  #_____________________________________________________________________
+  ## Specify key variable used for outputs
+  keyVar <- switch(simPar$keyVar,
+                   "prodRegime" = prod,
+                   "synch" = correlCU,
+                   "expRate" = ifelse(harvContRule == "TAM", harvContRule,
+                                      canER),
+                   "ppnMix" = ppnMix,
+                   "sigma" = adjSig,
+                   "endYear" = endYr,
+                   "adjustAge" = simPar$adjustAge,
+                   "mixOUSig" = mixOUSig,
+                   "adjustForecast" = simPar$adjustForecast,
+                   "adjustEnRoute" = simPar$adjustEnRoute)
+  if (is.null(keyVar)) {
+    warning("Key variable misspecified; necessary for plotting")
+  }
+
+
+  #_______________________________________________________________________
+  ## Set-up empty vectors and matrices for ALL trials
+  #Population dynamics
+  sEqVar <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  #Harvest and observation
+  expFactor <- rep(1, length.out = nTrials)
+  #Management and performance
+  sAg <- matrix(NA, nrow = nYears, ncol = nTrials)
+  obsSAg <- matrix(NA, nrow = nYears, ncol = nTrials)
+  recRYAg <- matrix(NA, nrow = nYears, ncol = nTrials)
+  obsRecRYAg <- matrix(NA, nrow = nYears, ncol = nTrials)
+  recBYAg <- matrix(NA, nrow = nYears, ncol = nTrials)
+  obsRecBYAg <- matrix(NA, nrow = nYears, ncol = nTrials)
+  catchAg <- matrix(NA, nrow = nYears, ncol = nTrials)
+  amCatchAg <- matrix(NA, nrow = nYears, ncol = nTrials)
+  mixCatchAg <- matrix(NA, nrow = nYears, ncol = nTrials) #sum of true Canadian mixed-CU catches (excludes CU-specific)
+  obsCatchAg <- matrix(NA, nrow = nYears, ncol = nTrials)
+  estS25thBY <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  estS75thBY <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  estS25th <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  estS50th <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  estS75th <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  s25th <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  s50th <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  s75th <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  sMSY <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  sGen <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  estRicA <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  estRicB <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  estYi <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  estYi2 <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  estSlope <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  estSMSY <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  estSGen <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  lowerAgBM <- matrix(0, nrow = nYears, ncol = nTrials)
+  upperAgBM <- matrix(0, nrow = nYears, ncol = nTrials)
+  lowerAgObsBM <- matrix(0, nrow = nYears, ncol = nTrials)
+  upperAgObsBM <- matrix(0, nrow = nYears, ncol = nTrials)
+  catchMetric <- matrix(0, nrow = nYears, ncol = nTrials)
+  lowCatchAgBM <- matrix(0, nrow = nYears, ncol = nTrials)
+  highCatchAgBM <- matrix(0, nrow = nYears, ncol = nTrials)
+  ppnUpperBM <- matrix(0, nrow = nYears, ncol = nTrials)
+  ppnLowerBM <- matrix(0, nrow = nYears, ncol = nTrials)
+  ppnCUsUpperBM <- matrix(NA, nrow = nYears, ncol = nTrials) #proportion of CUs within a year above BM
+  ppnCUsLowerBM <- matrix(NA, nrow = nYears, ncol = nTrials)
+  ppnCUsUpperObsBM <- matrix(NA, nrow = nYears, ncol = nTrials)
+  ppnCUsLowerObsBM <- matrix(NA, nrow = nYears, ncol = nTrials)
+  ppnCUsExtinct <- matrix(NA, nrow = nYears, ncol = nTrials)
+  ppnConstrained <- matrix(NA, nrow = nYears, ncol = nTrials)
+  ppnCUsOpenSingle <- matrix(NA, nrow = nYears, ncol = nTrials)
+  meanSingExpRate <- matrix(NA, nrow = nYears, ncol = nTrials)
+  sGeoMean <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnSLow <- matrix(0, nrow = nTrials, ncol = nCU)
+  ppnYrsCOS <- matrix(0, nrow = nTrials, ncol = nCU) #ppn of years where declining ppns are >30%
+  ppnYrsWSP <- matrix(0, nrow = nTrials, ncol = nCU) #ppn of years where declining ppns are >25%
+  ppnChangeMat <- array(NA, dim = c(nYears, nCU, nTrials))
+  openFishery <- matrix(0, nrow = nYears, ncol = nMU) #should the fishery open based on species specific ref pts
+  lowRefPtMU <- matrix(NA, nrow = nYears, ncol = nMU) #ref pts that determine whether fishery should be open
+  highRefPtMU <- matrix(NA, nrow = nYears, ncol = nMU)
+  overlapConstraint <- matrix(0, nrow = nYears, ncol = nCU) #vector representing whether MUs were constrained to 75% of TAC in a given year
+  ppnOpenFishery <- matrix(NA, nrow = nYears, ncol = nTrials) #ppn of fisheries open
+  targetExpRateAg <- matrix(NA, nrow = nYears, ncol = nTrials)
+  expRateAg <- matrix(NA, nrow = nYears, ncol = nTrials)
+  obsExpRateAg <- matrix(NA, nrow = nYears, ncol = nTrials)
+  spwnrArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  recArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  logRSArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  recDevArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  migMortArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  singCatchArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  singTACArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  totalCatchArray <- array(NA, dim = c(nYears, nCU, nTrials))
+
+  #Plotting matrices and vectors
+  hcr <- matrix(NA, nrow = nTrials, ncol = nCU)
+  targetER <- matrix(NA, nrow = nTrials, ncol = nCU)
+  medS <- matrix(NA, nrow = nTrials, ncol = nCU)
+  varS <- matrix(NA, nrow = nTrials, ncol = nCU)
+  medObsS <- matrix(NA, nrow = nTrials, ncol = nCU)
+  varObsS <- matrix(NA, nrow = nTrials, ncol = nCU)
+  medRecBY <- matrix(NA, nrow = nTrials, ncol = nCU)
+  varRecBY <- matrix(NA, nrow = nTrials, ncol = nCU)
+  medRecRY <- matrix(NA, nrow = nTrials, ncol = nCU)
+  varRecRY <- matrix(NA, nrow = nTrials, ncol = nCU)
+  medObsRecRY <- matrix(NA, nrow = nTrials, ncol = nCU)
+  varObsRecRY <- matrix(NA, nrow = nTrials, ncol = nCU)
+  medObsRecBY <- matrix(NA, nrow = nTrials, ncol = nCU)
+  varObsRecBY <- matrix(NA, nrow = nTrials, ncol = nCU)
+  medAlpha <- matrix(NA, nrow = nTrials, ncol = nCU)
+  varAlpha <- matrix(NA, nrow = nTrials, ncol = nCU)
+  medEstAlpha <- matrix(NA, nrow = nTrials, ncol = nCU)
+  varEstAlpha <- matrix(NA, nrow = nTrials, ncol = nCU)
+  medBeta <- matrix(NA, nrow = nTrials, ncol = nCU)
+  medTotalCatchEarly <- matrix(NA, nrow = nTrials, ncol = nCU)
+  medTotalCatch <- matrix(NA, nrow = nTrials, ncol = nCU)
+  varTotalCatch <- matrix(NA, nrow = nTrials, ncol = nCU)
+  stblTotalCatch <- matrix(NA, nrow = nTrials, ncol = nCU)
+  stblObsTotalCatch <- matrix(NA, nrow = nTrials, ncol = nCU)
+  medObsTotalCatch <- matrix(NA, nrow = nTrials, ncol = nCU)
+  varObsTotalCatch <- matrix(NA, nrow = nTrials, ncol = nCU)
+  medTotalER <- matrix(NA, nrow = nTrials, ncol = nCU)
+  medTotalObsER <- matrix(NA, nrow = nTrials, ncol = nCU)
+  medTAMSingER <- matrix(NA, nrow = nTrials, ncol = nCU)
+  medForgoneCatch <- matrix(NA, nrow = nTrials, ncol = nCU) #diff between constrained and unconstrained TACs
+  ppnYrsUpperBM <- matrix(NA, nrow = nTrials, ncol = nCU) #proportion of years where a CU above BM
+  ppnYrsLowerBM <- matrix(NA, nrow = nTrials, ncol = nCU)
+  ppnYrsUpperObsBM <- matrix(NA, nrow = nTrials, ncol = nCU)
+  ppnYrsLowerObsBM <- matrix(NA, nrow = nTrials, ncol = nCU)
+  counterEarlyUpperBM <- matrix(0, nrow = nTrials, ncol = nCU)
+  counterEarlyLowerBM <- matrix(0, nrow = nTrials, ncol = nCU)
+  counterLateUpperBM <- matrix(0, nrow = nTrials, ncol = nCU)
+  counterLateLowerBM <- matrix(0, nrow = nTrials, ncol = nCU)
+  counterLateUpperObsBM <- matrix(0, nrow = nTrials, ncol = nCU)
+  counterLateLowerObsBM <- matrix(0, nrow = nTrials, ncol = nCU)
+  medEarlyS <- matrix(NA, nrow = nTrials, ncol = nCU)
+  medEarlyRecRY <- matrix(NA, nrow = nTrials, ncol = nCU)
+  medEarlyTotalCatch <- matrix(NA, nrow = nTrials, ncol = nCU)
+
+  #_______________________________________________________________________
+  ## Simulation model
+  # for (n in 1:nTrials) {
+
+  #_____________________________________________________________________
+  # Set up empty vectors and matrices for each MC trial
+  ## Population dynamics
+  S <- matrix(NA, nrow = nYears, ncol = nCU)
+  alphaMat <- matrix(NA, nrow = nYears, ncol = nCU)
+  alphaPrimeMat <- matrix(NA, nrow = nYears, ncol = nCU) # variable used to estimate sEq, sGen and sMsy when spawners generated w/ larkin
+  ppnAges <- array(NA, dim=c(nYears, nCU, nAges), dimnames=NULL)
+  ppnCatches <- matrix(NA, nrow = nYears, ncol = nCU)
+  recBY <- matrix(NA, nrow = nYears, ncol = nCU) #recruits by brood year
+  recRY <- matrix(NA, nrow = nYears, ncol = nCU) #recruits by return year
+  recRY2 <- matrix(NA, nrow = nYears, ncol = nCU)
+  recRY3 <- matrix(NA, nrow = nYears, ncol = nCU)
+  recRY4 <- matrix(NA, nrow = nYears, ncol = nCU)
+  recRY5 <- matrix(NA, nrow = nYears, ncol = nCU)
+  recRY6 <- matrix(NA, nrow = nYears, ncol = nCU)
+  logRS <- matrix(NA, nrow = nYears, ncol = nCU) #realized productivity (i.e. recruits/S)
+  extinct <- matrix(0, nrow = nYears, ncol = nCU)
+  extinctAg <- rep(0, nTrials)
+  errorCU <- matrix(NA, nrow = nYears, ncol = nCU)
+  migMortRate <- matrix(NA, nrow = nYears, ncol = nCU)
+  laggedError <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge2Ret5 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge2Ret4 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge2Ret3 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge2Ret2 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge2Ret1 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge3Ret5 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge3Ret4 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge3Ret3 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge3Ret2 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge3Ret1 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge4Ret5 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge4Ret4 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge4Ret3 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge4Ret2 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge4Ret1 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge5Ret5 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge5Ret4 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge5Ret3 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge5Ret2 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge5Ret1 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge6Ret5 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge6Ret4 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge6Ret3 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge6Ret2 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnAge6Ret1 <- matrix(NA, nrow = nYears, ncol = nCU)
+  ## Observation and harvest
+  obsS <- matrix(NA, nrow = nYears, ncol = nCU) #observed spawners
+  obsLogRS <- matrix(NA, nrow = nYears, ncol = nCU)
+  obsRecRY <- matrix(NA, nrow = nYears, ncol = nCU) #observed recruits by return year
+  obsRecBY <- matrix(NA, nrow = nYears, ncol = nCU) #observed recruits by brood year; used as a proxy for forecasts
+  obsRecBY_noAgeErr <- matrix(NA, nrow = nYears, ncol = nCU)
+  ppnObsSRet5 <- array(NA, dim=c(nYears, nCU, nAges), dimnames=NULL)
+  ppnObsSRet4 <- array(NA, dim=c(nYears, nCU, nAges), dimnames=NULL)
+  ppnObsSRet3 <- array(NA, dim=c(nYears, nCU, nAges), dimnames=NULL)
+  ppnObsSRet2 <- array(NA, dim=c(nYears, nCU, nAges), dimnames=NULL)
+  ppnObsSRet1 <- array(NA, dim=c(nYears, nCU, nAges), dimnames=NULL)
+  randAges <- matrix(NA, nrow=nYears, ncol=nAges)
+  amTAC <- matrix(NA, nrow = nYears, ncol = nCU)
+  mixTAC <- matrix(NA, nrow = nYears, ncol = nCU)
+  unconMixTAC <- matrix(NA, nrow = nYears, ncol = nCU)
+  singTAC <- matrix(NA, nrow = nYears, ncol = nCU)
+  canTAC <- matrix(NA, nrow = nYears, ncol = nCU)
+  totalTAC <- matrix(NA, nrow = nYears, ncol = nCU)
+  amCatch <- matrix(NA, nrow = nYears, ncol = nCU)
+  mixCatch <- matrix(NA, nrow = nYears, ncol = nCU)
+  migMort <- matrix(NA, nrow = nYears, ncol = nCU)
+  singCatch <- matrix(NA, nrow = nYears, ncol = nCU)
+  totalCatch <- matrix(NA, nrow = nYears, ncol = nCU)
+  forgoneCatch <- matrix(NA, nrow = nYears, ncol = nCU)
+  amExpRate <- matrix(NA, nrow = nYears, ncol = nCU)
+  mixExpRate <- matrix(NA, nrow = nYears, ncol = nCU)
+  singExpRate <- matrix(NA, nrow = nYears, ncol = nCU)
+  singCUStatus <- matrix(NA, nrow = nYears, ncol = nCU) #compared to BBs to determine whether singleTAC is taken (unless singleHCR = false)
+  obsAmCatch <- matrix(NA, nrow = nYears, ncol = nCU)
+  obsMixCatch <- matrix(NA, nrow = nYears, ncol = nCU)
+  obsMigMort <- matrix(NA, nrow = nYears, ncol = nCU)
+  obsSingCatch <- matrix(NA, nrow = nYears, ncol = nCU)
+  obsTotalCatch <- matrix(NA, nrow = nYears, ncol = nCU)
+  expRate <- matrix(NA, nrow = nYears, ncol = nCU)
+  obsExpRate <- matrix(NA, nrow = nYears, ncol = nCU)
+  extYears <- rep(nYears, nCU) #years extinct
+  extYearsAg <- nYears
+  cycleSGen <- matrix(NA, nrow = nYears, ncol = nCU) #for storing cycle line specific benchmarks in Larkin model
+  cycleSMSY <- matrix(NA, nrow = nYears, ncol = nCU)
+  upperBM <- matrix(0, nrow = nYears, ncol = nCU)
+  lowerBM <- matrix(0, nrow = nYears, ncol = nCU)
+  upperObsBM <- matrix(0, nrow = nYears, ncol = nCU)
+  lowerObsBM <- matrix(0, nrow = nYears, ncol = nCU)
+  counterSingleBMLow <- matrix(0, nrow = nYears, ncol = nCU) #should single stock TAC be fished given secondary HCR
+  counterSingleBMHigh <- matrix(0, nrow = nYears, ncol = nCU) #should single stock TAC be re-assigned given secondary HCR
+  counterUpperBM <- matrix(0, nrow = nYears, ncol = nCU)
+  counterLowerBM <- matrix(0, nrow = nYears, ncol = nCU)
+  counterUpperObsBM <- matrix(0, nrow = nYears, ncol = nCU)
+  counterLowerObsBM <- matrix(0, nrow = nYears, ncol = nCU)
+  # Management
+  foreRecRY <- matrix(NA, nrow = nYears, ncol = nCU)
+  recRYManU <- matrix(NA, nrow = nYears, ncol = nCU) #recruits by return year summed across MU (ncol = nCU)
+  foreRecRYManU <- matrix(NA, nrow = nYears, ncol = nCU)
+  lowRefPt <- matrix(NA, nrow = nYears, ncol = nCU)
+  highRefPt <- matrix(NA, nrow = nYears, ncol = nCU)
+  adjForeRec <-  matrix(NA, nrow = nYears, ncol = nCU)
+  targetTamER <- matrix(NA, nrow = nYears, ncol = nCU)
+  tamSingER <- matrix(NA, nrow = nYears, ncol = nCU)
+  foreRecErr <- matrix(NA, nrow = nYears, ncol = nCU)
+  # Fall-back matrices for diagnostics
+  fb1 <- matrix(0, nrow = nYears, ncol = nCU) # fall back matrix for when observed BMs can't be estimated because ricB value > 4*obsS
+  fb2 <- matrix(0, nrow = nYears, ncol = nCU) # fall back matrix for when true BMs can't be estimated because alpha prime is negative (only relevant for Larkin CUs)
+  fb3 <- matrix(0, nrow = nYears, ncol = nCU) # fall back matrix for when estimated lower BM > higher
+  fb4 <- matrix(0, nrow = nYears, ncol = nCU) # flicks on when allocation switches to single CU fishery
+  fb5 <- matrix(0, nrow = nYears, ncol = nCU) # fall back matrix for when true lower BM > higher
+  fb6 <- matrix(0, nrow = nYears, ncol = nCU) #fall back for when both BMs are NA
+
+
+  #_____________________________________________________________________
+  ### LOOP 1
+  #First loop includes only past data, used to represent both real and
+  #observed abundances to "prime" the simulation
+  for (y in 1:nPrime) {
+    ## Population model: store SR pars, spawner, and recruit abundances
+    alphaMat[y, ] <- alpha
+
+    for (k in 1:nCU) {
+      S[y, k] <- recDat[[k]]$ets[y]
+      #calculate total recruitment as sum of all age classes
+      recBY[y, k] <- sum(recDat[[k]][y, c("rec2", "rec3", "rec4", "rec5",
+                                          "rec6")])
+      #each age is a matrix, columns CUs, rows years
+      ppnAges[y, k, ] <- as.matrix(recDat[[k]][y, c("rec2", "rec3", "rec4",
+                                                    "rec5", "rec6")] /
+                                     recBY[y, k])
+      #if ppns can't be estimated due to TS gaps replace with mean values
+      for (j in 1:nAges) {
+        ppnAges[y, k, j] <- ifelse(is.na(ppnAges[y, k, j]),
+                                   ageStruc[k, j],
+                                   ppnAges[y, k, j])
+      }
+      if (exists("catchDat")) {
+        amCatch[y, k] <- ifelse(is.null(recDat[[k]]$amCatch[y]),
+                                0, #not available for Fraser
+                                recDat[[k]]$amCatch[y])
+        mixCatch[y, k] <- ifelse(is.null(recDat[[k]]$mixCatch[y]),
+                                 0, #not available for Fraser
+                                 recDat[[k]]$mixCatch[y])
+        singCatch[y, k] <- ifelse(is.null(recDat[[k]]$singCatch[y]),
+                                  0,
+                                  recDat[[k]]$singCatch[y])
+      } else {
+        amCatch[y , k] <- 0
+        mixCatch[y, k] <- 0
+        singCatch[y, k] <- 0
+      }
+      expRate[y, k] <- ifelse(exists("catchDat"), recDat[[k]]$totalER[y], 0)
+      logRS[y, k] <- log(recBY[y, k] / S[y, k])
+    }
+    totalCatch[y, ] <- amCatch[y, ] + mixCatch[y, ] + singCatch[y, ]
+
+    sAg[y, n] <- sum(S[y, ], na.rm = TRUE)
+    recBYAg[y, n] <- sum(recBY[y, ])
+    mixCatchAg[y, n] <- sum(mixCatch[y, ], na.rm = TRUE)
+    amCatchAg[y, n] <- sum(amCatch[y, ], na.rm = TRUE)
+    catchAg[y, n] <- sum(mixCatch[y, ], singCatch[y, ], amCatch[y, ],
+                         na.rm = TRUE)
+    # Aligned by return year
+    if (y > 6) {
+      recRY[y, ] <- recBY[y - 2, ] * ppnAges[y - 2, , 1] + recBY[y - 3, ] *
+        ppnAges[y - 3, , 2] +  recBY[y - 4, ] * ppnAges[y - 4, , 3] +
+        recBY[y - 5, ] * ppnAges[y - 5, , 4] + recBY[y - 6, ] *
+        ppnAges[y - 6, , 5]
+      recRY2[y, ] <- recBY[y - 2, ] * ppnAges[y - 2, , 1]
+      recRY3[y, ] <- recBY[y - 3, ] * ppnAges[y - 3, , 2]
+      recRY4[y, ] <- recBY[y - 4, ] * ppnAges[y - 4, , 3]
+      recRY5[y, ] <- recBY[y - 5, ] * ppnAges[y - 5, , 4]
+      recRY6[y, ] <- recBY[y - 6, ] * ppnAges[y - 6, , 5]
+    }
+    recRYAg[y, n] <- sum(recRY[y, ], na.rm = TRUE)
+
+    ## Management and assessment submodels: calculate BMs during last 2 gen
+    # necessary to estimate  to prime single CU fishery and Larkin BMs which
+    # depend on dom cycle line
+    # (note that DL CUs will still be at 0, realistic for precautionary app)
+    if (y > (nPrime - 2 * gen)) {
+      for (k in 1:nCU) {
+        # calculate percentile BMs
+        temp <- S[1:y, k]
+        sNoNA <- temp[!is.na(temp)]
+        n25th <- round(length(sNoNA) * 0.25, 0)
+        n50th <- round(length(sNoNA) * 0.50, 0)
+        n75th <- round(length(sNoNA) * 0.75, 0)
+        s25th[y, k, n] <- sort(sNoNA)[n25th]
+        s50th[y, k, n] <- sort(sNoNA)[n50th]
+        s75th[y, k, n] <- sort(sNoNA)[n75th]
+        #calculate SR BMs
+        if (model[k] == "ricker") {
+          sEqVar[y, k, n] <- alphaMat[y, k] / beta[k]
+          sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - alphaMat[y, k]))) /
+            beta[k]
+          # if (is.na(log(sMSY[y, k, n]))) {
+          #   stop("Benchmark calculation is NA")
+          # }
+          sGen[y, k, n] <- as.numeric(sGenSolver(
+            theta = c(alphaMat[y, k], alphaMat[y, k] / sEqVar[y, k, n],
+                      ricSig[k]), sMSY = sMSY[y, k, n]
+          ))
+        }
+        if (model[k] == "larkin") {
+          #modified alpha used to estimate Larkin BMs
+          alphaPrimeMat[y, k] <- alphaMat[y, k] - (larB1[k] * S[y - 1, k]) -
+            (larB2[k] * S[y-2, k]) - (larB3[k] * S[y - 3,  k])
+          sEqVar[y, k, n] <- ifelse(alphaPrimeMat[y, k] > 0,
+                                    alphaPrimeMat[y, k] / beta[k],
+                                    NA)
+          cycleSMSY[y, k] <- ifelse(alphaPrimeMat[y, k] > 0,
+                                    ((1 - gsl::lambert_W0(exp(
+                                      1 - alphaPrimeMat[y, k]))) / beta[k]),
+                                    NA)
+          # if (is.na(log(cycleSMSY[y, k]))) {
+          #   stop("Benchmark calculation is NA")
+          # }
+          cycleSGen[y, k] <- ifelse(alphaPrimeMat[y, k] > 0,
+                                    as.numeric(sGenSolver(
+                                      theta = c(alphaPrimeMat[y, k],
+                                                alphaPrimeMat[y, k] /
+                                                  sEqVar[y, k, n],
+                                                larSig[k]),
+                                      sMSY = cycleSMSY[y, k])),
+                                    NA)
+          #calculate annual benchmarks as medians within cycle line
+          sMSY[y, k, n] <- median(cycleSMSY[seq(cycle[y], y, 4), k],
+                                  na.rm = TRUE)
+          sGen[y, k, n] <- median(cycleSGen[seq(cycle[y], y, 4), k],
+                                  na.rm = TRUE)
+        }
+        if (is.na(sGen[y, k, n] & sMSY[y, k, n]) == FALSE) {
+          if (sGen[y, k, n] > sMSY[y, k, n]) {
+            warning("True lower benchmark greater than upper benchmark; set
+                    to NA")
+            sMSY[y, k, n] <- NA
+            sGen[y, k, n] <- NA
+            fb5[y, k] <- 1
+          }
+        } else {
+          fb6[y, k] <- 1
+        }
+      }
+
+      for (k in 1:nCU) {
+        if (model[k] == "ricker" |
+            model[k] == "larkin" & cycle[y] == domCycle[k]) {
+          if (bm == "stockRecruit") {
+            upperBM[y, k] <- ifelse(!is.na(sMSY[y, k, n]),
+                                    0.8 * sMSY[y, k, n],
+                                    0)
+            lowerBM[y, k] <- ifelse(!is.na(sGen[y, k, n]),
+                                    sGen[y, k, n],
+                                    0)
+          }
+          if (bm == "percentile") {
+            upperBM[y, k] <- s75th[y, k, n]
+            lowerBM[y, k] <- s25th[y, k, n]
+          }
+        }
+        # only save status for Larkin stocks when on dom cycle line otherwise
+        # use previous status
+        if (model[k] == "larkin" & cycle[y] != domCycle[k]) {
+          upperBM[y, k] <- upperBM[y - 1, k]
+          lowerBM[y, k] <- lowerBM[y - 1, k]
+        }
+        if (!is.na(upperBM[y, k]) & S[y, k] > upperBM[y, k]) {
+          counterUpperBM[y, k] <- 1 #is spawner greater than upper BM
+        }
+        if (!is.na(lowerBM[y, k]) & S[y, k] > lowerBM[y, k]) {
+          counterLowerBM[y, k] <- 1 #is spawner greater than lower BM
+        }
+      }
+    }
+
+    ## Observation submodel: to prime simulation assume that observed are
+    #equal to true
+    obsS[y, ] <- S[y, ]
+    obsRecBY[y, ] <- recBY[y, ]
+    obsRecBYAg[y, n] <- sum(obsRecBY[y, ])
+    obsRecRY[y, ] <- recRY[y, ]
+    obsRecRYAg[y, n] <- recRYAg[y, n]
+    obsLogRS[y, ] <- log(obsRecBY[y, ] / obsS[y, ])
+    obsMixCatch[y, ] <- mixCatch[y, ]
+    obsSingCatch[y, ] <- singCatch[y, ]
+    obsCatchAg[y, n] <- catchAg[y, n]
+    obsExpRate[y, ] <- expRate[y, ]
+    obsSAg[y, n] <- sAg[y, n]
+    estSMSY[y, , n] <- sMSY[y, , n]
+    estSGen[y, , n] <- sGen[y, , n]
+    upperObsBM[y, ] <- upperBM[y, ] #obs = true during priming
+    lowerObsBM[y, ] <- lowerBM[y, ]
+    } # y in 1:nPrime
+
+
+  #__________________________________________________________________________
+  ### Loop 2
+
+  # Pull residuals from observed data to make time series coherent
+  errorCU[1:nPrime, ] <- residMatrix
+  # Only necessary to infill values in gappy time series
+  infillRecBY <- infill(recBY[1:nPrime, ])
+  infillS <- infill(S[1:nPrime, ])
+
+  for(y in (nPrime - 12):nPrime) {
+    for(k in 1:nCU) {
+      if (is.na(recBY[y, k])) {
+        recBY[y, k] <- infillRecBY[y, k]
+      }
+      if (is.na(S[y, k])) {
+        S[y, k] <- infillS[y, k]
+      }
+      logRS[y, k] <- log(recBY[y, k] / S[y, k])
+    } #end for k
+    if (y > (nPrime - 6)) {
+      recRY[y, ] <- recBY[y - 2, ] * ppnAges[y - 2, , 1] +
+        recBY[y - 3, ] * ppnAges[y - 3,  , 2] + recBY[y - 4, ] *
+        ppnAges[y - 4, , 3] + recBY[y - 5, ] * ppnAges[y - 5, , 4] +
+        recBY[y - 6, ] * ppnAges[y - 6, , 5]
+      recRY2[y, ] <- recBY[y - 2, ] * ppnAges[y - 2, , 1]
+      recRY3[y, ] <- recBY[y - 3, ] * ppnAges[y - 3, , 2]
+      recRY4[y, ] <- recBY[y - 4, ] * ppnAges[y - 4, , 3]
+      recRY5[y, ] <- recBY[y - 5, ] * ppnAges[y - 5, , 4]
+      recRY6[y, ] <- recBY[y - 6, ] * ppnAges[y - 6, , 5]
+    } #end if y > nPrime-6
+    obsS[y, ] <- S[y, ]
+    obsRecBY[y, ] <- recBY[y, ]
+    obsRecRY[y, ] <- recRY[y, ]
+    obsLogRS[y, ] <- log(obsRecBY[y, ] / obsS[y, ])
+  } #end loop 2
+
+  laggedError[y, ] <- log(recBY[y, ] / S[y, ]) -
+    (alphaMat[y, ] - beta * S[y, ]) + (sig^2 / 2) #prime AR error
+
+  #_____________________________________________________________________
+  ### LOOP 3
+  for (y in (nPrime + 1):nYears) {
+    ### Population dynamics submodel
+    alphaMat[y, ] <- ifelse(prod == "decline" & alphaMat[y - 1, ] >
+                              finalAlpha,
+                            alphaMat[y - 1, ] + trendAlpha,
+                            alphaMat[y - 1, ])
+    for (k in 1:nCU) {
+      if (model[k] == "ricker") {
+        sEqVar[y, k, n] <- alphaMat[y, k] / beta[k]
+        sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - alphaMat[y, k]))) /
+          beta[k]
+        sGen[y, k, n] <- as.numeric(sGenSolver(
+          theta = c(alphaMat[y, k],alphaMat[y, k] / sEqVar[y, k, n],
+                    ricSig[k]),
+          sMSY = sMSY[y, k, n]
+        ))
+      }
+      if (model[k] == "larkin") {
+        #modified alpha used to estimate Larkin BMs
+        alphaPrimeMat[y, k] <- alphaMat[y, k] - (larB1[k] * S[y - 1, k]) -
+          (larB2[k] * S[y-2, k]) - (larB3[k] * S[y - 3, k])
+        sEqVar[y, k, n] <- ifelse(alphaPrimeMat[y, k] > 0,
+                                  alphaPrimeMat[y, k] / beta[k],
+                                  NA)
+        cycleSMSY[y, k] <- ifelse(alphaPrimeMat[y, k] > 0,
+                                  (1 - gsl::lambert_W0(exp(
+                                    1 - alphaPrimeMat[y, k]))) / beta[k],
+                                  NA)
+        cycleSGen[y, k] <- ifelse(alphaPrimeMat[y, k] > 0,
+                                  as.numeric(sGenSolver(
+                                    theta = c(alphaPrimeMat[y, k],
+                                              alphaPrimeMat[y, k] /
+                                                sEqVar[y, k, n],
+                                              larSig[k]),
+                                    sMSY = cycleSMSY[y, k])),
+                                  NA)
+        #calculate annual benchmarks as medians within cycle line
+        sMSY[y, k, n] <- median(cycleSMSY[seq(cycle[y], y, 4), k],
+                                na.rm = TRUE)
+        sGen[y, k, n] <- median(cycleSGen[seq(cycle[y], y, 4), k],
+                                na.rm = TRUE)
+      }
+      if (is.na(sGen[y, k, n] & sMSY[y, k, n]) == FALSE) {
+        if (sGen[y, k, n] > sMSY[y, k, n]) {
+          warning("True lower benchmark greater than upper benchmark;
+                  set to NA")
+          sMSY[y, k, n] <- NA
+          sGen[y, k, n] <- NA
+        }
+      } else {
+        warning("Neither benchmark could be estimated")
+      }
+    }
+
+    recRY[y, ] <- recBY[y - 2, ] * ppnAges[y - 2, , 1] + recBY[y - 3, ] *
+      ppnAges[y - 3, , 2] + recBY[y - 4, ] * ppnAges[y - 4, , 3] +
+      recBY[y - 5, ] * ppnAges[y - 5, , 4] + recBY[y - 6,] * ppnAges[y-6, , 5]
+    recRY2[y, ] <- recBY[y - 2, ] * ppnAges[y - 2, , 1]
+    recRY3[y, ] <- recBY[y - 3, ] * ppnAges[y - 3, , 2]
+    recRY4[y, ] <- recBY[y - 4, ] * ppnAges[y - 4, , 3]
+    recRY5[y, ] <- recBY[y - 5, ] * ppnAges[y - 5, , 4]
+    recRY6[y, ] <- recBY[y - 6, ] * ppnAges[y - 6, , 5]
+    recRYAg[y, n] <- sum(recRY[y, ])
+
+    #________________________________________________________________________
+    ### Observation submodel 1 (previous years abundance)
+    #Calculate surveyRecBY from surveyRecRY, i.e. make giant brood table...
+    recRY[recRY == 0] <- 0.1 * extinctThresh #necessary to avoid NAs from 0/0
+
+    # e.g. 5 years ago, the ppn of age-2 returns in the R.RY
+    ppnAge2Ret5[y - 5, ] <- recRY2[y - 5, ]/recRY[y - 5, ]
+    ppnAge2Ret4[y - 4, ] <- recRY2[y - 4, ]/recRY[y - 4, ]
+    ppnAge2Ret3[y - 3, ] <- recRY2[y - 3, ]/recRY[y - 3, ]
+    ppnAge2Ret2[y - 2, ] <- recRY2[y - 2, ]/recRY[y - 2, ]
+    ppnAge2Ret1[y - 1, ] <- recRY2[y - 1, ]/recRY[y - 1, ]
+
+    ppnAge3Ret5[y - 5, ] <- recRY3[y - 5, ]/recRY[y - 5, ]
+    ppnAge3Ret4[y - 4, ] <- recRY3[y - 4, ]/recRY[y - 4, ]
+    ppnAge3Ret3[y - 3, ] <- recRY3[y - 3, ]/recRY[y - 3, ]
+    ppnAge3Ret2[y - 2, ] <- recRY3[y - 2, ]/recRY[y - 2, ]
+    ppnAge3Ret1[y - 1, ] <- recRY3[y - 1, ]/recRY[y - 1, ]
+
+    ppnAge4Ret5[y - 5, ] <- recRY4[y - 5, ]/recRY[y - 5, ]
+    ppnAge4Ret4[y - 4, ] <- recRY4[y - 4, ]/recRY[y - 4, ]
+    ppnAge4Ret3[y - 3, ] <- recRY4[y - 3, ]/recRY[y - 3, ]
+    ppnAge4Ret2[y - 2, ] <- recRY4[y - 2, ]/recRY[y - 2, ]
+    ppnAge4Ret1[y - 1, ] <- recRY4[y - 1, ]/recRY[y - 1, ]
+
+    ppnAge5Ret5[y - 5, ] <- recRY5[y - 5, ]/recRY[y - 5, ]
+    ppnAge5Ret4[y - 4, ] <- recRY5[y - 4, ]/recRY[y - 4, ]
+    ppnAge5Ret3[y - 3, ] <- recRY5[y - 3, ]/recRY[y - 3, ]
+    ppnAge5Ret2[y - 2, ] <- recRY5[y - 2, ]/recRY[y - 2, ]
+    ppnAge5Ret1[y - 1, ] <- recRY5[y - 1, ]/recRY[y - 1, ]
+
+    ppnAge6Ret5[y - 5, ] <- recRY6[y - 5, ]/recRY[y - 5, ]
+    ppnAge6Ret4[y - 4, ] <- recRY6[y - 4, ]/recRY[y - 4, ]
+    ppnAge6Ret3[y - 3, ] <- recRY6[y - 3, ]/recRY[y - 3, ]
+    ppnAge6Ret2[y - 2, ] <- recRY6[y - 2, ]/recRY[y - 2, ]
+    ppnAge6Ret1[y - 1, ] <- recRY6[y - 1, ]/recRY[y - 1, ]
+
+    recRY[recRY == (0.1 * extinctThresh)] <- 0
+
+    #differ by species due to typical age structure (e.g. no age 6s in sox)
+    if (species == "sockeye") {
+      obsLag <- 6
+      # Assume true ppns of recRY in this stock assessment step
+      obsRecBY_noAgeErr[y-obsLag, ] <- obsRecRY[y - 4, ] *
+        ppnAge2Ret4[y - 4, ] + obsRecRY[y - 3, ] * ppnAge3Ret3[y - 3, ] +
+        obsRecRY[y - 2, ] * ppnAge4Ret2[y - 2, ] + obsRecRY[y - 1, ] *
+        ppnAge5Ret1[y - 1, ]
+    }
+    if (species == "chum") {
+      obsLag <- 7
+      obsRecBY_noAgeErr[y-obsLag,] <- obsRecRY[y - 4, ] *
+        ppnAge3Ret4[y - 4, ] + obsRecRY[y - 3, ] * ppnAge4Ret3[y - 3, ] +
+        obsRecRY[y - 2, ] * ppnAge5Ret2[y - 2, ] + obsRecRY[y - 1, ] *
+        ppnAge6Ret1[y - 1, ]
+    }
+    #Observed return ppns (all ages in the last three years, which are needed
+    #for multivariate logistic error in obs ages)
+    randAges[y, ] <- runif(nAges, 0.001, 0.999)
+
+    for (k in 1:nCU) {
+      ppnSRet5 <- c(ppnAge2Ret5[y - 5, k], ppnAge3Ret5[y - 5, k],
+                    ppnAge4Ret5[y - 5, k], ppnAge5Ret5[y - 5, k],
+                    ppnAge6Ret5[y - 5, k])
+      #add ifelse statements to account for no randAges generated w/
+      #"TRUE" spawner/recruit data
+      ppnObsSRet5[y - 5, k, ] <- ifelse(rep(obsRecRY[y - 5,  k] ==
+                                              recRY[y - 5,  k],
+                                            length.out = nAges),
+                                        ppnSRet5,
+                                        ppnAgeErr(ppnSRet5, ageErr,
+                                                  randAges[y - 5, ]))
+      ppnSRet4 <- c(ppnAge2Ret4[y - 4, k], ppnAge3Ret4[y - 4, k],
+                    ppnAge4Ret4[y - 4, k], ppnAge5Ret4[y - 4, k],
+                    ppnAge6Ret4[y - 4, k])
+      ppnObsSRet4[y - 4, k, ] <- ifelse(rep(obsRecRY[y - 4, k] ==
+                                              recRY[y - 4, k],
+                                            length.out = nAges),
+                                        ppnSRet4,
+                                        ppnAgeErr(ppnSRet4, ageErr,
+                                                  randAges[y - 4, ]))
+      ppnSRet3 <- c(ppnAge2Ret3[y - 3, k], ppnAge3Ret3[y - 3, k],
+                    ppnAge4Ret3[y - 3, k], ppnAge5Ret3[y - 3, k],
+                    ppnAge6Ret3[y - 3, k])
+      ppnObsSRet3[y - 3, k, ] <- ifelse(rep(obsRecRY[y - 3, k] ==
+                                              recRY[y - 3, k],
+                                            length.out = nAges),
+                                        ppnSRet3,
+                                        ppnAgeErr(ppnSRet3, ageErr,
+                                                  randAges[y - 3, ]))
+      ppnSRet2 <- c(ppnAge2Ret2[y - 2, k], ppnAge3Ret2[y - 2, k],
+                    ppnAge4Ret2[y - 2, k], ppnAge5Ret2[y - 2, k],
+                    ppnAge6Ret2[y - 2, k])
+      ppnObsSRet2[y - 2, k, ] <- ifelse(rep(obsRecRY[y - 2, k] ==
+                                              recRY[y - 2, k],
+                                            length.out = nAges),
+                                        ppnSRet2,
+                                        ppnAgeErr(ppnSRet2, ageErr,
+                                                  randAges[y - 2, ]))
+      ppnSRet1 <- c(ppnAge2Ret1[y - 1, k], ppnAge3Ret1[y - 1, k],
+                    ppnAge4Ret1[y - 1, k], ppnAge5Ret1[y - 1, k],
+                    ppnAge6Ret1[y - 1, k])
+      ppnObsSRet1[y - 1, k, ] <- ifelse(rep(obsRecRY[y - 1,k] ==
+                                              recRY[y - 1, k],
+                                            length.out = nAges),
+                                        ppnSRet1,
+                                        ppnAgeErr(ppnSRet1, ageErr,
+                                                  randAges[y - 1, ]))
+    }
+    #Sum returns by age class ppn structured by yr to get recruits by brood yr
+    #(i.e. 3 years old 3 yrs prior, 4 yr olds 2 yrs prior)
+    #Only calc. obsRecBY after sim has been running for y=obsLag, otherwise
+    #overwriting true observations
+    if (y > (nPrime + obsLag)) {
+      for (k in 1:nCU) {
+        if (species == "sockeye") {
+          obsRecBY[y - obsLag, k] <- obsRecRY[y - 4, k] *
+            ppnObsSRet4[y - 4, k, 1] + obsRecRY[y - 3, k] *
+            ppnObsSRet3[y - 3, k, 2] + obsRecRY[y - 2, k] *
+            ppnObsSRet2[y - 2, k, 3] + obsRecRY[y - 1, k] *
+            ppnObsSRet1[y - 1, k, 4]
+        }
+        if (species == "chum") {
+          obsRecBY[y - obsLag, k] <- obsRecRY[y - 5, k] *
+            ppnObsSRet5[y - 5, k, 1] + obsRecRY[y - 4, k] *
+            ppnObsSRet4[y - 4, k, 2] + obsRecRY[y - 3, k] *
+            ppnObsSRet3[y - 3, k, 3] + obsRecRY[y - 2, k] *
+            ppnObsSRet2[y - 2, k, 4] + obsRecRY[y - 1, k] *
+            ppnObsSRet1[y - 1, k, 5]
+        }
+        if (obsS[y - obsLag, k] == 0) {
+          obsRecBY[y - obsLag, k] <- 0
+        }
+        if (is.na(obsRecBY[y - obsLag, k])) {
+          obsRecBY[y - obsLag, k] <- 0
+        }
+        obsLogRS[y - obsLag, k] <- ifelse(obsRecBY[y - obsLag, k] == 0,
+                                          0,
+                                          log(obsRecBY[y - obsLag, k] /
+                                                obsS[y - obsLag, k]))
+      }
+      obsRecBYAg[y - obsLag, n] <- sum(obsRecBY[y - obsLag, ])
+    }
+
+    codeCheck[y, 1] <- runif(1)
+
+    # if (codeCheck[y, 1] != codeCheckArray[y,1,1]) {
+    #   stop("number drift")
+    # }
+
+    #___________________________________________________________________
+    ### Management submodel (i.e. HCRs and catch)
+    #Calculate forecasts and benchmarks at CU level
+    #If no forecast available assume it's obsperfectly when setting ERs
+    if (is.null(forecastMean)) {
+      obsErrDat[["forecast"]] <-  1
+    } else {
+      obsErrDat[["forecast"]] <- exp(qnorm(runif(nCU, 0.0001, 0.9999),
+                                           log(forecastMean), forecastSig))
+    }
+    foreRecRY[y, ] <- obsErrDat[["forecast"]] * recRY[y, ]
+    foreRecRY[y, ] <- sapply(foreRecRY[y, ],
+                             function(x) ifelse(x < extinctThresh,
+                                                extinctThresh,
+                                                x))
+    foreRecErr[y, ] <- obsErrDat$forecast
+    for (k in 1:nCU) {
+      #identify CUs with same MU and sum their forecasts
+      MUs <- which(manUnit %in% manUnit[k])
+      recRYManU[y, k] <- sum(recRY[y, MUs])
+      foreRecRYManU[y, k] <- sum(foreRecRY[y, MUs])
+      if (harvContRule == "TAM") {
+        lowRefPt[y, k] <- tamFRP[tamFRP$cyc == cycle[y] &
+                                   tamFRP$manUnit == manUnit[k], "lowRefPt"]
+        highRefPt[y, k] <- tamFRP[tamFRP$cyc == cycle[y] &
+                                    tamFRP$manUnit == manUnit[k], "highRefPt"]
+      }
+    }
+
+    #is forecasted status consistent w/ fishery being open?
+    #NOTE THE OPENFISHERY PM SHOULD BE TWEAKED IF WE WANT TO INCLUDE IT IN
+    #PUBS
+    for (m in 1:nMU) {
+      CUs <- which(manUnit %in% muName[m])
+      if (species == "sockeye") {
+        lowRefPtMU[y, m] <- tamFRP[tamFRP$cyc == cycle[y] &
+                                     tamFRP$manUnit == muName[m], "lowRefPt"]
+        highRefPtMU[y, m] <- tamFRP[tamFRP$cyc == cycle[y] &
+                                      tamFRP$manUnit == muName[m],
+                                    "highRefPt"]
+        #if forecasted recruitment within an MU is over lower ref pt,
+        #assume fishery should be open
+        openFishery[y, m] <- ifelse(sum(foreRecRY[y, CUs]) > lowRefPtMU[y, m],
+                                    1, 0)
+      }
+      if (species == "chum") {
+        #target ER for Canadian fisheries in Nass MU
+        lowRefPtMU[y, m] <- 0.1
+        #if Can exploitation rate was below ref pt in prev yr, assume fishery
+        #should be open
+        openFishery[y, m] <- ifelse(sum((mixCatch[y - 1, CUs] +
+                                           singCatch[y - 1, CUs])) /
+                                      sum(recRY[y - 1, CUs]) <
+                                      lowRefPtMU[y, m],
+                                    1, 0)
+        if (y == nPrime + 1) {
+          #quick fix since catch data for last hist. year not in right format
+          openFishery[y, m] <- 1
+        }
+      }
+    }
+
+
+    ppnOpenFishery[y, n] <- mean(openFishery[y, ])
+    if (harvContRule == "TAM") {
+      #should fisheries be constrained
+      overlapConstraint[y, ] <- constrain(recRYManU[y, ], highRefPt[y, ],
+                                          manAdjustment,
+                                          manUnit)$muConstrained
+    }
+
+    #Calculate catches w/ error; will be redrawn each year to add unique error
+    migMortErr <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0, enRouteSig))
+
+    #add correlated ER mortality (commented out due to weak impacts on PMs)
+    # migMortErr <- if (simPar$corrMort == TRUE) {
+    #   exp(rmvnorm(n = 1, mean = rep(0, nCU), sigma = covMortMat))
+    # } else {
+    #   exp(qnorm(runif(nCU, 0.0001, 0.9999), 0, enRouteSig))
+    # }
+
+    # convert ppnMix to numeric = 1 so TAC can be calcd
+    ppnMixVec <- ifelse(ppnMix == "flex",
+                        rep(1, length.out = nCU),
+                        rep(as.numeric(ppnMix), length.out = nCU))
+    #replace forecasted recruitment with true recruitment (by MU)
+    tacs <- calcTAC(rec = recRYManU[y, ], canER = canER,
+                    harvContRule = harvContRule, amER = amER,
+                    ppnMixVec = ppnMixVec,
+                    species = species, manAdjustment = manAdjustment,
+                    lowFRP = lowRefPt[y, ], highFRP = highRefPt[y, ],
+                    minER = minER, maxER = 0.6,
+                    overlapConstraint = overlapConstraint[y, ],
+                    constrainMix = constrainMix)
+    truePpn <- recRY[y, ] / recRYManU[y, ]
+    forecastPpn <- foreRecRY[y, ] / foreRecRYManU[y, ]
+    #Adjust TAC by proportions so that CU-specific harvest rates can be calc;
+    #Adjust mixed fishery TAC by true ppns because these are not influenced by
+    #management, single TAC by forecasted ppns
+    # Note: with sockeye amTAC often lower than expected (~17%) due to AFE
+    amTAC[y, ] <- tacs[['amTAC']] * truePpn
+    amTAC[is.na(amTAC)] <- 0
+    mixTAC[y, ] <- tacs[['mixTAC']] * truePpn
+    mixTAC[is.na(mixTAC)] <- 0
+
+    #NOTE THAT USE OF FORECAST PPN FOR SINGLE STOCK FISHERIES CAUSES THEM
+    #TO DIVERGE RELATIVE TO MIXED (use true ppns)
+    singTAC[y, ] <- if (ppnMix == "flex") {
+      #if using flexing secondary HCR single fishery TAC = the foregone TAC
+      #from the mixed-stock fishery
+      (tacs[["unconMixTAC"]] - tacs[['mixTAC']]) * forecastPpn
+    } else {
+      tacs[['singTAC']] * forecastPpn
+    }
+
+    codeCheck[y, 2] <- runif(1)
+
+    ## Apply single stock harvest control rules
+    #If a single stock HCR is in effect, assess status based on forecast or
+    #retro calculation.
+    if (singleHCR != FALSE) {
+      # calculate mortAdjustment to scale down forecasted S abundance as a
+      # function of median pDBE
+      mortAdjustment <- sapply(manAdjustment, function(x)
+        ifelse(preFMigMort == 0, 1, preFMigMort * (1 + x))
+      )
+      for (k in 1:nCU) {
+        if (singleHCR == "forecast") {
+          singCUStatus[y, k] <- max(0,
+                                    (foreRecRY[y, k] / mortAdjustment[k]) -
+                                      amTAC[y, k] - mixTAC[y, k])
+        }
+        if (model[k] == "ricker") {
+          #Secondary HCR option 2 uses median obsS abundance over previous gen
+          #Needs to be in for loop because calc depends on whether stock is
+          #cyclic or not; should eventually be replaced w/ estimated BMs
+          if (singleHCR == "retro") {
+            singCUStatus[y, k] <- median(obsS[(y - 1):(y - gen), k])
+          }
+          if (singCUStatus[y, k] >= lowerBM[y - 1, k]) {
+            counterSingleBMLow[y, k] <- 1
+          }
+          if (singCUStatus[y, k] >= upperBM[y - 1, k]) {
+            counterSingleBMHigh[y, k] <- 1
+          }
+        } #end if (model[k] == "ricker")
+        #Larkin HCR only applies to dominant line (no median)
+        if (model[k] == "larkin" & cycle[y] == domCycle[k]) {
+          if (singleHCR == "retro") {
+            singCUStatus[y, k] <- obsS[y - gen, k]
+          }
+          #NOTE that BMs for Larkin stocks use only dominant cycle line so
+          #aligning lowerBM with cycle line is not necessary
+          if (singCUStatus[y, k] >= lowerBM[y - 1, k]) {
+            counterSingleBMLow[y, k] <- 1
+          }
+          if (singCUStatus[y, k] >= upperBM[y - 1, k]) {
+            counterSingleBMHigh[y, k] <- 1
+          }
+        } #end if (model[k] == "larkin")
+        ## Apply secondary HCR as appropriate
+        if (moveTAC == TRUE) {
+          #identify which CUs in the MU are above their upper OCP and in the
+          #same Mu
+          if (counterSingleBMLow[y, k] == 0) {
+            healthyCUs <- which(counterSingleBMHigh[y, ] > 0 &
+                                  manUnit %in% manUnit[k])
+            movedTAC <- singTAC[y, k] * forecastPpn[healthyCUs]
+            singTAC[y, healthyCUs] <- singTAC[y, healthyCUs] + movedTAC
+            singTAC[y, k] <- 0
+          } #end if counterSingleBMLow[y, k] == 0
+        } #end if moveTAC == TRUE
+      } #end for k in 1:nCU
+    } #end if singleHCR != FALSE
+
+
+    # if there is no single stock HCR applied than all CUs assumed to be
+    # "above" the lower BM so that TAC is taken
+    if (singleHCR == FALSE) {
+      counterSingleBMLow[y, ] <- 1
+    }
+    singTAC[y, ] <- singTAC[y, ] * counterSingleBMLow[y, ]
+    singTAC[is.na(singTAC)] <- 0
+    canTAC[y, ] <- apply(rbind(mixTAC[y, ], singTAC[y, ]), 2, sum)
+    totalTAC[y, ] <- apply(rbind(amTAC[y, ], mixTAC[y, ], singTAC[y, ]), 2,
+                           sum)
+    unconMixTAC[y, ] <- tacs[['unconMixTAC']] * truePpn
+    forgoneCatch[y, ] <- if (harvContRule == "TAM") {
+      #how much TAC is lost due to overlap constraints
+      unconMixTAC[y, ] - mixTAC[y, ]
+    } else {
+      NA
+    }
+    codeCheck[y, 3] <- runif(1)
+
+    # Calculate realized catches
+    amCatch[y, ] <- calcRealCatch(recRY[y, ], amTAC[y, ], sigma = mixOUSig)
+    remRec1 <- pmax(recRY[y, ] - amCatch[y, ], 0)
+    mixCatch[y, ] <- calcRealCatch(remRec1, mixTAC[y, ], sigma = mixOUSig)
+
+    codeCheck[y, 4] <- runif(1)
+    # if (codeCheck[y, 4] != codeCheckArray[y,4,1]) {
+    #   stop("number drift")
+    # }
+
+    remRec2 <- pmax(remRec1 - mixCatch[y, ] - extinctThresh, 0)
+    migMortRate[y, ] <- enRouteMR * migMortErr
+    migMort1 <- remRec2 * (preFMigMort * migMortRate[y, ])
+    remRec3 <- pmax(remRec2 - migMort1 - extinctThresh, 0)
+    singCatch[y, ] <- calcRealCatch(remRec3, singTAC[y, ], sigma = singOUSig)
+    remRec4 <- pmax(remRec3 - singCatch[y, ] - extinctThresh, 0)
+    migMort2 <- remRec4 * ((1 - preFMigMort) * migMortRate[y, ])
+    migMort[y, ] <- migMort1 + migMort2
+
+
+    #summary catch calculations
+    totalCatch[y, ] <- amCatch[y, ] + mixCatch[y, ] + singCatch[y, ]
+    amCatchAg[y, n] <- sum(amCatch[y, ])
+    mixCatchAg[y, n] <- sum(mixCatch[y, ])
+    catchAg[y, n] <- sum(amCatch[y, ] + mixCatch[y, ] + singCatch[y, ])
+    amExpRate[y, ] <- amCatch[y, ] / recRY[y, ]
+    mixExpRate[y, ] <- mixCatch[y, ] / recRY[y, ]
+    singExpRate[y, ] <- singCatch[y, ] / recRY[y, ]
+    singExpRate[y, ][is.na(singExpRate[y, ])] <- 0
+    expRate[y, ] <- (amCatch[y, ] + mixCatch[y, ] + singCatch[y, ]) /
+      recRY[y, ]
+    #what was the single stock harvest rate on the escapement
+    if (preFMigMort != 0) {
+      tamSingER[y, ] <- singCatch[y, ] / (remRec2 - migMort1)
+    }
+    expRate[recRY == 0] <- 0
+    expRateAg[y, n] <- catchAg[y, n] / recRYAg[y, n]
+    #only Canadian fisheries
+    targetTamER[y, ] <- apply(rbind(mixTAC[y, ], singTAC[y, ]), 2, sum) /
+      recRY[y, ]
+    targetExpRateAg[y, n] <- ifelse(harvContRule == "fixedER",
+                                    canER + amER,
+                                    sum(totalTAC[y, ]) / recRYAg[y, n])
+    S[y, ] <- recRY[y, ] * (1 - expRate[y, ]) - migMort[y, ]
+    for (k in 1:nCU) {
+      if (S[y, k] < extinctThresh) {
+        S[y, k] <- 0
+      }
+    }
+    sAg[y, n] <- sum(S[y, ])
+
+    codeCheck[y, 5] <- runif(1)
+
+    #___________________________________________________________________
+    ### Observation submodel 2 (this years abundance)
+    # Generate MU-specific observation error
+    for (m in seq_along(muName)) {
+      #catch observation error for both Can and US fisheries
+      obsErrDat[obsErrDat$mu == muName[m], "mixC"] <- exp(qnorm(
+        runif(1, 0.0001, 0.9999), 0, obsMixCatchSig))
+    }
+    #observed spawner error; also used to generate en route mortality estimate
+    obsErrDat[["spwn"]] <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0, obsSig))
+    #CU specific draws from shared distribution
+    obsErrDat[["singC"]] <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0,
+                                      obsSingCatchSig))
+    codeCheck[y, 6] <- runif(1)
+
+    obsS[y, ] <- S[y, ] * obsErrDat[["spwn"]]
+    obsSAg[y, n] <- sum(obsS[y, ])
+
+    obsAmCatch[y, ] <- calcObsCatch(amCatch[y, ], recRY[y, ], manUnit,
+                                    tauCatch, stkID, obsErrDat[["mixC"]],
+                                    extinctThresh)
+    obsMixCatch[y, ] <- calcObsCatch(mixCatch[y, ], recRY[y, ], manUnit,
+                                     tauCatch, stkID, obsErrDat[["mixC"]],
+                                     extinctThresh)
+    #all fish caught in terminal fishery assumed to originate there
+    obsSingCatch[y, ] <- singCatch[y, ] * obsErrDat[["singC"]]
+    obsSingCatch[y, ] <- ifelse(obsSingCatch[y, ] < (0.1 * extinctThresh), 0,
+                                obsSingCatch[y, ])
+    obsCatchAg[y, n] <- sum(obsAmCatch[y, ] + obsMixCatch[y, ] +
+                              obsSingCatch[y, ],
+                            na.rm = TRUE)
+    obsRecRY[y, ] <- obsS[y, ] + migMort[y, ] + obsAmCatch[y, ] +
+      obsMixCatch[y, ] + obsSingCatch[y, ]
+    obsRecRYAg[y, n] <- sum(obsRecRY[y, ], na.rm = TRUE)
+    obsExpRate[y, ] <- ifelse((obsAmCatch[y, ] + obsMixCatch[y, ] +
+                                 obsSingCatch[y, ]) / obsRecRY[y, ] > 1,
+                              1,
+                              ifelse(obsRecRY[y, ] == 0,
+                                     0,
+                                     (obsAmCatch[y, ] + obsMixCatch[y, ] +
+                                        obsSingCatch[y, ]) / obsRecRY[y, ]))
+    obsExpRate[obsRecRY == 0] <- 0
+    obsExpRateAg[y, n] <- mean(obsExpRate[y, ])
+
+
+    #___________________________________________________________________
+    ### Assessment submodel
+    #Benchmark estimates
+    for (k in 1:nCU) {
+      #Calculate true percentile BMs
+      #(cannot be calculated earlier because require updated spawner estimates)
+      temp <- S[1:y, k]
+      sNoNA <- temp[!is.na(temp)]
+      n25th <- round(length(sNoNA) * 0.25, 0)
+      n50th <- round(length(sNoNA) * 0.50, 0)
+      n75th <- round(length(sNoNA) * 0.75, 0)
+      s25th[y, k, n] <- sort(sNoNA)[n25th]
+      s50th[y, k, n] <- sort(sNoNA)[n50th]
+      s75th[y, k, n] <- sort(sNoNA)[n75th]
+      #Calculate observed percentile BMs
+      temp <- obsS[1:y, k]
+      obsSNoNA <- temp[!is.na(temp)]
+      obsN25th <- round(length(obsSNoNA) * 0.25, 0)
+      obsN50th <- round(length(obsSNoNA) * 0.50, 0)
+      obsN75th <- round(length(obsSNoNA) * 0.75, 0)
+      estS25th[y, k, n] <- sort(obsSNoNA)[obsN25th]
+      estS50th[y, k, n] <- sort(obsSNoNA)[obsN50th]
+      estS75th[y, k, n] <- sort(obsSNoNA)[obsN75th]
+      #Build SRR
+      srMod <- quickLm(xVec = obsS[, k], yVec = obsLogRS[, k])
+      estYi[y, k, n] <- srMod[[1]]
+      estSlope[y, k, n] <- srMod[[2]]
+      estRicB[y, k, n] <- ifelse(extinct[y, k] == 1, NA, -estSlope[y, k, n])
+      estRicA[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estYi[y, k, n])
+      #Calculate SR BMs
+      estSMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
+                                 (1 - gsl::lambert_W0(exp(
+                                   1 - estRicA[y, k, n]))) /
+                                   estRicB[y, k, n])
+      if (is.na(estRicB[y, k, n]) == FALSE) {
+        if (estRicB[y, k, n] > 0) {
+          if ((1 / estRicB[y, k, n]) <= max(obsS[,k], na.rm = TRUE) * 4) {
+            estSGen[y, k, n] <- as.numeric(sGenSolver(
+              theta = c(estRicA[y, k, n], estRicB[y, k, n], ricSig[k]),
+              sMSY = estSMSY[y, k, n]))
+          } else {
+            #if a BM cannot be estimated set it to the last estimated value
+            estSGen[y, k, n] <- estSGen[max(which(!is.na(
+              estSGen[, k, n]))), k, n]
+            estSMSY[y, k, n] <- estSMSY[max(which(!is.na(
+              estSMSY[, k, n]))), k, n]
+            fb1[y, k] <- 1
+          }
+        }# End of if(estRicB[y, n]>0)
+      } else{
+        estSGen[y, k, n] <- estSGen[max(which(!is.na(estSGen[, k, n]))), k, n]
+        estSMSY[y, k, n] <- estSMSY[max(which(!is.na(estSMSY[, k, n]))), k, n]
+        fb2[y, k] <- 1
+      } #end(if(is.na(estRicB)))
+    } #end for(k in 1:nCU)
+    if (is.na(estSGen[y, k, n]) == FALSE & is.na(estSMSY[y, k, n]) == FALSE) {
+      if (estSGen[y, k, n] > estSMSY[y, k, n]) {
+        warning("Estimated lower benchmark greater than upper benchmark;
+                set to NA")
+        estSGen[y, k, n] <- estSGen[max(which(!is.na(estSGen[, k, n]))), k, n]
+        estSMSY[y, k, n] <- estSMSY[max(which(!is.na(estSMSY[, k, n]))), k, n]
+        fb3[y, k] <- 1
+      }
+    }
+
+    #___________________________________________________________________
+    ### Population dynamics submodel
+    for (k in 1:nrow(ageStruc)) {
+      ppnAges[y, k, ] <- ppnAgeErr(ageStruc[k, ], tauAge[k],
+                                   error = runif(nAges, 0.0001, 0.9999))
+    }
+    codeCheck[y, 7] <- runif(1)
+    if (prod == "skew") {
+      #draw process variance from skewed normal distribution
+      errorCU[y, ] <- sn::rmst(n = 1, xi = rep(0, nCU),
+                               alpha = rep(log(0.65), nCU), nu = 1000,
+                               Omega = covMat)
+    } else if (prod == "skewT") {
+      #draw process variance from skewed T distribution
+      errorCU[y, ] <- sn::rmst(n = 1, xi = rep(0, nCU),
+                               alpha = rep(log(0.65), nCU), nu = 2,
+                               Omega = covMat)
+    } else if (prod == "studT" | prod == "lowStudT") {
+      #draw process variance from student T distribution
+      errorCU[y, ] <- sn::rmst(n = 1, xi = rep(0, nCU),
+                               alpha = rep(0, nCU), nu = 2,
+                               Omega = covMat)
+    } else { #otherwise draw from normal
+      errorCU[y, ] <- sn::rmst(n = 1, xi = rep(0, nCU),
+                               alpha = rep(0, nCU), nu = 10000,
+                               Omega = covMat)
+    }
+    codeCheck[y, 8] <- runif(1)
+    for (k in 1:nCU) {
+      if (S[y, k] > 0) {
+        if (model[k] == "ricker") {
+          dum <- rickerModel(S[y, k], alphaMat[y, k], beta[k],
+                             error = errorCU[y, k], rho = rho,
+                             prevErr = laggedError[y - 1, k])
+          laggedError[y, k] <- dum[[2]]
+        }
+        if (model[k] == "larkin") {
+          dum <- larkinModel(S[y, k], S[y - 1, k], S[y-2, k], S[y - 3, k],
+                             alphaMat[y, k], beta[k], larB1[k], larB2[k],
+                             larB3[k], error = errorCU[y, k])
+        }
+        #keep recruitment below CU-specific cap
+        recBY[y, k] <- min(dum[[1]], recCap[k])
+        logRS[y, k] <- log(recBY[y, k] / S[y, k])
+      } #end if(S[y, k]>0)
+      if (is.na(laggedError[y, k])) {
+        laggedError[y, k] <- 0
+      }
+      if (S[y, k] == 0) {
+        recBY[y, k] <- 0
+        logRS[y, k] <- 0
+      }
+      if (recBY[y, k] <= extinctThresh) {
+        recBY[y, k] <- 0
+      }
+      extinct[y, ] <- extinctionCheck(y = y, gen = gen,
+                                      extinctThresh = extinctThresh,
+                                      spwnMat = S)
+    } #end for(k in 1:nCU)
+
+    recBYAg[y, n] <- sum(recBY[y, ])
+
+    for (k in 1:nCU) {
+      if (model[k] == "ricker" |
+          model[k] == "larkin" & cycle[y] == domCycle[k]) {
+        if (bm == "stockRecruit") {
+          #is spawner abundance greater than upper/lower BM
+          upperBM[y, k] <- ifelse(!is.na(sMSY[y, k, n]),
+                                  0.8 * sMSY[y, k, n],
+                                  0)
+          lowerBM[y, k] <- ifelse(!is.na(sGen[y, k, n]),
+                                  sGen[y, k, n],
+                                  0)
+          upperObsBM[y, k] <- ifelse(!is.na(estSMSY[y, k, n]),
+                                     0.8 * estSMSY[y, k, n],
+                                     0)
+          lowerObsBM[y, k] <- ifelse(!is.na(estSGen[y, k, n]),
+                                     estSGen[y, k, n],
+                                     0)
+        }
+        if (bm == "percentile") {
+          upperBM[y, k] <- s75th[y, k, n]
+          lowerBM[y, k] <- s25th[y, k, n]
+          upperObsBM[y, k] <- estS75th[y, k, n]
+          lowerObsBM[y, k] <- estS25th[y, k, n]
+        }
+      }
+      #only save status for Larkin stocks on dom cycle otherwise use prev status
+      if (model[k] == "larkin" & cycle[y] != domCycle[k]) {
+        upperBM[y, k] <- upperBM[y - 1, k]
+        lowerBM[y, k] <- lowerBM[y - 1, k]
+        upperObsBM[y, k] <- upperObsBM[y - 1, k]
+        lowerObsBM[y, k] <- lowerObsBM[y - 1, k]
+      }
+      if (!is.na(upperBM[y, k]) & S[y, k] > upperBM[y, k]) {
+        counterUpperBM[y, k] <- 1 #is spawner abundance greater than upper BM
+      }
+      if (!is.na(lowerBM[y, k]) & S[y, k] > lowerBM[y, k]) {
+        counterLowerBM[y, k] <- 1 #is spawner abundance greater than lower BM
+      }
+      if (!is.na(upperObsBM[y, k]) & obsS[y, k] > upperObsBM[y, k]) {
+        counterUpperObsBM[y, k] <- 1 #is spawner abundance greater than upper BM
+      }
+      if (!is.na(lowerObsBM[y, k]) & obsS[y, k] > lowerObsBM[y, k]) {
+        counterLowerObsBM[y, k] <- 1 #is spawner abundance greater than lower BM
+      }
+    }
+    ## Aggregate benchmark checks
+    if (species == "sockeye") { #does TAC exceed Fraser goals?
+      catchMetric[y, n] <- sum(canTAC[y, ])
+    }
+    if (species == "chum") { #does area 3 catch exceed Nisga'a treaty entitlements?
+      catchMetric[y, n] <- sum(singCatch[y, ])
+    }
+    if (catchMetric[y, n] > lowCatchThresh) { #
+      lowCatchAgBM[y, n] <- 1
+    }
+    if (catchMetric[y, n] > highCatchThresh) {
+      highCatchAgBM[y, n] <- 1
+    }
+    if (sum(counterUpperBM[y, ]) / nCU > 0.5) {
+      ppnUpperBM[y, n] <- 1
+    }
+    if (sum(counterLowerBM[y, ]) / nCU > 0.5) {
+      ppnLowerBM[y, n] <- 1
+    }
+    if (extinctAg[n] == 0){
+      if (sum(extinct[y, ]) == nCU){
+        extinctAg[n] <- 1
+      }
+    }
+    } #End loop 3: for(y in (nPrime+1):nYears)

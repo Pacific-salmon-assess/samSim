@@ -39,13 +39,15 @@
 # ricPars <- read.csv(here("data/northCoastDat/nassChumMCMCPars.csv"), stringsAsFactors=F)
 
 ## Misc. objects to run single trial w/ "reference" OM
-# uniqueProd <- TRUE
-# variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
-# dirName <- "TEST"
-# nTrials <- 10
-# simPar <- simParF[28,]
-# makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
-# random <- FALSE
+uniqueProd <- TRUE
+variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
+dirName <- "TEST"
+nTrials <- 10
+simPar <- simParF[35,]
+makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
+random <- FALSE
+
+codeCheck <- matrix(NA, nrow = nYears, ncol = 8)
 
 recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                         variableCU=FALSE, makeSubDirs=TRUE, ricPars,
@@ -235,7 +237,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     dum <- getSRPars(pars = ricPars, alphaOnly = TRUE, highP = 0.95,
                      lowP = 0.05, stks = stkID)
     #following code could be pulled from here and added to getSRPars()
-    if (prod == "low") {
+    if (prod == "low" | prod == "lowStudT") {
       srPars <- dum$pMed %>%
         dplyr::mutate(alpha = alpha * 0.65) #dum$pLow
     }
@@ -257,11 +259,11 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     if (is.null(larkPars) == FALSE) {
       dum <- getSRPars(pars = larkPars, alphaOnly = TRUE, highP = 0.95,
                        lowP = 0.05, stks = stkID)
-      if (prod == "low") {
+      if (prod == "low" | prod == "lowStudT") {
         srParsLark <- dum$pMed %>%
           dplyr::mutate(alpha = alpha * 0.65) #dum$pLow
       }
-      if (prod == "med" | prod == "studT"|  prod == "skew" | prod == "skewT") {
+      if (prod == "med" | prod == "studT" |  prod == "skew" | prod == "skewT") {
         srParsLark <- dum$pMed
       }
       if (prod == "high") {
@@ -397,6 +399,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     warning("Key variable misspecified; necessary for plotting")
   }
 
+
   #_______________________________________________________________________
   ## Set-up empty vectors and matrices for ALL trials
   #Population dynamics
@@ -517,7 +520,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
   #_______________________________________________________________________
   ## Simulation model
-  for (n in 1:nTrials) {
+  # for (n in 1:nTrials) {
 
     #_____________________________________________________________________
     # Set up empty vectors and matrices for each MC trial
@@ -813,7 +816,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       estSGen[y, , n] <- sGen[y, , n]
       upperObsBM[y, ] <- upperBM[y, ] #obs = true during priming
       lowerObsBM[y, ] <- lowerBM[y, ]
-      }
+    } # y in 1:nPrime
+
 
     #__________________________________________________________________________
     ### Loop 2
@@ -1062,6 +1066,12 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         obsRecBYAg[y - obsLag, n] <- sum(obsRecBY[y - obsLag, ])
       }
 
+      codeCheck[y, 1] <- runif(1)
+
+      # if (codeCheck[y, 1] != codeCheckArray[y,1,1]) {
+      #   stop("number drift")
+      # }
+
       #___________________________________________________________________
       ### Management submodel (i.e. HCRs and catch)
       #Calculate forecasts and benchmarks at CU level
@@ -1123,6 +1133,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           }
         }
       }
+
+
       ppnOpenFishery[y, n] <- mean(openFishery[y, ])
       if (harvContRule == "TAM") {
         #should fisheries be constrained
@@ -1174,6 +1186,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       } else {
         tacs[['singTAC']] * forecastPpn
       }
+
+      codeCheck[y, 2] <- runif(1)
 
       ## Apply single stock harvest control rules
       #If a single stock HCR is in effect, assess status based on forecast or
@@ -1233,6 +1247,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         } #end for k in 1:nCU
       } #end if singleHCR != FALSE
 
+
       # if there is no single stock HCR applied than all CUs assumed to be
       # "above" the lower BM so that TAC is taken
       if (singleHCR == FALSE) {
@@ -1250,11 +1265,18 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       } else {
         NA
       }
+      codeCheck[y, 3] <- runif(1)
 
       # Calculate realized catches
       amCatch[y, ] <- calcRealCatch(recRY[y, ], amTAC[y, ], sigma = mixOUSig)
       remRec1 <- pmax(recRY[y, ] - amCatch[y, ], 0)
       mixCatch[y, ] <- calcRealCatch(remRec1, mixTAC[y, ], sigma = mixOUSig)
+
+      codeCheck[y, 4] <- runif(1)
+      # if (codeCheck[y, 4] != codeCheckArray[y,4,1]) {
+      #   stop("number drift")
+      # }
+
       remRec2 <- pmax(remRec1 - mixCatch[y, ] - extinctThresh, 0)
       migMortRate[y, ] <- enRouteMR * migMortErr
       migMort1 <- remRec2 * (preFMigMort * migMortRate[y, ])
@@ -1263,6 +1285,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       remRec4 <- pmax(remRec3 - singCatch[y, ] - extinctThresh, 0)
       migMort2 <- remRec4 * ((1 - preFMigMort) * migMortRate[y, ])
       migMort[y, ] <- migMort1 + migMort2
+
+
       #summary catch calculations
       totalCatch[y, ] <- amCatch[y, ] + mixCatch[y, ] + singCatch[y, ]
       amCatchAg[y, n] <- sum(amCatch[y, ])
@@ -1294,6 +1318,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       }
       sAg[y, n] <- sum(S[y, ])
 
+      codeCheck[y, 5] <- runif(1)
+
       #___________________________________________________________________
       ### Observation submodel 2 (this years abundance)
       # Generate MU-specific observation error
@@ -1307,6 +1333,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #CU specific draws from shared distribution
       obsErrDat[["singC"]] <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0,
                                         obsSingCatchSig))
+      codeCheck[y, 6] <- runif(1)
 
       obsS[y, ] <- S[y, ] * obsErrDat[["spwn"]]
       obsSAg[y, n] <- sum(obsS[y, ])
@@ -1336,6 +1363,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                           obsSingCatch[y, ]) / obsRecRY[y, ]))
       obsExpRate[obsRecRY == 0] <- 0
       obsExpRateAg[y, n] <- mean(obsExpRate[y, ])
+
 
       #___________________________________________________________________
       ### Assessment submodel
@@ -1408,6 +1436,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         ppnAges[y, k, ] <- ppnAgeErr(ageStruc[k, ], tauAge[k],
                                      error = runif(nAges, 0.0001, 0.9999))
       }
+      codeCheck[y, 7] <- runif(1)
       if (prod == "skew") {
         #draw process variance from skewed normal distribution
         errorCU[y, ] <- sn::rmst(n = 1, xi = rep(0, nCU),
@@ -1418,15 +1447,17 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         errorCU[y, ] <- sn::rmst(n = 1, xi = rep(0, nCU),
                                  alpha = rep(log(0.65), nCU), nu = 2,
                                  Omega = covMat)
-      } else if (prod == "studT") {
+      } else if (prod == "studT" | prod == "lowStudT") {
         #draw process variance from student T distribution
         errorCU[y, ] <- sn::rmst(n = 1, xi = rep(0, nCU),
                                  alpha = rep(0, nCU), nu = 2,
                                  Omega = covMat)
       } else { #otherwise draw from normal
-        errorCU[y, ] <- mvtnorm::rmvnorm(n = 1, mean = rep(0, nCU),
-                                         sigma = covMat)
+        errorCU[y, ] <- sn::rmst(n = 1, xi = rep(0, nCU),
+                                 alpha = rep(0, nCU), nu = 10000,
+                                 Omega = covMat)
       }
+      codeCheck[y, 8] <- runif(1)
       for (k in 1:nCU) {
         if (S[y, k] > 0) {
           if (model[k] == "ricker") {
@@ -1532,6 +1563,11 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       }
     } #End loop 3: for(y in (nPrime+1):nYears)
 
+    # codeCheckArray <- array(NA,
+    #                         dim = c(nYears, 8, 3))
+    codeCheckArray[,,2] <- codeCheck
+
+    codeCheckArray[,,1] == codeCheckArray[,,2]
 
     #__________________________________________________________________________
     ### Draw one trial for plotting

@@ -65,6 +65,8 @@ calcRealCatch <- function(rec, tac, sigma = 0.1) {
         } else {
           #if TAC is 0 then realCatch is 0
           realCatch[k] <- 0
+          #make blank draw with dummy pars to balance random number generator
+          blank <- rbeta(1, 0.5, 0.5, ncp = 0)
         }
       } #end CU loop
     } else {
