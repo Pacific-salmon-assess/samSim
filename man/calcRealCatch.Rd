@@ -4,7 +4,7 @@
 \alias{calcRealCatch}
 \title{Calculate realized catches}
 \usage{
-calcRealCatch(rec, tac, sigma = 0.1)
+calcRealCatch(rec, tac, sigma = 0.1, random = FALSE)
 }
 \arguments{
 \item{rec}{A numeric vector of length nCU representing CU-specific
@@ -15,6 +15,10 @@ total allowable catch rates (generally passed from \code{calcTAC} function).}
 
 \item{sigma}{A numeric representing the standard deviation of the shape
 parameter.}
+
+\item{random}{A logical (default `FALSE`) used to restandardize random number
+generator because `rbeta()` seems to produce variable draws (should be
+corrected in future).}
 }
 \value{
 Returns a vector of length nCU representing realized catches

@@ -1,33 +1,51 @@
-# here <- here::here
-# simParF <- read.csv(here("data", "manProcScenarios",
-#                          "fraserMPInputs_varyMixPpnHCRs_baseAnalysis.csv"),
-#                     stringsAsFactors = F)
-# cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
-# srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
-# catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors=F)
-# ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors=F)
-# larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"), stringsAsFactors=F)
-# tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
-
-## Misc. objects to run single trial w/ "reference" OM
-uniqueProd <- TRUE
-variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
-dirName <- "TEST"
-nTrials <- 10
-simPar <- simParF[35,]
-makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
-random <- FALSE
+### Script to identify where random number generator misfires using stripped
+## down version of recoverySim(); first time was with rbeta
 
 
+require(samSim)
+here <- here::here
+simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorr.csv"),
+                          stringsAsFactors = F)
+cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
+srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
+catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors=F)
+ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors=F)
+larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"), stringsAsFactors=F)
+tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
 
+simPar1 <- simParF[46,]
+simPar2 <- simParF[35,]
 
-codeCheck <- matrix(NA, nrow = nYears, ncol = 8)
+sim1 <- recoverySimDeBug(simPar1, cuPar, catchDat=catchDat, srDat=srDat,
+                 variableCU=FALSE, ricPars = ricPars, larkPars=larkPars,
+                 tamFRP=tamFRP, uniqueProd=TRUE, random=FALSE)
+runif(1)
+sim2 <- recoverySimDeBug(simPar2, cuPar, catchDat=catchDat, srDat=srDat,
+                         variableCU=FALSE, ricPars = ricPars, larkPars=larkPars,
+                         tamFRP=tamFRP, uniqueProd=TRUE, random=FALSE)
+runif(1)
 
-recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
-                        variableCU=FALSE, makeSubDirs=TRUE, ricPars,
-                        larkPars=NULL, tamFRP=NULL, cuCustomCorrMat=NULL,
-                        erCorrMat=NULL, dirName, nTrials=100, uniqueProd=TRUE,
-                        random=FALSE) {
+check1 <- sim1[["codeCheck"]]
+check2 <- sim2[["codeCheck"]]
+rec1 <- sim1[["recRY"]]
+rec2 <- sim2[["recRY"]]
+tac1 <- sim1[["mixTAC"]]
+tac2 <- sim2[["mixTAC"]]
+
+check1 == check2
+
+rec1[70,]
+tac1[70, ]
+rec2[70,]
+tac2[70, ]
+
+recoverySimDeBug <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
+                             variableCU=FALSE, ricPars, larkPars=NULL,
+                             tamFRP=NULL, uniqueProd=TRUE, random=FALSE) {
+
+  codeCheck <- matrix(NA, nrow = 100, ncol = 8)
+  n <- 1
+  nTrials <- 1
   # If random = TRUE then each simulation will start at a different point
   # i.e. should ALWAYS be FALSE except for convenience when running independent
   # chains to test convergence
@@ -283,13 +301,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   }
   residMatrix <- getResiduals(recDat, model) #pull residuals from observed data and save
 
-  # Add correlations in rec deviations
-  if (simPar$corrMat == TRUE) { #replace uniform correlation w/ custom matrix
-    if (nrow(cuCustomCorrMat) != nCU) {
-      stop("Custom correlation matrix does not match number of CUs")
-    }
-    correlCU <- as.matrix(cuCustomCorrMat)
-  }
   #calculate correlations among CUs
   sigMat <- matrix(as.numeric(sig), nrow = 1, ncol = nCU)
   #calculate shared variance and correct based on correlation
@@ -335,25 +346,25 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
   #_____________________________________________________________________
   ## Create directories (based on all scenarios in a sim run)
-  dir.create(paste(here("outputs/diagnostics"), dirName, sep = "/"),
-             recursive = TRUE, showWarnings = FALSE)
-  dir.create(paste(here("outputs/simData"), dirName, sep = "/"),
-             recursive = TRUE, showWarnings = FALSE)
-
-  ## Create subdirectories if multiple OMs and MPs are being run
-  if (makeSubDirs == TRUE) {
-    subDirName <- simPar$nameOM
-    dir.create(paste(here("outputs/diagnostics"), dirName, subDirName,
-                     sep = "/"),
-               recursive = TRUE, showWarnings = FALSE)
-    dir.create(paste(here("outputs/simData"), dirName, subDirName,
-                     sep = "/"),
-               recursive = TRUE, showWarnings = FALSE)
-  }
-  #use this to generate figs/data in subsequent calls
-  dirPath <- ifelse(makeSubDirs == TRUE,
-                    paste(dirName, subDirName, sep = "/"),
-                    dirName)
+  # dir.create(paste(here("outputs/diagnostics"), dirName, sep = "/"),
+  #            recursive = TRUE, showWarnings = FALSE)
+  # dir.create(paste(here("outputs/simData"), dirName, sep = "/"),
+  #            recursive = TRUE, showWarnings = FALSE)
+  #
+  # ## Create subdirectories if multiple OMs and MPs are being run
+  # if (makeSubDirs == TRUE) {
+  #   subDirName <- simPar$nameOM
+  #   dir.create(paste(here("outputs/diagnostics"), dirName, subDirName,
+  #                    sep = "/"),
+  #              recursive = TRUE, showWarnings = FALSE)
+  #   dir.create(paste(here("outputs/simData"), dirName, subDirName,
+  #                    sep = "/"),
+  #              recursive = TRUE, showWarnings = FALSE)
+  # }
+  # #use this to generate figs/data in subsequent calls
+  # dirPath <- ifelse(makeSubDirs == TRUE,
+  #                   paste(dirName, subDirName, sep = "/"),
+  #                   dirName)
 
   #_____________________________________________________________________
   ## Specify key variable used for outputs
@@ -1042,10 +1053,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
     codeCheck[y, 1] <- runif(1)
 
-    # if (codeCheck[y, 1] != codeCheckArray[y,1,1]) {
-    #   stop("number drift")
-    # }
-
     #___________________________________________________________________
     ### Management submodel (i.e. HCRs and catch)
     #Calculate forecasts and benchmarks at CU level
@@ -1247,9 +1254,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     mixCatch[y, ] <- calcRealCatch(remRec1, mixTAC[y, ], sigma = mixOUSig)
 
     codeCheck[y, 4] <- runif(1)
-    # if (codeCheck[y, 4] != codeCheckArray[y,4,1]) {
-    #   stop("number drift")
-    # }
 
     remRec2 <- pmax(remRec1 - mixCatch[y, ] - extinctThresh, 0)
     migMortRate[y, ] <- enRouteMR * migMortErr
@@ -1536,3 +1540,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       }
     }
     } #End loop 3: for(y in (nPrime+1):nYears)
+
+  outList <- list(codeCheck, recRY, mixTAC)
+  names(outList) <- c("codeCheck", "recRY", "mixTAC")
+  return(outList)
+} # End function

@@ -29,6 +29,9 @@
 #' total allowable catch rates (generally passed from \code{calcTAC} function).
 #' @param sigma A numeric representing the standard deviation of the shape
 #' parameter.
+#' @param random A logical (default `FALSE`) used to restandardize random number
+#' generator because `rbeta()` seems to produce variable draws (should be
+#' corrected in future).
 #' @return Returns a vector of length nCU representing realized catches
 #'
 #' @examples
@@ -38,7 +41,7 @@
 #' calcRealCatch(exRec, exTAC, sigma = 0.1)
 #'
 #' @export
-calcRealCatch <- function(rec, tac, sigma = 0.1) {
+calcRealCatch <- function(rec, tac, sigma = 0.1, random =  FALSE) {
   #hack to replace 0s and let function run without looping
   tempRec <- rec
   tempRec[tempRec == 0] <- 0.00001
@@ -47,7 +50,13 @@ calcRealCatch <- function(rec, tac, sigma = 0.1) {
     realCatch <- mu * rec
   }
 
+  erMat <- matrix(NA, nrow = length(rec), ncol = 4)
+
   if (sigma > 0) {
+    mu <- pmin(0.99, tac / tempRec)
+    location <- pmax(0.0001,
+                     mu^2 * (((1 - mu) / sigma^2) - (1 / mu)))
+    shape <- pmax(0.0001, location * (1 / mu - 1))
     ## Run as loop if 0s are present, otherwise vectorize
     if (any(tac == 0)) {
       nCU <- length(rec)
@@ -55,28 +64,21 @@ calcRealCatch <- function(rec, tac, sigma = 0.1) {
       for (k in seq_along(rec)) {
         #calc target ER (capped at 99% which may occur if other fisheries
         #overfish due to OU)
-        mu <- min(0.99, tac[k] / tempRec[k])
-        if (mu != 0) {
-          location <- pmax(0.0001,
-                           mu^2 * (((1 - mu) / sigma^2) - (1 / mu)))
-          shape <- location * (1 / mu - 1)
-          realER <- rbeta(1, location, shape, ncp = 0)
+        if (mu[k] != 0) {
+          realER <- rbeta(n = 1, shape1 = location[k], shape2 = shape[k])
           realCatch[k] <- realER * rec[k]
         } else {
           #if TAC is 0 then realCatch is 0
           realCatch[k] <- 0
           #make blank draw with dummy pars to balance random number generator
+          #redundant giving final number reset but keep for now
           blank <- rbeta(1, 0.5, 0.5, ncp = 0)
         }
       } #end CU loop
     } else {
       #calc target ER (capped at 99% which may occur if other fisheries
       #overfish due to OU)
-      mu <- pmin(0.99, tac / tempRec)
-      location <- pmax(0.0001,
-                       mu^2 * (((1 - mu) / sigma^2) - (1 / mu)))
-      shape <- location * (1 / mu - 1)
-      realER <- rbeta(length(mu), location, shape, ncp = 0)
+      realER <- rbeta(length(mu), location, shape)
       realCatch <- realER * rec
     } #end vectorized version
   }
@@ -85,6 +87,13 @@ calcRealCatch <- function(rec, tac, sigma = 0.1) {
   if (any(is.na(realCatch))) {
     stop("Realized ER can't be calculated; check that target HR and sigma
                are reasonable")
+  }
+
+  #for whatever reason rbeta appears to draw a different number of randoms
+  #depending on the shape number; until I can figure out why reset unless
+  #running random chains intentionally
+  if (random != TRUE) {
+    set.seed(456)
   }
 
   realCatch

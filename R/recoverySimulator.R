@@ -39,15 +39,13 @@
 # ricPars <- read.csv(here("data/northCoastDat/nassChumMCMCPars.csv"), stringsAsFactors=F)
 
 ## Misc. objects to run single trial w/ "reference" OM
-uniqueProd <- TRUE
-variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
-dirName <- "TEST"
-nTrials <- 10
-simPar <- simParF[35,]
-makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
-random <- FALSE
-
-codeCheck <- matrix(NA, nrow = nYears, ncol = 8)
+# uniqueProd <- TRUE
+# variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
+# dirName <- "TEST"
+# nTrials <- 10
+# simPar <- simParF[35, ]
+# makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
+# random <- FALSE
 
 recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                         variableCU=FALSE, makeSubDirs=TRUE, ricPars,
@@ -57,7 +55,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   # If random = TRUE then each simulation will start at a different point
   # i.e. should ALWAYS be FALSE except for convenience when running independent
   # chains to test convergence
-  if (random == FALSE) {
+  if (random != TRUE) {
     set.seed(123)
   }
 
@@ -520,7 +518,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
   #_______________________________________________________________________
   ## Simulation model
-  # for (n in 1:nTrials) {
+  for (n in 1:nTrials) {
 
     #_____________________________________________________________________
     # Set up empty vectors and matrices for each MC trial
@@ -1066,12 +1064,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         obsRecBYAg[y - obsLag, n] <- sum(obsRecBY[y - obsLag, ])
       }
 
-      codeCheck[y, 1] <- runif(1)
-
-      # if (codeCheck[y, 1] != codeCheckArray[y,1,1]) {
-      #   stop("number drift")
-      # }
-
       #___________________________________________________________________
       ### Management submodel (i.e. HCRs and catch)
       #Calculate forecasts and benchmarks at CU level
@@ -1187,8 +1179,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         tacs[['singTAC']] * forecastPpn
       }
 
-      codeCheck[y, 2] <- runif(1)
-
       ## Apply single stock harvest control rules
       #If a single stock HCR is in effect, assess status based on forecast or
       #retro calculation.
@@ -1265,26 +1255,36 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       } else {
         NA
       }
-      codeCheck[y, 3] <- runif(1)
 
-      # Calculate realized catches
-      amCatch[y, ] <- calcRealCatch(recRY[y, ], amTAC[y, ], sigma = mixOUSig)
-      remRec1 <- pmax(recRY[y, ] - amCatch[y, ], 0)
-      mixCatch[y, ] <- calcRealCatch(remRec1, mixTAC[y, ], sigma = mixOUSig)
-
-      codeCheck[y, 4] <- runif(1)
-      # if (codeCheck[y, 4] != codeCheckArray[y,4,1]) {
-      #   stop("number drift")
-      # }
-
-      remRec2 <- pmax(remRec1 - mixCatch[y, ] - extinctThresh, 0)
-      migMortRate[y, ] <- enRouteMR * migMortErr
-      migMort1 <- remRec2 * (preFMigMort * migMortRate[y, ])
-      remRec3 <- pmax(remRec2 - migMort1 - extinctThresh, 0)
-      singCatch[y, ] <- calcRealCatch(remRec3, singTAC[y, ], sigma = singOUSig)
+      # Calculate realized catches (if statement necessary because
+      # calcRealCatch has random number generator reset)
+      if (random != TRUE) {
+        amCatch[y, ] <- calcRealCatch(recRY[y, ], amTAC[y, ], sigma = mixOUSig)
+        remRec1 <- pmax(recRY[y, ] - amCatch[y, ], 0)
+        mixCatch[y, ] <- calcRealCatch(remRec1, mixTAC[y, ], sigma = mixOUSig)
+        remRec2 <- pmax(remRec1 - mixCatch[y, ] - extinctThresh, 0)
+        migMortRate[y, ] <- enRouteMR * migMortErr
+        migMort1 <- remRec2 * (preFMigMort * migMortRate[y, ])
+        remRec3 <- pmax(remRec2 - migMort1 - extinctThresh, 0)
+        singCatch[y, ] <- calcRealCatch(remRec3, singTAC[y, ],
+                                        sigma = singOUSig)
+      } else {
+        amCatch[y, ] <- calcRealCatch(recRY[y, ], amTAC[y, ], sigma = mixOUSig,
+                                      random = TRUE)
+        remRec1 <- pmax(recRY[y, ] - amCatch[y, ], 0)
+        mixCatch[y, ] <- calcRealCatch(remRec1, mixTAC[y, ], sigma = mixOUSig,
+                                       random = TRUE)
+        remRec2 <- pmax(remRec1 - mixCatch[y, ] - extinctThresh, 0)
+        migMortRate[y, ] <- enRouteMR * migMortErr
+        migMort1 <- remRec2 * (preFMigMort * migMortRate[y, ])
+        remRec3 <- pmax(remRec2 - migMort1 - extinctThresh, 0)
+        singCatch[y, ] <- calcRealCatch(remRec3, singTAC[y, ],
+                                        sigma = singOUSig, random = TRUE)
+      }
       remRec4 <- pmax(remRec3 - singCatch[y, ] - extinctThresh, 0)
       migMort2 <- remRec4 * ((1 - preFMigMort) * migMortRate[y, ])
       migMort[y, ] <- migMort1 + migMort2
+
 
 
       #summary catch calculations
@@ -1318,8 +1318,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       }
       sAg[y, n] <- sum(S[y, ])
 
-      codeCheck[y, 5] <- runif(1)
-
       #___________________________________________________________________
       ### Observation submodel 2 (this years abundance)
       # Generate MU-specific observation error
@@ -1333,11 +1331,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #CU specific draws from shared distribution
       obsErrDat[["singC"]] <- exp(qnorm(runif(nCU, 0.0001, 0.9999), 0,
                                         obsSingCatchSig))
-      codeCheck[y, 6] <- runif(1)
 
       obsS[y, ] <- S[y, ] * obsErrDat[["spwn"]]
       obsSAg[y, n] <- sum(obsS[y, ])
-
       obsAmCatch[y, ] <- calcObsCatch(amCatch[y, ], recRY[y, ], manUnit,
                                       tauCatch, stkID, obsErrDat[["mixC"]],
                                       extinctThresh)
@@ -1436,7 +1432,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         ppnAges[y, k, ] <- ppnAgeErr(ageStruc[k, ], tauAge[k],
                                      error = runif(nAges, 0.0001, 0.9999))
       }
-      codeCheck[y, 7] <- runif(1)
       if (prod == "skew") {
         #draw process variance from skewed normal distribution
         errorCU[y, ] <- sn::rmst(n = 1, xi = rep(0, nCU),
@@ -1457,7 +1452,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                  alpha = rep(0, nCU), nu = 10000,
                                  Omega = covMat)
       }
-      codeCheck[y, 8] <- runif(1)
+
       for (k in 1:nCU) {
         if (S[y, k] > 0) {
           if (model[k] == "ricker") {
@@ -1562,12 +1557,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         }
       }
     } #End loop 3: for(y in (nPrime+1):nYears)
-
-    # codeCheckArray <- array(NA,
-    #                         dim = c(nYears, 8, 3))
-    codeCheckArray[,,2] <- codeCheck
-
-    codeCheckArray[,,1] == codeCheckArray[,,2]
 
     #__________________________________________________________________________
     ### Draw one trial for plotting
