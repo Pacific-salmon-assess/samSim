@@ -43,7 +43,7 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 10
-# simPar <- simParF[35, ]
+# simPar <- simParF[10, ]
 # makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 # random <- FALSE
 
@@ -396,7 +396,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   if (is.null(keyVar)) {
     warning("Key variable misspecified; necessary for plotting")
   }
-
 
   #_______________________________________________________________________
   ## Set-up empty vectors and matrices for ALL trials
@@ -1562,29 +1561,14 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     ### Draw one trial for plotting
     if (n == drawTrial) {
       # Generate indices of observation error
-      obsSErr <- ifelse((obsS - S) / S == Inf, NA, (obsS - S) / S)
-      obsRecBYErr <- ifelse((obsRecBY - recBY) / recBY == Inf, NA,
-                            (obsRecBY - recBY) / recBY)
-      obsRecRYErr <- ifelse((obsRecRY - recRY) / recRY == Inf, NA,
-                            (obsRecRY - recRY) / recRY)
-      obsMixCatchErr <- ifelse((obsMixCatch - mixCatch) / mixCatch == Inf |
-                                 (obsMixCatch - mixCatch) / mixCatch == -Inf,
-                               NA, (obsMixCatch - mixCatch) / mixCatch)
-      obsSingCatchErr <- ifelse((obsSingCatch - singCatch) / singCatch == Inf |
-                                  (obsSingCatch - singCatch) / singCatch == -Inf,
-                                NA, (obsSingCatch - singCatch) / singCatch)
-      obsAmCatchErr <- ifelse((obsAmCatch - amCatch) / amCatch == Inf |
-                                (obsAmCatch - amCatch) / amCatch == -Inf, NA,
-                              (obsAmCatch - amCatch) / amCatch)
-      obsExpErr <- ifelse((obsExpRate - expRate) / expRate == Inf |
-                            (obsExpRate - expRate) / expRate == -Inf, NA,
-                          (obsExpRate - expRate) / expRate)
-      # obsSmsyErr <- ifelse((estSMSY[ , , n] - sMSY[ , , n]) / sMSY[ , , n] == Inf, NA,
-      #                      (estSMSY[ , , n] - sMSY[ , , n]) / sMSY[ , , n])
-      # obsSgenErr <- ifelse((estSGen[ , , n] - sGen[ , , n]) / sGen[ , , n] == Inf, NA,
-      #                      (estSGen[ , , n] - sGen[ , , n]) / sGen[ , , n])
-      forecastErr <- ifelse((foreRecRY - recRY) / recRY == Inf, NA,
-                              (foreRecRY - recRY) / recRY)
+      obsSErr <- calcErr(obsS, S)
+      obsRecBYErr <- calcErr(obsRecBY, recBY)
+      obsRecRYErr <- calcErr(obsRecRY, recRY)
+      obsMixCatchErr <- calcErr(obsMixCatch, mixCatch)
+      obsSingCatchErr <- calcErr(obsSingCatch, singCatch)
+      obsAmCatchErr <- calcErr(obsAmCatch, amCatch)
+      obsExpErr <- calcErr(obsExpRate, expRate)
+      forecastErr <- calcErr(foreRecRY, recRY)
 
       # Combine relevant data into array passed to plotting function
       varNames <- c("Productivity", "Est Productivity", "Est Beta",
@@ -1630,7 +1614,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       }
       dev.off()
     }
-
 
     #_____________________________________________________________________
     ## Summary calculations with full datasets

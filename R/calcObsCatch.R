@@ -55,7 +55,7 @@ calcObsCatch <- function(catchVec, recVec, manUnit, tauCatch, stkID, catchObsErr
     ppnErr <- ppnCatchErr(d4$ppn, tauCatch)
     d3$obsCatchOut[which(d3$mu %in% d4$mu)] <- ppnErr * d4$catchMU * d4$obsErr
   }
-  d3$obsCatchOut[which(d3$obsCatchOut < 0.1 * extinctThresh)] <- 0.1 * extinctThresh
+  d3$obsCatchOut[which(d3$obsCatchOut < 1e-6)] <- 1e-6
   d3 <- with(d3, d3[order(stkID), ]) #reorder so output same as input
   return(d3$obsCatchOut)
 }

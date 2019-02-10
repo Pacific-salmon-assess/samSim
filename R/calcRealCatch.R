@@ -82,6 +82,8 @@ calcRealCatch <- function(rec, tac, sigma = 0.1, random =  FALSE) {
       realCatch <- realER * rec
     } #end vectorized version
   }
+  #get rid of absurdly small catches
+  realCatch <- ifelse(realCatch < 1e-6, 0, realCatch)
 
   #warning message for nonsensical values
   if (any(is.na(realCatch))) {
