@@ -32,6 +32,9 @@
 #' @param random A logical (default `FALSE`) used to restandardize random number
 #' generator because `rbeta()` seems to produce variable draws (should be
 #' corrected in future).
+#' @param setSeedInput A numeric representing the combination MC trial and
+#' simulation year to ensure that scenarios are sampling the seed, but allowing
+#' draws to otherwise vary.
 #' @return Returns a vector of length nCU representing realized catches
 #'
 #' @examples
@@ -41,7 +44,8 @@
 #' calcRealCatch(exRec, exTAC, sigma = 0.1)
 #'
 #' @export
-calcRealCatch <- function(rec, tac, sigma = 0.1, random =  FALSE) {
+calcRealCatch <- function(rec, tac, sigma = 0.1, random =  FALSE,
+                          setSeedInput = NULL) {
   #hack to replace 0s and let function run without looping
   tempRec <- rec
   tempRec[tempRec == 0] <- 0.00001
@@ -95,7 +99,7 @@ calcRealCatch <- function(rec, tac, sigma = 0.1, random =  FALSE) {
   #depending on the shape number; until I can figure out why reset unless
   #running random chains intentionally
   if (random != TRUE) {
-    set.seed(456)
+    set.seed(setSeedInput)
   }
 
   realCatch

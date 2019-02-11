@@ -4,7 +4,8 @@
 \alias{calcRealCatch}
 \title{Calculate realized catches}
 \usage{
-calcRealCatch(rec, tac, sigma = 0.1, random = FALSE)
+calcRealCatch(rec, tac, sigma = 0.1, random = FALSE,
+  setSeedInput = NULL)
 }
 \arguments{
 \item{rec}{A numeric vector of length nCU representing CU-specific
@@ -19,6 +20,10 @@ parameter.}
 \item{random}{A logical (default `FALSE`) used to restandardize random number
 generator because `rbeta()` seems to produce variable draws (should be
 corrected in future).}
+
+\item{setSeedInput}{A numeric representing the combination MC trial and
+simulation year to ensure that scenarios are sampling the seed, but allowing
+draws to otherwise vary.}
 }
 \value{
 Returns a vector of length nCU representing realized catches
