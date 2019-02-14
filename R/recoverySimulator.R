@@ -1092,9 +1092,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         }
       }
 
-      #is forecasted status consistent w/ fishery being open?
-      #NOTE THE OPENFISHERY PM SHOULD BE TWEAKED IF WE WANT TO INCLUDE IT IN
-      #PUBS
+      #NOTE this PM is very CU-specific and should be modified to be more
+      #generic
       for (m in 1:nMU) {
         CUs <- which(manUnit %in% muName[m])
         if (species == "sockeye") {
@@ -1103,10 +1102,14 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           highRefPtMU[y, m] <- tamFRP[tamFRP$cyc == cycle[y] &
                                         tamFRP$manUnit == muName[m],
                                       "highRefPt"]
+          #extract management adjustment to multiply FRP by (i.e.
+          #recruit abundance has to exceed threshold that accounts for en route
+          #mort)
+          adjEG <- (unique(cuPar[cuPar$manUnit == muName[m], "medMA"]) + 1) *
+            lowRefPtMU[y, m]
           #if forecasted recruitment within an MU is over lower ref pt,
           #assume fishery should be open
-          openFishery[y, m] <- ifelse(sum(foreRecRY[y, CUs]) > lowRefPtMU[y, m],
-                                      1, 0)
+          openFishery[y, m] <- ifelse(sum(recRY[y, CUs]) > adjEG, 1, 0)
         }
         if (species == "chum") {
           #target ER for Canadian fisheries in Nass MU
@@ -1124,7 +1127,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           }
         }
       }
-
 
       ppnOpenFishery[y, n] <- mean(openFishery[y, ])
       if (harvContRule == "TAM") {
@@ -1853,6 +1855,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                  sep = "/"))
 
   # Store aggregate data as data frame; each variable is a vector of single, trial-specific values
+  yrsSeq <- (nPrime + 1):nYears
   aggDat <- data.frame(opMod = rep(nameOM, length.out = nTrials),
                        manProc = rep(nameMP, length.out = nTrials),
                        keyVar = rep(keyVar, length.out = nTrials),
@@ -1860,40 +1863,41 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                        hcr = rep(harvContRule, length.out = nTrials),
                        trial = seq(from = 1, to = nTrials, length.out = nTrials),
                        targetER = apply(targetExpRateAg[(nPrime + 1):nYears, ], 2, median), #median target ER (stable through time unless TAM rule active)
-                       medSpawners = apply(sAg[(nPrime + 1):nYears, ], 2, median), #median aggregate spawner abundance across management period (i.e. loop 3 when status is assessed)
-                       varSpawners = apply(sAg[(nPrime + 1):nYears, ], 2, cv), #cv aggregate spawner abundance across management period
-                       medObsSpawners = apply(obsSAg[(nPrime + 1):nYears, ], 2, median), #median aggregate estimated spawner abundance across management period (i.e. loop 3 when status is assessed)
-                       varObsSpawners = apply(obsSAg[(nPrime + 1):nYears, ], 2, cv), #cv aggregate estimated spawner abundance across management period
-                       medRecRY = apply(recRYAg[(nPrime + 1):nYears, ], 2, median), #median aggregate spawner abundance across management period (i.e. loop 3 when status is assessed)
-                       varRecRY = apply(recRYAg[(nPrime + 1):nYears, ], 2, cv), #cv aggregate recruit abundance across management period
-                       medRecBY = apply(recBYAg[(nPrime + 1):nYears, ], 2, median), #median aggregate recruit abundance across management period (i.e. loop 3 when status is assessed)
-                       varRecBY = apply(recBYAg[(nPrime + 1):nYears, ], 2, cv), #cv aggregate recruit abundance across management period
-                       medObsRecBY = apply(obsRecBYAg[(nPrime + 1):nYears, ], 2,
+                       medSpawners = apply(sAg[yrsSeq, ], 2, median), #median aggregate spawner abundance across management period (i.e. loop 3 when status is assessed)
+                       varSpawners = apply(sAg[yrsSeq, ], 2, cv), #cv aggregate spawner abundance across management period
+                       medObsSpawners = apply(obsSAg[yrsSeq, ], 2, median), #median aggregate estimated spawner abundance across management period (i.e. loop 3 when status is assessed)
+                       varObsSpawners = apply(obsSAg[yrsSeq, ], 2, cv), #cv aggregate estimated spawner abundance across management period
+                       medRecRY = apply(recRYAg[yrsSeq, ], 2, median), #median aggregate spawner abundance across management period (i.e. loop 3 when status is assessed)
+                       varRecRY = apply(recRYAg[yrsSeq, ], 2, cv), #cv aggregate recruit abundance across management period
+                       medRecBY = apply(recBYAg[yrsSeq, ], 2, median), #median aggregate recruit abundance across management period (i.e. loop 3 when status is assessed)
+                       varRecBY = apply(recBYAg[yrsSeq, ], 2, cv), #cv aggregate recruit abundance across management period
+                       medObsRecBY = apply(obsRecBYAg[yrsSeq, ], 2,
                                             function(x) median(x, na.rm = TRUE)), #median aggregate estimated recruit abundance across management period (i.e. loop 3 when status is assessed)
-                       varObsRecBY = apply(obsRecBYAg[(nPrime + 1):nYears, ], 2, cv), #cv aggregate estimated recruit abundance across management period
-                       medObsRecRY = apply(obsRecRYAg[(nPrime + 1):nYears, ], 2, median), #median aggregate estimated recruit abundance across management period (i.e. loop 3 when status is assessed)
-                       varObsRecRY = apply(obsRecRYAg[(nPrime + 1):nYears, ], 2, cv), #cv aggregate estimated recruit abundance across management period
+                       varObsRecBY = apply(obsRecBYAg[yrsSeq, ], 2, cv), #cv aggregate estimated recruit abundance across management period
+                       medObsRecRY = apply(obsRecRYAg[yrsSeq, ], 2, median), #median aggregate estimated recruit abundance across management period (i.e. loop 3 when status is assessed)
+                       varObsRecRY = apply(obsRecRYAg[yrsSeq, ], 2, cv), #cv aggregate estimated recruit abundance across management period
                        medSpawnersLate = apply(sAg[(nYears - (3 * gen)):nYears, ], 2, median), #median aggregate spawner abundance in last 2 generations of management period
-                       medCatch = apply(catchAg[(nPrime + 1):nYears, ], 2, median), #median aggregate catch across management period
-                       varCatch = apply(catchAg[(nPrime + 1):nYears, ], 2, cv), #cv aggregate catch across management period
-                       stabilityCatch = apply(catchAg[(nPrime + 1):nYears, ], 2,
+                       medCatch = apply(catchAg[yrsSeq, ], 2, median), #median aggregate catch across management period
+                       varCatch = apply(catchAg[yrsSeq, ], 2, cv), #cv aggregate catch across management period
+                       stabilityCatch = apply(catchAg[yrsSeq, ], 2,
                                               function(x) 1 / cv(x)), #stability of aggregate catch across management period
-                       medObsCatch = apply(obsCatchAg[(nPrime + 1):nYears, ], 2, median), #median aggregate catch across management period
-                       varObsCatch = apply(obsCatchAg[(nPrime + 1):nYears, ], 2, cv), #cv aggregate catch across management period
-                       stabilityObsCatch = apply(obsCatchAg[(nPrime + 1):nYears, ], 2,
+                       medObsCatch = apply(obsCatchAg[yrsSeq, ], 2, median), #median aggregate catch across management period
+                       varObsCatch = apply(obsCatchAg[yrsSeq, ], 2, cv), #cv aggregate catch across management period
+                       stabilityObsCatch = apply(obsCatchAg[yrsSeq, ], 2,
                                                  function(x) 1 / cv(x)), #stability of obs aggregate catch across management period
                        medCatchLate = apply(catchAg[(nYears - 3*gen):nYears, ], 2, median), #median aggregate catch in last 2 generations of management period
-                       medER = apply(expRateAg[(nPrime + 1):nYears,], 2, median), #median true aggregate ER
-                       medObsER = apply(obsExpRateAg[(nPrime + 1):nYears, ], 2, median), #median true aggregate ER
-                       ppnYrsLowCatch = apply(lowCatchAgBM[(nPrime + 1):nYears, ], 2, mean), #proportion of years in management period aggregate catch is above summed catch thresholds
-                       ppnYrsHighCatch = apply(highCatchAgBM[(nPrime + 1):nYears, ], 2, mean), #proportion of years in management period aggregate catch is above summed catch thresholds
-                       ppnYrsCUsLower = apply(ppnLowerBM[(nPrime + 1):nYears, ], 2, mean), #proportion of years at least 50% of CUs are above lower BM
-                       ppnYrsCUsUpper = apply(ppnUpperBM[(nPrime + 1):nYears, ], 2, mean), #proportion of years at least 50% of CUs are above upper BM
-                       ppnMixedOpen = apply(ppnOpenFishery[(nPrime + 1):nYears, ], 2, mean), #proportion of years all fisheries are open
-                       ppnSingleOpen = apply(na.omit(ppnCUsOpenSingle), 2,
-                                                mean),
-                       ppnCUUpper = apply(ppnCUsUpperBM[(nPrime + 1):nYears, ], 2, mean), #mean proportion of CUs above upper benchmark in last generations of management period
-                       ppnCULower = apply(ppnCUsLowerBM[(nPrime + 1):nYears, ], 2, mean), #mean proportion of CUs above lower benchmark in last generations of management period
+                       medER = apply(expRateAg[yrsSeq,], 2, median), #median true aggregate ER
+                       medObsER = apply(obsExpRateAg[yrsSeq, ], 2, median), #median true aggregate ER
+                       ppnYrsLowCatch = apply(lowCatchAgBM[yrsSeq, ], 2, mean), #proportion of years in management period aggregate catch is above summed catch thresholds
+                       ppnYrsHighCatch = apply(highCatchAgBM[yrsSeq, ], 2, mean), #proportion of years in management period aggregate catch is above summed catch thresholds
+                       ppnYrsCUsLower = apply(ppnLowerBM[yrsSeq, ], 2, mean), #proportion of years at least 50% of CUs are above lower BM
+                       ppnYrsCUsUpper = apply(ppnUpperBM[yrsSeq, ], 2, mean), #proportion of years at least 50% of CUs are above upper BM
+                       ppnMixedOpen = apply(ppnOpenFishery[yrsSeq, ], 2, mean), #proportion of years all fisheries are open
+                       ppnSingleOpen = apply(na.omit(ppnCUsOpenSingle), 2, mean),
+                       ppnYrsAllMixOpen = apply(ppnOpenFishery[yrsSeq, ], 2,
+                                                  function(x) length(which(x == 1.00)) / length(x)), #proportion of yrs all MU's fisheries are open
+                       ppnCUUpper = apply(ppnCUsUpperBM[yrsSeq, ], 2, mean), #mean proportion of CUs above upper benchmark in last generations of management period
+                       ppnCULower = apply(ppnCUsLowerBM[yrsSeq, ], 2, mean), #mean proportion of CUs above lower benchmark in last generations of management period
                        ppnCUEstUpper = apply(na.omit(ppnCUsUpperObsBM), 2, mean), #proportion of CUs estimated above upper benchmark in last 2 generations of management period
                        ppnCUEstLower = apply(na.omit(ppnCUsLowerObsBM), 2, mean), #proportion of CUs estimated above lower benchmark in last 2 generations of management period
                        ppnCURecover = apply(na.omit(counterLateUpperBM), 1, mean), #proportion of CUs above upper benchmark in last generations of management period
