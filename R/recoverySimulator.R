@@ -43,7 +43,7 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 10
-# simPar <- simParF[10, ]
+# simPar <- simParF[28, ]
 # makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 # random <- FALSE
 
@@ -234,51 +234,21 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   if (is.null(ricPars) == FALSE) {
     dum <- getSRPars(pars = ricPars, alphaOnly = TRUE, highP = 0.95,
                      lowP = 0.05, stks = stkID)
-    #following code could be pulled from here and added to getSRPars()
-    if (prod == "low" | prod == "lowStudT") {
-      srPars <- dum$pMed %>%
-        dplyr::mutate(alpha = alpha * 0.65) #dum$pLow
-    }
-    if (prod == "med" | prod == "studT"| prod == "skew" | prod == "skewT") {
-      srPars <- dum$pMed
-    }
-    if (prod == "high") {
-      srPars <- dum$pMed %>%
-        dplyr::mutate(alpha = alpha * 1.35)#dum$pHigh
-    }
-    if (prod == "decline") {
-      srPars <- dum$pMed
-      #floor value to which A declines equals lower probabily
-      finalRicA <- as.numeric(dum$pLow[["alpha"]])
-    }
-    ricA <- srPars[["alpha"]]
-    ricB <- srPars[["beta0"]]
-    ricSig <- srPars[["sigma"]]
+    ricA <- dum$pMed[["alpha"]]
+    ricB <- dum$pMed[["beta0"]]
+    ricSig <- dum$pMed[["sigma"]]
     if (is.null(larkPars) == FALSE) {
-      dum <- getSRPars(pars = larkPars, alphaOnly = TRUE, highP = 0.95,
+      #getSRPars provides quantiles as well which can be used for high/low prod
+      #treatments but this is currently replaced by applying a simple scalar
+      #based on mean differences estimated from kalman filter
+      dumLark <- getSRPars(pars = larkPars, alphaOnly = TRUE, highP = 0.95,
                        lowP = 0.05, stks = stkID)
-      if (prod == "low" | prod == "lowStudT") {
-        srParsLark <- dum$pMed %>%
-          dplyr::mutate(alpha = alpha * 0.65) #dum$pLow
-      }
-      if (prod == "med" | prod == "studT" |  prod == "skew" | prod == "skewT") {
-        srParsLark <- dum$pMed
-      }
-      if (prod == "high") {
-        srParsLark <- dum$pMed %>%
-          dplyr::mutate(alpha = alpha * 1.35)#dum$pHigh
-      }
-      if (prod == "decline") {
-        srParsLark <- dum$pMed
-        #floor value to which A declines
-        finalLarA <- as.numeric(dum$pLow[["alpha"]])
-      }
-      larA <- (srParsLark[["alpha"]])
-      larB <- (srParsLark[["beta0"]])
-      larB1 <- (srParsLark[["beta1"]])
-      larB2 <- (srParsLark[["beta2"]])
-      larB3 <- (srParsLark[["beta3"]])
-      larSig <- (srParsLark[["sigma"]])
+      larA <- (dumLark$pMed[["alpha"]])
+      larB <- (dumLark$pMed[["beta0"]])
+      larB1 <- (dumLark$pMed[["beta1"]])
+      larB2 <- (dumLark$pMed[["beta2"]])
+      larB3 <- (dumLark$pMed[["beta3"]])
+      larSig <- (dumLark$pMed[["sigma"]])
     }
   }
   # adjust sigma (Ricker only) following Holt and Folkes 2015 if a
@@ -286,28 +256,35 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   if (is.null(simPar$arSigTransform) == FALSE & simPar$arSigTransform == TRUE) {
     ricSig <- ricSig^2 * (1 - rho^2)
   }
-  alpha <- ifelse(model == "ricker", ricA, larA)
+  # save reference alpha values for use when calculating BMs, then adjust alpha
+  # based on productivity scenario
+  refAlpha <- ifelse(model == "ricker", ricA, larA)
+  if (prod == "low" | prod == "lowStudT") {
+    alpha <- 0.65 * refAlpha
+  }
+  if (prod == "med" | prod == "studT"| prod == "skew" | prod == "skewT") {
+    alpha <- refAlpha
+  }
+  if (prod == "high") {
+    alpha <- 1.35 * refAlpha
+  }
+  if (prod == "decline") {
+    alpha <- refAlpha
+    finalAlpha <- 0.65 * alpha
+    trendAlpha <- abs(alpha - finalAlpha) / (startYr - endYr) #calculate rate of change in alpha
+  } else {
+    finalAlpha <- alpha #for stable trends use as placeholder for subsequent ifelse
+  }
+
   beta <- ifelse(model == "ricker", ricB, larB)
-  #note that unlike other stochasticity parameters beta and sigma are adjusted
-  #with a scalar
   if (is.null(simPar$adjustBeta) == FALSE) {
     beta <- beta * simPar$adjustBeta
   }
   #adjust sigma up or down
   sig <- ifelse(model == "ricker", ricSig, larSig) * adjSig
-  if (prod == "decline") {
-    startYr <- simPar$startYear
-    endYr <- simPar$endYear
-  }
-  if (prod == "decline") {
-    finalAlpha <- ifelse(model == "ricker", finalRicA, finalLarA)
-    trendAlpha <- abs(alpha - finalAlpha) / (startYr - endYr) #calculate rate of change in alpha
-  } else {
-    finalAlpha <- alpha #for stable trends use as placeholder for subsequent ifelse
-  }
-  residMatrix <- getResiduals(recDat, model) #pull residuals from observed data and save
 
-  # Add correlations in rec deviations
+  residMatrix <- getResiduals(recDat, model) #pull residuals from observed data and save
+  #Add correlations in rec deviations
   if (simPar$corrMat == TRUE) { #replace uniform correlation w/ custom matrix
     if (nrow(cuCustomCorrMat) != nCU) {
       stop("Custom correlation matrix does not match number of CUs")
@@ -639,6 +616,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     #observed abundances to "prime" the simulation
     for (y in 1:nPrime) {
       ## Population model: store SR pars, spawner, and recruit abundances
+      #Move alpha to matrix in case it's a declining scenario
       alphaMat[y, ] <- alpha
 
       for (k in 1:nCU) {
@@ -713,20 +691,17 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           s75th[y, k, n] <- sort(sNoNA)[n75th]
           #calculate SR BMs
           if (model[k] == "ricker") {
-            sEqVar[y, k, n] <- alphaMat[y, k] / beta[k]
-            sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - alphaMat[y, k]))) /
+            sEqVar[y, k, n] <- refAlpha[k] / beta[k]
+            sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha[k]))) /
               beta[k]
-            # if (is.na(log(sMSY[y, k, n]))) {
-            #   stop("Benchmark calculation is NA")
-            # }
             sGen[y, k, n] <- as.numeric(sGenSolver(
-              theta = c(alphaMat[y, k], alphaMat[y, k] / sEqVar[y, k, n],
-                        ricSig[k]), sMSY = sMSY[y, k, n]
+              theta = c(refAlpha[k], refAlpha[k] / sEqVar[y, k, n], ricSig[k]),
+              sMSY = sMSY[y, k, n]
             ))
           }
           if (model[k] == "larkin") {
             #modified alpha used to estimate Larkin BMs
-            alphaPrimeMat[y, k] <- alphaMat[y, k] - (larB1[k] * S[y - 1, k]) -
+            alphaPrimeMat[y, k] <- refAlpha[k] - (larB1[k] * S[y - 1, k]) -
               (larB2[k] * S[y-2, k]) - (larB3[k] * S[y - 3,  k])
             sEqVar[y, k, n] <- ifelse(alphaPrimeMat[y, k] > 0,
                                       alphaPrimeMat[y, k] / beta[k],
@@ -865,18 +840,16 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                               alphaMat[y - 1, ])
       for (k in 1:nCU) {
         if (model[k] == "ricker") {
-          sEqVar[y, k, n] <- alphaMat[y, k] / beta[k]
-          sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - alphaMat[y, k]))) /
-            beta[k]
+          sEqVar[y, k, n] <- refAlpha[k] / beta[k]
+          sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha[k]))) / beta[k]
           sGen[y, k, n] <- as.numeric(sGenSolver(
-            theta = c(alphaMat[y, k],alphaMat[y, k] / sEqVar[y, k, n],
-                      ricSig[k]),
+            theta = c(refAlpha[k], refAlpha[k] / sEqVar[y, k, n], ricSig[k]),
             sMSY = sMSY[y, k, n]
           ))
         }
         if (model[k] == "larkin") {
           #modified alpha used to estimate Larkin BMs
-          alphaPrimeMat[y, k] <- alphaMat[y, k] - (larB1[k] * S[y - 1, k]) -
+          alphaPrimeMat[y, k] <- refAlpha[k] - (larB1[k] * S[y - 1, k]) -
             (larB2[k] * S[y-2, k]) - (larB3[k] * S[y - 3, k])
           sEqVar[y, k, n] <- ifelse(alphaPrimeMat[y, k] > 0,
                                     alphaPrimeMat[y, k] / beta[k],
