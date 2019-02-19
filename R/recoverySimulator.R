@@ -1861,24 +1861,24 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                        medCatchLate = apply(catchAg[(nYears - 3*gen):nYears, ], 2, median), #median aggregate catch in last 2 generations of management period
                        medER = apply(expRateAg[yrsSeq,], 2, median), #median true aggregate ER
                        medObsER = apply(obsExpRateAg[yrsSeq, ], 2, median), #median true aggregate ER
-                       ppnYrsLowCatch = apply(lowCatchAgBM[yrsSeq, ], 2, median), #proportion of years in management period aggregate catch is above summed catch thresholds
-                       ppnYrsHighCatch = apply(highCatchAgBM[yrsSeq, ], 2, median), #proportion of years in management period aggregate catch is above summed catch thresholds
-                       ppnYrsCUsLower = apply(ppnLowerBM[yrsSeq, ], 2, median), #proportion of years at least 50% of CUs are above lower BM
-                       ppnYrsCUsUpper = apply(ppnUpperBM[yrsSeq, ], 2, median), #proportion of years at least 50% of CUs are above upper BM
-                       ppnMixedOpen = apply(ppnOpenFishery[yrsSeq, ], 2, median), #proportion of years all fisheries are open
-                       ppnSingleOpen = apply(na.omit(ppnCUsOpenSingle), 2, median),
+                       ppnYrsLowCatch = apply(lowCatchAgBM[yrsSeq, ], 2, mean), #proportion of years in management period aggregate catch is above summed catch thresholds
+                       ppnYrsHighCatch = apply(highCatchAgBM[yrsSeq, ], 2, mean), #proportion of years in management period aggregate catch is above summed catch thresholds
+                       ppnYrsCUsLower = apply(ppnLowerBM[yrsSeq, ], 2, mean), #proportion of years at least 50% of CUs are above lower BM
+                       ppnYrsCUsUpper = apply(ppnUpperBM[yrsSeq, ], 2, mean), #proportion of years at least 50% of CUs are above upper BM
+                       ppnMixedOpen = apply(ppnOpenFishery[yrsSeq, ], 2, mean), #proportion of years all fisheries are open
+                       ppnSingleOpen = apply(na.omit(ppnCUsOpenSingle), 2, mean),
                        ppnYrsAllMixOpen = apply(ppnOpenFishery[yrsSeq, ], 2,
                                                   function(x) length(which(x == 1.00)) / length(x)), #proportion of yrs all MU's fisheries are open
-                       ppnCUUpper = apply(ppnCUsUpperBM[yrsSeq, ], 2, median), #median proportion of CUs above upper benchmark in last generations of management period
-                       ppnCULower = apply(ppnCUsLowerBM[yrsSeq, ], 2, median), #median proportion of CUs above lower benchmark in last generations of management period
-                       ppnCUEstUpper = apply(na.omit(ppnCUsUpperObsBM), 2, median), #proportion of CUs estimated above upper benchmark in last 2 generations of management period
-                       ppnCUEstLower = apply(na.omit(ppnCUsLowerObsBM), 2, median), #proportion of CUs estimated above lower benchmark in last 2 generations of management period
-                       ppnCURecover = apply(na.omit(counterLateUpperBM), 1, median), #proportion of CUs above upper benchmark in last generations of management period
-                       ppnCUStable = apply(na.omit(counterLateLowerBM), 1, median), #proportion of CUs above lower benchmark in last generations of management period
+                       ppnCUUpper = apply(ppnCUsUpperBM[yrsSeq, ], 2, mean), #mean proportion of CUs above upper benchmark in last generations of management period
+                       ppnCULower = apply(ppnCUsLowerBM[yrsSeq, ], 2, mean), #mean proportion of CUs above lower benchmark in last generations of management period
+                       ppnCUEstUpper = apply(na.omit(ppnCUsUpperObsBM), 2, mean), #proportion of CUs estimated above upper benchmark in last 2 generations of management period
+                       ppnCUEstLower = apply(na.omit(ppnCUsLowerObsBM), 2, mean), #proportion of CUs estimated above lower benchmark in last 2 generations of management period
+                       ppnCURecover = apply(na.omit(counterLateUpperBM), 1, mean), #proportion of CUs above upper benchmark in last generations of management period
+                       ppnCUStable = apply(na.omit(counterLateLowerBM), 1, mean), #proportion of CUs above lower benchmark in last generations of management period
                        ppnCUExtinct = ppnCUsExtinct[nYears, ], #proportion of CUs extinct at end of simulation period
                        ppnCUExtant = (1 - ppnCUsExtinct[nYears, ]), #proportion of CUs EXTANT at end of simulation period
                        ppnCUConstrained = apply(na.omit(ppnConstrained), 2,
-                                                median),
+                                                mean),
                        medSpawnersEarly = apply(sAg[(nPrime + 1):endEarly, ], 2, median),
                        medRecRYEarly = apply(recRYAg[(nPrime + 1):endEarly, ], 2, median),
                        medCatchEarly = apply(catchAg[(nPrime + 1):endEarly, ], 2, median) #median aggregate catch in first 2 generations of management period
