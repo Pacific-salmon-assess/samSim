@@ -15,8 +15,9 @@
 
 #Temporary inputs
 # here <- here::here
+# require(samSim)
 # simParF <- read.csv(here("data", "manProcScenarios",
-#                          "fraserMPInputs_varyMixPpnHCRs_baseAnalysis.csv"),
+#                          "fraserMPInputs_varyAllocationVaryFixedER.csv"),
 #                     stringsAsFactors = F)
 # cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
 # srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
@@ -43,7 +44,7 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 10
-# simPar <- simParF[28, ]
+# simPar <- simParF[1, ]
 # makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 # random <- FALSE
 
@@ -482,6 +483,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   ppnYrsLowerBM <- matrix(NA, nrow = nTrials, ncol = nCU)
   ppnYrsUpperObsBM <- matrix(NA, nrow = nTrials, ncol = nCU)
   ppnYrsLowerObsBM <- matrix(NA, nrow = nTrials, ncol = nCU)
+  ppnYrsOpenSingle <- matrix(NA, nrow = nTrials, ncol = nCU)
   counterEarlyUpperBM <- matrix(0, nrow = nTrials, ncol = nCU)
   counterEarlyLowerBM <- matrix(0, nrow = nTrials, ncol = nCU)
   counterLateUpperBM <- matrix(0, nrow = nTrials, ncol = nCU)
@@ -1261,8 +1263,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       migMort2 <- remRec4 * ((1 - preFMigMort) * migMortRate[y, ])
       migMort[y, ] <- migMort1 + migMort2
 
-
-
       #summary catch calculations
       totalCatch[y, ] <- amCatch[y, ] + mixCatch[y, ] + singCatch[y, ]
       amCatchAg[y, n] <- sum(amCatch[y, ])
@@ -1732,6 +1732,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                    mean)
     ppnYrsLowerObsBM[n, ] <- apply(na.omit(counterLowerObsBM[yrsSeq, ]), 2,
                                    mean)
+    ppnYrsOpenSingle[n, ] <- apply(na.omit(counterSingleBMLow[yrsSeq, ]), 2,
+                                   mean)
     #PMs for early period
     medEarlyS[n, ] <- apply(na.omit(S[(nPrime + 1):endEarly, ]), 2, median)
     medEarlyRecRY[n, ] <- apply(na.omit(recRY[(nPrime + 1):endEarly, ]), 2,
@@ -1766,7 +1768,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                  medTotalER, medTotalObsER, medTAMSingER, medForgoneCatch,
                  counterEarlyUpperBM, counterEarlyLowerBM, ppnYrsUpperBM,
                  ppnYrsLowerBM, ppnYrsUpperObsBM, ppnYrsLowerObsBM, ppnYrsCOS,
-                 ppnYrsWSP, medEarlyS, medEarlyRecRY, medEarlyTotalCatch)
+                 ppnYrsWSP, medEarlyS, medEarlyRecRY, medEarlyTotalCatch,
+                 ppnYrsOpenSingle)
   names(cuList) <- c("opMod", "keyVar", "plotOrder", "manProc", "hcr",
                      "stkName", "stkNumber", "manUnit", "targetER", "meanSMSY",
                      "meanSGen", "medSpawners", "varSpawners", "medObsSpawners",
@@ -1780,7 +1783,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                      "counterEarlyLower", "ppnYrsUpper", "ppnYrsLower",
                      "ppnYrsEstUpper", "ppnYrsEstLower", "ppnYrsCOS",
                      "ppnYrsWSP", "medEarlyS", "medEarlyRecRY",
-                     "medEarlyTotalCatch")
+                     "medEarlyTotalCatch", "ppnYrsSingleOpen")
   fileName <- ifelse(variableCU == "TRUE",
                      paste(cuNameOM, cuNameMP, "cuDat.RData", sep = "_"),
                      paste(nameOM, nameMP, "cuDat.RData", sep = "_"))
