@@ -518,3 +518,9 @@ Potential issues
 - Change highProd and lowProd defaults to + or - 35% of median value
 - Based on observed difference between average productivity and max/min estimates from Kalman filter productivity estimates
   - Details in `salmon-sim/scripts/frKalmanAClear.R`
+
+
+### 50) Stabilize BMs relative to productivity changes (Feb 13)
+-	Previously Smsy and Sgen were calculated based on realized productivity
+-	However since reductions in alpha lead to reductions in Smsy, this resulted in PMs such as the ppn of CUs above their BM appearing relatively optimistic, particularly if management is not able to accurately update those markers
+-	Instead always calculate BMs relative to default (i.e. median) productivity to maximize comparisons among OMs 
