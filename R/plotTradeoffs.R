@@ -178,6 +178,7 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
 #' @param legendLab A character representing the legend title.
 #' @param xLab A character representing the x axis label.
 #' @param yLab A character representing the y axis label.
+#' @param mainLab A character specifying a plot title (defaults to NULL).
 #' @param freeY A logical specifying whether y-axis values should be allowed to
 #' vary across facets.
 #' @return Returns a ggplot object.
@@ -189,16 +190,18 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
 #' yLab = "Median Spawners")
 #'
 #' @export
-plotAgTradeoff <- function(agDat, consVar = "medSpawners", catchVar = "medCatch",
-                           facet = "om", showUncertainty = FALSE,
-                           legendLab = NULL, xLab = NULL, yLab = NULL,
+plotAgTradeoff <- function(agDat, consVar = "medSpawners",
+                           catchVar = "medCatch", facet = "om",
+                           showUncertainty = FALSE, legendLab = NULL,
+                           xLab = NULL, yLab = NULL, mainLab = NULL,
                            axisSize = 14, dotSize = 4, lineSize = 1.25,
                            legendSize = 14, freeY = TRUE) {
   if (is.null(xLab) | is.null(yLab)) {
     warning("Suggest adding axis labels before interpreting plots")
   }
 
-  dum <- agDat %>% filter(var == catchVar | var == consVar)
+  dum <- agDat %>%
+    filter(var == catchVar | var == consVar)
   dum$var <- plyr::mapvalues(dum$var, from = c(consVar, catchVar), #change factor names to make plotting universal
                              to = c("consVar", "catchVar"))
   #necessary to spread for tradeoff plots; NOTE: if errors, check indexing correct)
@@ -219,6 +222,12 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners", catchVar = "medCatch"
       mutate(facetVar = as.factor(om))
   }
 
+  #filler for HCR
+  if (is.null(wideDum$hcr) & length(unique(wideDum$mp)) == 1) {
+    wideDum <- wideDum %>%
+      mutate(hcr = mp)
+  }
+
   p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg, shape = hcr,
                            alpha = keyVar)) +
     geom_point(size = dotSize, fill = "black") +
@@ -228,10 +237,11 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners", catchVar = "medCatch"
           axis.title = element_text(size = axisSize),
           legend.text = element_text(size = 0.9 * legendSize),
           legend.title = element_text(size = legendSize)) +
-    labs(x = xLab, y = yLab) +
+    labs(x = xLab, y = yLab, title = mainLab) +
     scale_shape_manual(values = c(21, 25), name = "Control Rule") +
     scale_alpha_discrete(range = c(0.3, 1), name = legendLab)  +
     facet_wrap(~ facetVar, scales = "free")
+
   if (length(unique(wideDum$hcr)) < 2) {
     p <- p +
       guides(shape = "none")

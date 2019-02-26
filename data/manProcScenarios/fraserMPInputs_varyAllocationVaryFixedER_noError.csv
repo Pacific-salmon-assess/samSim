@@ -1,0 +1,16 @@
+scenario,nameOM,nameMP,keyVar,plotOrder,species,simYears,harvContRule,benchmark,canER,usER,propMixHigh,enRouteMort,constrain,singleHCR,moveTAC,prodRegime,startYear,endYear,rho,arSigTransform,correlCU,corrMat,tauCatch,obsSig,mixOUSig,singOUSig,obsMixCatchSig,obsSingCatchSig,obsAgeErr,lowCatchThresh,highCatchThresh,extinctThresh,adjustSig,adjustAge,adjustForecast,adjustEnRouteSig,preFMigMort
+lowFixedRetro_noErr,ref,NA,ppnMix,1,sockeye,20,fixedER,stockRecruit,0.1,NA,1,TRUE,TRUE,retro,FALSE,med,NA,NA,0.2,TRUE,0.4,FALSE,0,0,0,0,0,0,0,0.5,1,0.0001,1,1,1,1,0
+lowFixedRetro_noErr,ref,NA,ppnMix,2,sockeye,20,fixedER,stockRecruit,0.1,NA,0.75,TRUE,TRUE,retro,FALSE,med,NA,NA,0.2,TRUE,0.4,FALSE,0,0,0,0,0,0,0,0.5,1,0.0001,1,1,1,1,0
+lowFixedRetro_noErr,ref,NA,ppnMix,3,sockeye,20,fixedER,stockRecruit,0.1,NA,0.5,TRUE,TRUE,retro,FALSE,med,NA,NA,0.2,TRUE,0.4,FALSE,0,0,0,0,0,0,0,0.5,1,0.0001,1,1,1,1,0
+lowFixedRetro_noErr,ref,NA,ppnMix,4,sockeye,20,fixedER,stockRecruit,0.1,NA,0.25,TRUE,TRUE,retro,FALSE,med,NA,NA,0.2,TRUE,0.4,FALSE,0,0,0,0,0,0,0,0.5,1,0.0001,1,1,1,1,0
+lowFixedRetro_noErr,ref,NA,ppnMix,5,sockeye,20,fixedER,stockRecruit,0.1,NA,0,TRUE,TRUE,retro,FALSE,med,NA,NA,0.2,TRUE,0.4,FALSE,0,0,0,0,0,0,0,0.5,1,0.0001,1,1,1,1,0
+medFixedRetro_noErr,ref,NA,ppnMix,1,sockeye,20,fixedER,stockRecruit,0.4,NA,1,TRUE,TRUE,retro,FALSE,med,NA,NA,0.2,TRUE,0.4,FALSE,0,0,0,0,0,0,0,0.5,1,0.0001,1,1,1,1,0
+medFixedRetro_noErr,ref,NA,ppnMix,2,sockeye,20,fixedER,stockRecruit,0.4,NA,0.75,TRUE,TRUE,retro,FALSE,med,NA,NA,0.2,TRUE,0.4,FALSE,0,0,0,0,0,0,0,0.5,1,0.0001,1,1,1,1,0
+medFixedRetro_noErr,ref,NA,ppnMix,3,sockeye,20,fixedER,stockRecruit,0.4,NA,0.5,TRUE,TRUE,retro,FALSE,med,NA,NA,0.2,TRUE,0.4,FALSE,0,0,0,0,0,0,0,0.5,1,0.0001,1,1,1,1,0
+medFixedRetro_noErr,ref,NA,ppnMix,4,sockeye,20,fixedER,stockRecruit,0.4,NA,0.25,TRUE,TRUE,retro,FALSE,med,NA,NA,0.2,TRUE,0.4,FALSE,0,0,0,0,0,0,0,0.5,1,0.0001,1,1,1,1,0
+medFixedRetro_noErr,ref,NA,ppnMix,5,sockeye,20,fixedER,stockRecruit,0.4,NA,0,TRUE,TRUE,retro,FALSE,med,NA,NA,0.2,TRUE,0.4,FALSE,0,0,0,0,0,0,0,0.5,1,0.0001,1,1,1,1,0
+highFixedRetro_noErr,ref,NA,ppnMix,1,sockeye,20,fixedER,stockRecruit,0.7,NA,1,TRUE,TRUE,retro,FALSE,med,NA,NA,0.2,TRUE,0.4,FALSE,0,0,0,0,0,0,0,0.5,1,0.0001,1,1,1,1,0
+highFixedRetro_noErr,ref,NA,ppnMix,2,sockeye,20,fixedER,stockRecruit,0.7,NA,0.75,TRUE,TRUE,retro,FALSE,med,NA,NA,0.2,TRUE,0.4,FALSE,0,0,0,0,0,0,0,0.5,1,0.0001,1,1,1,1,0
+highFixedRetro_noErr,ref,NA,ppnMix,3,sockeye,20,fixedER,stockRecruit,0.7,NA,0.5,TRUE,TRUE,retro,FALSE,med,NA,NA,0.2,TRUE,0.4,FALSE,0,0,0,0,0,0,0,0.5,1,0.0001,1,1,1,1,0
+highFixedRetro_noErr,ref,NA,ppnMix,4,sockeye,20,fixedER,stockRecruit,0.7,NA,0.25,TRUE,TRUE,retro,FALSE,med,NA,NA,0.2,TRUE,0.4,FALSE,0,0,0,0,0,0,0,0.5,1,0.0001,1,1,1,1,0
+highFixedRetro_noErr,ref,NA,ppnMix,5,sockeye,20,fixedER,stockRecruit,0.7,NA,0,TRUE,TRUE,retro,FALSE,med,NA,NA,0.2,TRUE,0.4,FALSE,0,0,0,0,0,0,0,0.5,1,0.0001,1,1,1,1,0
