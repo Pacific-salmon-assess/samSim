@@ -14,17 +14,17 @@
 #' @export
 
 #Temporary inputs
-# here <- here::here
-# require(samSim)
-# simParF <- read.csv(here("data", "manProcScenarios",
-#                          "fraserMPInputs_varyAllocationVaryFixedER.csv"),
-#                     stringsAsFactors = F)
-# cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
-# srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
-# catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors=F)
-# ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors=F)
-# larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"), stringsAsFactors=F)
-# tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
+here <- here::here
+require(samSim)
+simParF <- read.csv(here("data", "manProcScenarios",
+                         "fraserMPInputs_varyAllocationVaryFixedER.csv"),
+                    stringsAsFactors = F)
+cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
+srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
+catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors=F)
+ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors=F)
+larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"), stringsAsFactors=F)
+tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
 
 # simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorr.csv"),
 #                     stringsAsFactors = F)
@@ -40,13 +40,13 @@
 # ricPars <- read.csv(here("data/northCoastDat/nassChumMCMCPars.csv"), stringsAsFactors=F)
 
 ## Misc. objects to run single trial w/ "reference" OM
-# uniqueProd <- TRUE
-# variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
-# dirName <- "TEST"
-# nTrials <- 10
-# simPar <- simParF[1, ]
-# makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
-# random <- FALSE
+uniqueProd <- TRUE
+variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
+dirName <- "TEST"
+nTrials <- 10
+simPar <- simParF[48, ]
+makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
+random <- FALSE
 
 recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                         variableCU=FALSE, makeSubDirs=TRUE, ricPars,
@@ -263,16 +263,22 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   if (prod == "low" | prod == "lowStudT") {
     alpha <- 0.65 * refAlpha
   }
-  if (prod == "med" | prod == "studT"| prod == "skew" | prod == "skewT") {
+  if (prod == "med" | prod == "studT"| prod == "skew" | prod == "skewT" |
+      prod == "decline" | prod == "divergent") {
     alpha <- refAlpha
   }
   if (prod == "high") {
     alpha <- 1.35 * refAlpha
   }
-  if (prod == "decline") {
-    alpha <- refAlpha
+  if (prod == "decline" ) {
     finalAlpha <- 0.65 * alpha
-    trendAlpha <- abs(alpha - finalAlpha) / (startYr - endYr) #calculate rate of change in alpha
+    #calculate rate of change in alpha
+    trendAlpha <- (alpha - finalAlpha) / simYears
+  } else if (prod == "divergent") {
+    #assign scalars randomly
+    prodScalars <- sample(c(0.65, 1, 1.35), nCU, replace = TRUE)
+    finalAlpha <- prodScalars * alpha
+    trendAlpha <- (alpha - finalAlpha) / simYears
   } else {
     finalAlpha <- alpha #for stable trends use as placeholder for subsequent ifelse
   }
@@ -837,8 +843,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     ### LOOP 3
     for (y in (nPrime + 1):nYears) {
       ### Population dynamics submodel
-      alphaMat[y, ] <- ifelse(prod == "decline" & alphaMat[y - 1, ] >
-                                finalAlpha,
+      # Declining and divergent productivity will have variable final alpha;
+      # all other regimes do not
+      alphaMat[y, ] <- ifelse(alphaMat[y - 1, ] > finalAlpha,
                               alphaMat[y - 1, ] + trendAlpha,
                               alphaMat[y - 1, ])
       for (k in 1:nCU) {
