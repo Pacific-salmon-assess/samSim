@@ -441,6 +441,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   obsExpRateAg <- matrix(NA, nrow = nYears, ncol = nTrials)
   spwnrArray <- array(NA, dim = c(nYears, nCU, nTrials))
   recArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  returnArray <- array(NA, dim = c(nYears, nCU, nTrials))
   logRSArray <- array(NA, dim = c(nYears, nCU, nTrials))
   recDevArray <- array(NA, dim = c(nYears, nCU, nTrials))
   migMortArray <- array(NA, dim = c(nYears, nCU, nTrials))
@@ -1669,6 +1670,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     # Store diagnostic outputs
     spwnrArray[ , , n] <- S # these arrays generated to pass to synch list
     recArray[ , , n] <- recBY
+    returnArray[ , , n] <- recRY
     logRSArray[ , , n] <- logRS
     obsTotalCatch <- obsAmCatch + obsMixCatch + obsSingCatch
     recDevArray[ , , n] <- errorCU
@@ -1791,10 +1793,11 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                sep = "/"))
 
   # CU- and trial-specific time series data (e.g. used to calculate synchrony)
-  synchList <- list(nameOM, plotOrder, nPrime, spwnrArray, recArray, logRSArray,
-                    recDevArray, migMortArray, singCatchArray, totalCatchArray)
-  names(synchList) <- c("nameOM", "plotOrder", "nPrime", "S", "recBY", "logRS",
-                        "recDev", "migMort", "singCatch", "totCatch")
+  synchList <- list(nameOM, plotOrder, nPrime, spwnrArray, recArray,
+                    returnArray, logRSArray, recDevArray, migMortArray,
+                    singCatchArray, totalCatchArray)
+  names(synchList) <- c("nameOM", "plotOrder", "nPrime", "S", "recBY", "recRY",
+                        "logRS", "recDev", "migMort", "singCatch", "totCatch")
   fileName <- ifelse(variableCU == "TRUE",
                      paste(cuNameOM, cuNameMP, "synchArrays.RData", sep = "_"),
                      paste(nameOM, nameMP, "synchArrays.RData", sep = "_"))
