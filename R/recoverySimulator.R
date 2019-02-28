@@ -274,14 +274,23 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     finalAlpha <- 0.65 * alpha
     #calculate rate of change in alpha
     trendAlpha <- (alpha - finalAlpha) / simYears
+    cuProdTrends <- rep("decline", length.out = nCU)
   } else if (prod == "divergent") {
     #assign scalars randomly
     prodScalars <- sample(c(0.65, 1, 1.35), nCU, replace = TRUE)
     finalAlpha <- prodScalars * alpha
     trendAlpha <- (alpha - finalAlpha) / simYears
+    cuProdTrends <- dplyr::case_when(
+      prodScalars == "0.65" ~ "decline",
+      prodScalars == "1" ~ "stable",
+      prodScalars == "1.35" ~ "increase"
+    )
   } else {
-    finalAlpha <- alpha #for stable trends use as placeholder for subsequent ifelse
+    #for stable trends use as placeholder for subsequent ifelse
+    finalAlpha <- alpha
+    cuProdTrends <- rep("stable", length.out = nCU)
   }
+
 
   beta <- ifelse(model == "ricker", ricB, larB)
   if (is.null(simPar$adjustBeta) == FALSE) {
@@ -845,7 +854,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       ### Population dynamics submodel
       # Declining and divergent productivity will have variable final alpha;
       # all other regimes do not
-      alphaMat[y, ] <- ifelse(alphaMat[y - 1, ] > finalAlpha,
+      alphaMat[y, ] <- ifelse(alphaMat[y - 1, ] != finalAlpha,
                               alphaMat[y - 1, ] + trendAlpha,
                               alphaMat[y - 1, ])
       for (k in 1:nCU) {
@@ -1768,7 +1777,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   meanSMSY <- arrayMean(sMSY) # CU's average BMs through time and trials
   meanSGen <- arrayMean(sGen)
   cuList <- list(nameOM, keyVar, plotOrder, nameMP, harvContRule, stkName,
-                 stkID, manUnit, targetER, meanSMSY, meanSGen, medS, varS,
+                 stkID, manUnit, targetER, cuProdTrends, meanSMSY, meanSGen,
+                 medS, varS,
                  medObsS, varObsS, medRecRY, varRecRY, medRecBY, varRecBY,
                  medObsRecRY, varObsRecRY, medAlpha, varAlpha, medEstAlpha,
                  varEstAlpha, medBeta,
@@ -1780,7 +1790,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                  ppnYrsWSP, medEarlyS, medEarlyRecRY, medEarlyTotalCatch,
                  ppnYrsOpenSingle)
   names(cuList) <- c("opMod", "keyVar", "plotOrder", "manProc", "hcr",
-                     "stkName", "stkNumber", "manUnit", "targetER", "meanSMSY",
+                     "stkName", "stkNumber", "manUnit", "targetER",
+                     "cuProdTrends", "meanSMSY",
                      "meanSGen", "medSpawners", "varSpawners", "medObsSpawners",
                      "varObsSpawners", "medRecRY", "varRecRY", "medRecBY",
                      "varRecBY", "medObsRecRY", "varObsRecRY", "medAlpha",
