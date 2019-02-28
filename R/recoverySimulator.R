@@ -14,17 +14,17 @@
 #' @export
 
 #Temporary inputs
-here <- here::here
-require(samSim)
-simParF <- read.csv(here("data", "manProcScenarios",
-                         "fraserMPInputs_varyAllocationVaryFixedER.csv"),
-                    stringsAsFactors = F)
-cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
-srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
-catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors=F)
-ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors=F)
-larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"), stringsAsFactors=F)
-tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
+# here <- here::here
+# require(samSim)
+# simParF <- read.csv(here("data", "manProcScenarios",
+#                          "fraserMPInputs_varyAllocationVaryFixedER.csv"),
+#                     stringsAsFactors = F)
+# cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
+# srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
+# catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors=F)
+# ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors=F)
+# larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"), stringsAsFactors=F)
+# tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
 
 # simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorr.csv"),
 #                     stringsAsFactors = F)
@@ -40,13 +40,13 @@ tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
 # ricPars <- read.csv(here("data/northCoastDat/nassChumMCMCPars.csv"), stringsAsFactors=F)
 
 ## Misc. objects to run single trial w/ "reference" OM
-uniqueProd <- TRUE
-variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
-dirName <- "TEST"
-nTrials <- 10
-simPar <- simParF[48, ]
-makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
-random <- FALSE
+# uniqueProd <- TRUE
+# variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
+# dirName <- "TEST"
+# nTrials <- 10
+# simPar <- simParF[48, ]
+# makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
+# random <- FALSE
 
 recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                         variableCU=FALSE, makeSubDirs=TRUE, ricPars,
@@ -70,7 +70,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   plotOrder <- simPar$plotOrder
   prod <- simPar$prodRegime #what is current prodRegime; requires list of posterior estimates for sampling
   harvContRule <- simPar$harvContRule
-  bm <- simPar$benchmark
+  bm <- "percentile"#simPar$benchmark
   species <- simPar$species #species (sockeye, chum, pink, coho)
   simYears <- simPar$simYears #total length of simulation period
   nTrials <- nTrials #number of trials to simulate
@@ -1194,10 +1194,10 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             if (singleHCR == "retro") {
               singCUStatus[y, k] <- median(obsS[(y - 1):(y - gen), k])
             }
-            if (singCUStatus[y, k] >= lowerBM[y - 1, k]) {
+            if (singCUStatus[y, k] >= lowerObsBM[y - 1, k]) {
               counterSingleBMLow[y, k] <- 1
             }
-            if (singCUStatus[y, k] >= upperBM[y - 1, k]) {
+            if (singCUStatus[y, k] >= upperObsBM[y - 1, k]) {
               counterSingleBMHigh[y, k] <- 1
             }
           } #end if (model[k] == "ricker")
@@ -1208,10 +1208,10 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             }
             #NOTE that BMs for Larkin stocks use only dominant cycle line so
             #aligning lowerBM with cycle line is not necessary
-            if (singCUStatus[y, k] >= lowerBM[y - 1, k]) {
+            if (singCUStatus[y, k] >= lowerObsBM[y - 1, k]) {
               counterSingleBMLow[y, k] <- 1
             }
-            if (singCUStatus[y, k] >= upperBM[y - 1, k]) {
+            if (singCUStatus[y, k] >= upperObsBM[y - 1, k]) {
               counterSingleBMHigh[y, k] <- 1
             }
           } #end if (model[k] == "larkin")
