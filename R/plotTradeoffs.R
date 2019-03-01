@@ -173,6 +173,9 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
 #' cuDat$vars.
 #' @param facet A character value that can take the values: \code{"mp", "om"}
 #' and specifies along which categorical variable the plot should be faceted.
+#' @param shape A character value that defaults to \code{NULL}, but can take
+#' values \code{"mp"} or \code{"om"}, and specifies along which categorical
+#' variable shapes should be plotted. Note maximum number of levels is 5.
 #' @param showUncertainty A logical specifying whether whiskers for each
 #' variables credible interval should be plotted.
 #' @param legendLab A character representing the legend title.
@@ -191,7 +194,7 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
 #'
 #' @export
 plotAgTradeoff <- function(agDat, consVar = "medSpawners",
-                           catchVar = "medCatch", facet = "om",
+                           catchVar = "medCatch", facet = "om", shape = NULL,
                            showUncertainty = FALSE, legendLab = NULL,
                            xLab = NULL, yLab = NULL, mainLab = NULL,
                            axisSize = 14, dotSize = 4, lineSize = 1.25,
@@ -202,7 +205,8 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
 
   dum <- agDat %>%
     filter(var == catchVar | var == consVar)
-  dum$var <- plyr::mapvalues(dum$var, from = c(consVar, catchVar), #change factor names to make plotting universal
+  #change factor names to make plotting universal
+  dum$var <- plyr::mapvalues(dum$var, from = c(consVar, catchVar),
                              to = c("consVar", "catchVar"))
   #necessary to spread for tradeoff plots; NOTE: if errors, check indexing correct)
   wideDum <- dum %>%
@@ -212,23 +216,37 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
     dplyr::select(keyVar = 1, everything()) %>%
     mutate(keyVar = as.factor(keyVar))
 
-  #identify faceting
+  #identify faceting and shape variables
   if (facet == "mp") {
     wideDum <- wideDum %>%
       mutate(facetVar = as.factor(mp))
-  }
-  if (facet == "om") {
+  } else if (facet == "om") {
     wideDum <- wideDum %>%
       mutate(facetVar = as.factor(om))
   }
 
-  #filler for HCR
-  if (is.null(wideDum$hcr) & length(unique(wideDum$mp)) == 1) {
+  if (shape == "om") {
     wideDum <- wideDum %>%
-      mutate(hcr = mp)
+      mutate(shapeVar = as.factor(om))
+    secLegendLab = "Operating Model"
+  } else if (shape == "mp") {
+    wideDum <- wideDum %>%
+      mutate(shapeVar = as.factor(mp))
+    secLegendLab = "Fixed\nExploitation Rate"
+  } else if (is.null(shapeVar)) {
+    wideDum <- wideDum %>%
+      mutate(shapeVar = as.factor(hcr))
+    secLegendLab = "Harvest\nControl Rule"
   }
 
-  p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg, shape = hcr,
+  if (length(levels(wideDum$shapeVar)) > 5) {
+    warning("Too many factor levels to plot as shapes, switch to facet")
+  } else {
+    shapePalette <- c(21,25,23,22,24)
+    names(shapePalette) <- levels(wideDum$shapeVar)
+  }
+
+  p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg, shape = shapeVar,
                            alpha = keyVar)) +
     geom_point(size = dotSize, fill = "black") +
     theme_sleekX() +
@@ -238,11 +256,11 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
           legend.text = element_text(size = 0.9 * legendSize),
           legend.title = element_text(size = legendSize)) +
     labs(x = xLab, y = yLab, title = mainLab) +
-    scale_shape_manual(values = c(21, 25), name = "Control Rule") +
-    scale_alpha_discrete(range = c(0.3, 1), name = legendLab)  +
+    scale_shape_manual(values = shapePalette, name = secLegendLab) +
+    scale_alpha_discrete(range = c(0.15, 1), name = legendLab)  +
     facet_wrap(~ facetVar, scales = "free")
 
-  if (length(unique(wideDum$hcr)) < 2) {
+  if (length(unique(wideDum$shapeVar)) < 2) {
     p <- p +
       guides(shape = "none")
   } else {

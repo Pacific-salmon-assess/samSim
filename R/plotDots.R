@@ -56,11 +56,10 @@ plotCUDot <- function(cuDat, plotVar, group = "om", legendLab = NULL,
   names(colPal) <- levels(dum$groupingVar)
 
   p <- ggplot(dum, aes(x = keyVar, y = avg, ymin = lowQ, ymax = highQ,
-                       color = groupingVar)) +
+                       fill = groupingVar)) +
     labs(x = xLab, y = yLab, title = plotTitle) +
-    geom_pointrange(fatten = dotSize, size = lineSize,
-                    position = position_dodge(width = 0.65),
-                    fill = "white") +
+    geom_pointrange(shape = 21, fatten = dotSize, size = lineSize,
+                    position = position_dodge(width = 0.65)) +
     theme_sleekX() +
     theme(strip.text = element_text(size = axisSize),
           axis.text = element_text(size = 0.85 * axisSize),
@@ -71,11 +70,11 @@ plotCUDot <- function(cuDat, plotVar, group = "om", legendLab = NULL,
   #remove legend if no grouping variables
   if (length(unique(dum$groupingVar)) < 2) {
     p <- p  +
-      scale_color_manual(values = colPal, guide = FALSE) +
+      scale_fill_manual(values = colPal, guide = FALSE) +
       geom_pointrange(position = position_dodge(width = 0))
   } else {
     p <- p +
-      scale_color_manual(name = legendLab, values = colPal)
+      scale_fill_manual(name = legendLab, values = colPal)
   }
   return(p)
 }
@@ -137,9 +136,9 @@ plotAgDot <- function(agDat, group = "om", legendLab = "Operating\nModel",
   names(colPal) <- levels(dum$groupVar)
 
   p <- ggplot(dum, aes(x = keyVar, y = avg, ymin = lowQ, ymax = highQ,
-                       color = groupVar)) +
+                       fill = groupVar)) +
     labs(x = xLab, y = yLab, title = plotTitle) +
-    geom_pointrange(fatten = dotSize, size = lineSize,
+    geom_pointrange(shape = 21, fatten = dotSize, size = lineSize,
                     position = position_dodge(width = 0.65)) +
     theme_sleekX() +
     theme(strip.text = element_text(size = axisSize),
@@ -152,11 +151,11 @@ plotAgDot <- function(agDat, group = "om", legendLab = "Operating\nModel",
   #remove legend if no grouping variables
   if (length(unique(dum$groupVar)) < 2) {
     p <- p  +
-      scale_color_manual(values = colPal, guide = FALSE) +
+      scale_fill_manual(values = colPal, guide = FALSE) +
       geom_pointrange(position = position_dodge(width = 0))
   } else {
     p <- p +
-      scale_color_manual(name = legendLab, values = colPal)
+      scale_fill_manual(name = legendLab, values = colPal)
   }
   return(p)
 }
