@@ -11,13 +11,15 @@
 #' rule-esqure variable that is on the x-axis (defaults to "expRate") that is
 #' used to label x-axis and subset data input data Should correspond to the
 #' \code{keyVarName} in \code{buildDataAgg}.
+#' @param double A logical that determines whether a double or single y-axis
+#' plot is generated.
 #' @return Returns a base plot object.
 #'
 #' @examples
 #'
 #'
 #' @export
-plotContTradeOffs <- function(agDat, keyVar = "expRate") {
+plotContTradeOffs <- function(agDat, keyVar = "expRate", double = TRUE) {
   # plot format not compatible with multiple types of HCRs; focus on fixed ER
   # for now
   dum <- agDat %>%
@@ -83,19 +85,24 @@ plotContTradeOffs <- function(agDat, keyVar = "expRate") {
          mgp = c(3, 0.6, 0), las = 0)
     mtext(side = 2, line = 2.5, 'Escapement or Catch (millions)', cex = 1.2)
   }
+  axis(3, tick = T, at = c(0, max(1, 1.1 * max(keyVarRange))))
 
   # second set of graphics
-  par(new = T)
-  plot(avg ~ keyVar, type = "l", axes = F, col = extCol, lty = 2, lwd = 1.25,
-       xlab = "", ylab="", ylim = c(0, 1), data = ext)
-  rethinking::shade(rbind(ext$lowQ, ext$highQ), ext$keyVar,
-                    col = alpha(extCol, 0.3))
-  lines(avg ~ keyVar, xaxt="n", yaxt="n", type="l", lty = 2, lwd = 1.25,
-        col = uppCol, data = upp)
-  rethinking::shade(rbind(upp$lowQ, upp$highQ), upp$keyVar,
-                    col = alpha(uppCol, 0.3))
-  axis(4, tick = T, at = c(-1, 0.0, 0.5, 1, 2), las = 0, mgp = c(3, 0.6, 0))
-  mtext(side = 4, line = 3, 'Proportion of CUs Extinct \n or Above Upper BM',
-        cex = 1.2)
-  axis(3, tick = T, at = c(-0.2, 1.2), mgp = c(3, 0.6, 0))
+  if (double == TRUE) {
+    par(new = T)
+    plot(avg ~ keyVar, type = "l", axes = F, col = extCol, lty = 2, lwd = 1.25,
+         xlab = "", ylab="", ylim = c(0, 1), data = ext)
+    rethinking::shade(rbind(ext$lowQ, ext$highQ), ext$keyVar,
+                      col = alpha(extCol, 0.3))
+    lines(avg ~ keyVar, xaxt="n", yaxt="n", type="l", lty = 2, lwd = 1.25,
+          col = uppCol, data = upp)
+    rethinking::shade(rbind(upp$lowQ, upp$highQ), upp$keyVar,
+                      col = alpha(uppCol, 0.3))
+    axis(4, tick = T, at = c(-1, 0.0, 0.5, 1, 2), las = 0, mgp = c(3, 0.6, 0))
+    mtext(side = 4, line = 3, 'Proportion of CUs Extinct \n or Above Upper BM',
+          cex = 1.2)
+  } else {
+    axis(4, tick = T, at = round(c(-100 * min(spwn$avg), 2 * max(spwn$highQ)),
+                                 digits = 1))
+  }
 }
