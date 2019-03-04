@@ -199,9 +199,8 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
                            xLab = NULL, yLab = NULL, mainLab = NULL,
                            axisSize = 14, dotSize = 4, lineSize = 1.25,
                            legendSize = 14, freeY = TRUE) {
-  if (is.null(xLab) | is.null(yLab)) {
-    warning("Suggest adding axis labels before interpreting plots")
-  }
+  xLab <- ifelse(is.null(xLab), catchVar, xLab)
+  yLab <- ifelse(is.null(yLab), consVar, yLab)
 
   dum <- agDat %>%
     dplyr::filter(var == catchVar | var == consVar)
