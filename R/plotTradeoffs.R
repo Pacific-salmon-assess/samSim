@@ -204,7 +204,7 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
   }
 
   dum <- agDat %>%
-    filter(var == catchVar | var == consVar)
+    dplyr::filter(var == catchVar | var == consVar)
   #change factor names to make plotting universal
   dum$var <- plyr::mapvalues(dum$var, from = c(consVar, catchVar),
                              to = c("consVar", "catchVar"))
@@ -217,6 +217,11 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
     mutate(keyVar = as.factor(keyVar))
 
   #identify faceting and shape variables
+  if (length(unique(wideDum$mp)) == 1 & is.null(wideDum$hcr)) {
+    wideDum <- wideDum %>%
+      mutate(hcr = mp)
+  }
+
   if (facet == "mp") {
     wideDum <- wideDum %>%
       mutate(facetVar = as.factor(mp))
@@ -225,7 +230,11 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
       mutate(facetVar = as.factor(om))
   }
 
-  if (shape == "om") {
+  if (is.null(shape)) {
+    wideDum <- wideDum %>%
+      mutate(shapeVar = as.factor(hcr))
+      secLegendLab = "Harvest\nControl Rule"
+  } else if (shape == "om") {
     wideDum <- wideDum %>%
       mutate(shapeVar = as.factor(om))
     secLegendLab = "Operating Model"
@@ -233,10 +242,6 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
     wideDum <- wideDum %>%
       mutate(shapeVar = as.factor(mp))
     secLegendLab = "Fixed\nExploitation Rate"
-  } else if (is.null(shapeVar)) {
-    wideDum <- wideDum %>%
-      mutate(shapeVar = as.factor(hcr))
-    secLegendLab = "Harvest\nControl Rule"
   }
 
   if (length(levels(wideDum$shapeVar)) > 5) {
