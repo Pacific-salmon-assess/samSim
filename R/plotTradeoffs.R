@@ -229,7 +229,7 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
       mutate(facetVar = as.factor(om))
   }
 
-  if (is.null(shape)) {
+  if (is.null(shape) | shape == "hcr") {
     wideDum <- wideDum %>%
       mutate(shapeVar = as.factor(hcr))
       secLegendLab = "Harvest\nControl Rule"
