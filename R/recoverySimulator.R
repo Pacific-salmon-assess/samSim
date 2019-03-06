@@ -43,8 +43,8 @@
 # uniqueProd <- TRUE
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
-# nTrials <- 10
-# simPar <- simParF[48, ]
+# nTrials <- 5
+# simPar <- simParF[46, ]
 # makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 # random <- FALSE
 
@@ -277,9 +277,11 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     cuProdTrends <- rep("decline", length.out = nCU)
   } else if (prod == "divergent") {
     #assign scalars randomly
-    prodScalars <- sample(c(0.65, 1, 1.35), nCU, replace = TRUE)
+    # prodScalars <- sample(c(0.65, 1, 1.35), nCU, replace = TRUE)
+    #assign declining scalars to CUs w/ median rec below the among CU median
+    prodScalars <- ifelse(cuPar$medianRec < median(cuPar$medianRec), 0.65, 1)
     finalAlpha <- prodScalars * alpha
-    trendAlpha <- (alpha - finalAlpha) / simYears
+    trendAlpha <- (finalAlpha - alpha) / simYears
     cuProdTrends <- dplyr::case_when(
       prodScalars == "0.65" ~ "decline",
       prodScalars == "1" ~ "stable",
