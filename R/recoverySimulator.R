@@ -70,7 +70,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   plotOrder <- simPar$plotOrder
   prod <- simPar$prodRegime #what is current prodRegime; requires list of posterior estimates for sampling
   harvContRule <- simPar$harvContRule
-  bm <- "percentile"#simPar$benchmark
+  bm <- simPar$benchmark
   species <- simPar$species #species (sockeye, chum, pink, coho)
   simYears <- simPar$simYears #total length of simulation period
   nTrials <- nTrials #number of trials to simulate
@@ -144,6 +144,17 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   tauAge <- cuPar$tauCycAge * simPar$adjustAge #CU-specific variation in age-at-maturity, adjusted by scenario
   medAbundance <- cbind(cuPar$medianRec, cuPar$lowQRec, cuPar$highQRec) #matrix of long term abundances (median, lower and upper quantile)
   recCap <- 5 * cuPar$highQRec #default recruitment cap; if TS available will use 3x max obs (in following loop)
+
+  if (species == "pink") { ### PINK FUNCTIONALITY NEEDS TO BE TESTED
+    gen <- 2
+    ageStruc <- c(1, 0, 0, 0)
+  } else {
+    if (species == "sockeye") {
+      gen <- 4
+    } else { #chum
+      gen <- 5
+    }
+  }
 
   ## Stock-recruitment data
   if (exists("srDat")) { #transform rec data if available
@@ -264,7 +275,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     alpha <- 0.65 * refAlpha
   }
   if (prod %in% c("med", "studT", "skew", "skewT", "decline", "divergent",
-                  "oneUp",  "oneDown")) {
+                  "divergentSmall", "oneUp",  "oneDown")) {
     alpha <- refAlpha
   }
   if (prod == "high") {
@@ -274,21 +285,25 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   finalAlpha <- alpha
   prodScalars <- rep(1, nCU)
   if (prod == "decline" ) {
-    finalAlpha <- 0.65 * alpha
-    #calculate rate of change in alpha
-    trendAlpha <- (alpha - finalAlpha) / (2 * gen)
-    cuProdTrends <- rep("decline", length.out = nCU)
-  } else if (prod %in% c("divergent", "oneUp", "oneDown")) {
+    prodScalars <- rep(0.65, nCU)
+  } else if (prod %in% c("divergent", "divergentSmall", "oneUp", "oneDown")) {
     if (prod == "divergent") {
-      # prodScalars <- sample(c(0.65, 1, 1.35), nCU, replace = TRUE)
+      prodScalars <- sample(c(0.65, 1), nCU, replace = TRUE)
+    } else if (prod == "divergentSmall") {
       prodScalars <- ifelse(cuPar$medianRec < median(cuPar$medianRec), 0.65, 1)
-    } else if (prod %in% c("oneUp", "oneDown")) {
-      drawCU <- round(runif(1, min = 0.5, max = nCU))
-      prodScalars[drawCU] <- ifelse(prod == "oneUp", 1.35, 0.65)
+    } else if (prod == "oneDown") {
+      # drawCU <- round(runif(1, min = 0.5, max = nCU))
+      # cuPar$stkName[which(cuPar$medianRec == min(cuPar$medianRec))]
+      #arbitrarily set to Cultus for now
+      prodScalars[10] <- 0.65
+    } else if (prod == "oneUp") {
+      # drawCU <- round(runif(1, min = 0.5, max = nCU))
+      #arbitrarily set to Harrison for now
+      prodScalars[17] <- 1.35
     }
-    finalAlpha <- prodScalars * alpha
-    trendAlpha <- (finalAlpha - alpha) / (2 * gen)
   }
+  finalAlpha <- prodScalars * alpha
+  trendAlpha <- (finalAlpha - alpha) / (2 * gen)
   cuProdTrends <- dplyr::case_when(
     prodScalars == "0.65" ~ "decline",
     prodScalars == "1" ~ "stable",
@@ -323,17 +338,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   #   covMortMat <- as.matrix(erCorrMat) * correlMort
   #   diag(covMortMat) <- as.numeric(enRouteSig^2)
   # }
-
-  if (species == "pink") { ### PINK FUNCTIONALITY NEEDS TO BE TESTED
-    gen <- 2
-    ageStruc <- c(1, 0, 0, 0)
-  } else {
-    if (species == "sockeye") {
-      gen <- 4
-    } else { #chum
-      gen <- 5
-    }
-  }
 
   nYears <- nPrime + simYears #total model run length = TS priming period duration + specified simulation length
   ppn2 <- ageStruc[, 1] #proportion at age parameters
@@ -638,8 +642,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     #observed abundances to "prime" the simulation
     for (y in 1:nPrime) {
       ## Population model: store SR pars, spawner, and recruit abundances
-      #Move alpha to matrix in case it's a declining scenario
-      alphaMat[y, ] <- alpha
+      alphaMat[y, ] <- refAlpha
 
       for (k in 1:nCU) {
         S[y, k] <- recDat[[k]]$ets[y]
