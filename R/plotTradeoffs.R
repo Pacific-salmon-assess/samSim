@@ -221,18 +221,24 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
       mutate(hcr = mp)
   }
 
-  if (facet == "mp") {
-    wideDum <- wideDum %>%
-      mutate(facetVar = as.factor(mp))
-  } else if (facet == "om") {
-    wideDum <- wideDum %>%
-      mutate(facetVar = as.factor(om))
+  if (!is.null(facet)) {
+    if (facet == "mp") {
+     wideDum <- wideDum %>%
+        mutate(facetVar = as.factor(mp))
+    } else if (facet == "om") {
+      wideDum <- wideDum %>%
+        mutate(facetVar = as.factor(om))
+    }
   }
 
-  if (is.null(shape) | shape == "hcr") {
+  if (is.null(shape)) {
     wideDum <- wideDum %>%
       mutate(shapeVar = as.factor(hcr))
       secLegendLab = "Harvest\nControl Rule"
+  } else if (shape == "hcr") {
+    wideDum <- wideDum %>%
+      mutate(shapeVar = as.factor(hcr))
+    secLegendLab = "Harvest\nControl Rule"
   } else if (shape == "om") {
     wideDum <- wideDum %>%
       mutate(shapeVar = as.factor(om))
@@ -261,9 +267,12 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
           legend.title = element_text(size = legendSize)) +
     labs(x = xLab, y = yLab, title = mainLab) +
     scale_shape_manual(values = shapePalette, name = secLegendLab) +
-    scale_alpha_discrete(range = c(0.15, 1), name = legendLab)  +
-    facet_wrap(~ facetVar, scales = "free")
+    scale_alpha_discrete(range = c(0.15, 1), name = legendLab)
 
+  if(!is.null(facet)) {
+    p <- p +
+      facet_wrap(~ facetVar, scales = "free")
+  }
   if (length(unique(wideDum$shapeVar)) < 2) {
     p <- p +
       guides(shape = "none")
