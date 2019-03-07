@@ -263,36 +263,37 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   if (prod == "low" | prod == "lowStudT") {
     alpha <- 0.65 * refAlpha
   }
-  if (prod == "med" | prod == "studT"| prod == "skew" | prod == "skewT" |
-      prod == "decline" | prod == "divergent") {
+  if (prod %in% c("med", "studT", "skew", "skewT", "decline", "divergent",
+                  "oneUp",  "oneDown")) {
     alpha <- refAlpha
   }
   if (prod == "high") {
     alpha <- 1.35 * refAlpha
   }
+  #for stable trends use as placeholder for subsequent ifelse
+  finalAlpha <- alpha
+  prodScalars <- rep(1, nCU)
   if (prod == "decline" ) {
     finalAlpha <- 0.65 * alpha
     #calculate rate of change in alpha
-    trendAlpha <- (alpha - finalAlpha) / simYears
+    trendAlpha <- (alpha - finalAlpha) / (2 * gen)
     cuProdTrends <- rep("decline", length.out = nCU)
-  } else if (prod == "divergent") {
-    #assign scalars randomly
-    # prodScalars <- sample(c(0.65, 1, 1.35), nCU, replace = TRUE)
-    #assign declining scalars to CUs w/ median rec below the among CU median
-    prodScalars <- ifelse(cuPar$medianRec < median(cuPar$medianRec), 0.65, 1)
+  } else if (prod %in% c("divergent", "oneUp", "oneDown")) {
+    if (prod == "divergent") {
+      # prodScalars <- sample(c(0.65, 1, 1.35), nCU, replace = TRUE)
+      prodScalars <- ifelse(cuPar$medianRec < median(cuPar$medianRec), 0.65, 1)
+    } else if (prod %in% c("oneUp", "oneDown")) {
+      drawCU <- round(runif(1, min = 0.5, max = nCU))
+      prodScalars[drawCU] <- ifelse(prod == "oneUp", 1.35, 0.65)
+    }
     finalAlpha <- prodScalars * alpha
-    trendAlpha <- (finalAlpha - alpha) / simYears
-    cuProdTrends <- dplyr::case_when(
-      prodScalars == "0.65" ~ "decline",
-      prodScalars == "1" ~ "stable",
-      prodScalars == "1.35" ~ "increase"
-    )
-  } else {
-    #for stable trends use as placeholder for subsequent ifelse
-    finalAlpha <- alpha
-    cuProdTrends <- rep("stable", length.out = nCU)
+    trendAlpha <- (finalAlpha - alpha) / (2 * gen)
   }
-
+  cuProdTrends <- dplyr::case_when(
+    prodScalars == "0.65" ~ "decline",
+    prodScalars == "1" ~ "stable",
+    prodScalars == "1.35" ~ "increase"
+  )
 
   beta <- ifelse(model == "ricker", ricB, larB)
   if (is.null(simPar$adjustBeta) == FALSE) {
@@ -410,13 +411,14 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   mixCatchAg <- matrix(NA, nrow = nYears, ncol = nTrials) #sum of true Canadian mixed-CU catches (excludes CU-specific)
   obsCatchAg <- matrix(NA, nrow = nYears, ncol = nTrials)
   estS25thBY <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
-  estS75thBY <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  estS50thBY <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  # estS75thBY <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   estS25th <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   estS50th <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
-  estS75th <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  # estS75th <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   s25th <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   s50th <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
-  s75th <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  # s75th <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   sMSY <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   sGen <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   estRicA <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
@@ -705,10 +707,10 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           sNoNA <- temp[!is.na(temp)]
           n25th <- round(length(sNoNA) * 0.25, 0)
           n50th <- round(length(sNoNA) * 0.50, 0)
-          n75th <- round(length(sNoNA) * 0.75, 0)
+          # n75th <- round(length(sNoNA) * 0.75, 0)
           s25th[y, k, n] <- sort(sNoNA)[n25th]
           s50th[y, k, n] <- sort(sNoNA)[n50th]
-          s75th[y, k, n] <- sort(sNoNA)[n75th]
+          # s75th[y, k, n] <- sort(sNoNA)[n75th]
           #calculate SR BMs
           if (model[k] == "ricker") {
             sEqVar[y, k, n] <- refAlpha[k] / beta[k]
@@ -772,7 +774,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                       0)
             }
             if (bm == "percentile") {
-              upperBM[y, k] <- s75th[y, k, n]
+              upperBM[y, k] <- s50th[y, k, n]
               lowerBM[y, k] <- s25th[y, k, n]
             }
           }
@@ -1366,19 +1368,19 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         sNoNA <- temp[!is.na(temp)]
         n25th <- round(length(sNoNA) * 0.25, 0)
         n50th <- round(length(sNoNA) * 0.50, 0)
-        n75th <- round(length(sNoNA) * 0.75, 0)
+        # n75th <- round(length(sNoNA) * 0.75, 0)
         s25th[y, k, n] <- sort(sNoNA)[n25th]
         s50th[y, k, n] <- sort(sNoNA)[n50th]
-        s75th[y, k, n] <- sort(sNoNA)[n75th]
+        # s75th[y, k, n] <- sort(sNoNA)[n75th]
         #Calculate observed percentile BMs
         temp <- obsS[1:y, k]
         obsSNoNA <- temp[!is.na(temp)]
         obsN25th <- round(length(obsSNoNA) * 0.25, 0)
         obsN50th <- round(length(obsSNoNA) * 0.50, 0)
-        obsN75th <- round(length(obsSNoNA) * 0.75, 0)
+        # obsN75th <- round(length(obsSNoNA) * 0.75, 0)
         estS25th[y, k, n] <- sort(obsSNoNA)[obsN25th]
         estS50th[y, k, n] <- sort(obsSNoNA)[obsN50th]
-        estS75th[y, k, n] <- sort(obsSNoNA)[obsN75th]
+        # estS75th[y, k, n] <- sort(obsSNoNA)[obsN75th]
         #Build SRR
         srMod <- quickLm(xVec = obsS[, k], yVec = obsLogRS[, k])
         estYi[y, k, n] <- srMod[[1]]
@@ -1501,9 +1503,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                     0)
           }
           if (bm == "percentile") {
-            upperBM[y, k] <- s75th[y, k, n]
+            upperBM[y, k] <- s50th[y, k, n]
             lowerBM[y, k] <- s25th[y, k, n]
-            upperObsBM[y, k] <- estS75th[y, k, n]
+            upperObsBM[y, k] <- estS50th[y, k, n]
             lowerObsBM[y, k] <- estS25th[y, k, n]
           }
         }
@@ -1573,7 +1575,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                     "Mix Catch", "Single Catch", "US Catch", "En Route Mort",
                     "Total Exp Rate", "Mix Exp Rate", "Single Exp Rate",
                     "TAM Single ER",
-                    "Smsy", "Sgen", "S 75th Percentile", "S 25th Percentile",
+                    "Smsy", "Sgen", "S 50th Percentile", "S 25th Percentile",
                     "Obs Spawners Err", "Obs RecBY Err",
                     "Obs RecRY Err", "Obs Mix Catch Err",
                     "Obs Single Catch Err",
@@ -1583,7 +1585,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                               S, obsS, recBY, obsRecBY, recRY,
                               mixCatch, singCatch, amCatch, migMort,
                               expRate, mixExpRate, singExpRate, tamSingER,
-                              sMSY[ , , n], sGen[ , , n], s75th[ , , n],
+                              sMSY[ , , n], sGen[ , , n], s50th[ , , n],
                               s25th[ , , n], obsSErr, obsRecBYErr,
                               obsRecRYErr, obsMixCatchErr, obsSingCatchErr,
                               obsAmCatchErr, obsExpErr, forecastErr),
