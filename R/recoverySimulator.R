@@ -866,7 +866,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       } else {
         # Declining and divergent productivity will have variable final alpha;
         # all other regimes do not
-        alphaMat[y, ] <- ifelse(alphaMat[y - 1, ] != finalAlpha,
+        alphaMat[y, ] <- ifelse(alphaMat[y - 1, ] > finalAlpha,
                                 alphaMat[y - 1, ] + trendAlpha,
                                 alphaMat[y - 1, ])
       }
