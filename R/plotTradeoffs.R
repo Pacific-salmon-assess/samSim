@@ -39,12 +39,8 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
                            facet = "mu", panel = "om", showUncertainty = FALSE,
                            legendLab = NULL, xLab = NULL, yLab = NULL, main = TRUE,
                            axisSize = 14, dotSize = 4, lineSize = 1.25, legendSize = 14) {
-  if (is.null(xLab) | is.null(yLab)) {
-    warning("Suggest adding axis labels before interpreting plots")
-  }
-  if (facet == panel) {
-    stop("Facet wrap and paneling commands are the same")
-  }
+  xLab <- ifelse(is.null(xLab), catchVar, xLab)
+  yLab <- ifelse(is.null(yLab), consVar, yLab)
   #save index variables
   nCU <- length(unique(cuDat$cuName))
   colPal <- viridis::viridis(nCU, begin = 0, end = 1)
@@ -110,7 +106,7 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
                              alpha = keyVar, fill = cuName)) +
       geom_point(size = dotSize) +
       theme_sleekX() +
-      theme(strip.text = element_text(size = 0.8 * axisSize),
+      theme(strip.text = element_text(size = axisSize),
             axis.text = element_text(size = 0.9 * axisSize),
             axis.title = element_text(size = axisSize),
             legend.text = element_text(size = 0.9 * legendSize),
@@ -260,7 +256,7 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
                            alpha = keyVar)) +
     geom_point(size = dotSize, fill = "black") +
     theme_sleekX() +
-    theme(strip.text = element_text(size = 0.8 * axisSize),
+    theme(strip.text = element_text(size = axisSize),
           axis.text = element_text(size = 0.9 * axisSize),
           axis.title = element_text(size = axisSize),
           legend.text = element_text(size = 0.9 * legendSize),
