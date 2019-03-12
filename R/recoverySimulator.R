@@ -1310,7 +1310,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         tamSingER[y, ] <- singCatch[y, ] / (remRec2 - migMort1)
       }
       expRate[recRY == 0] <- 0
-      expRateAg[y, n] <- catchAg[y, n] / recRYAg[y, n]
+      expRateAg[y, n] <- ifelse(recRYAg[y, n] == 0, 0,
+                                catchAg[y, n] / recRYAg[y, n])
       #only Canadian fisheries
       targetTamER[y, ] <- apply(rbind(mixTAC[y, ], singTAC[y, ]), 2, sum) /
         recRY[y, ]
