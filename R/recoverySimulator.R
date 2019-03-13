@@ -290,7 +290,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     prodScalars <- rep(0.65, nCU)
   } else if (prod %in% c("divergent", "divergentSmall", "oneUp", "oneDown")) {
     if (prod == "divergent") {
-      prodScalars <- sample(c(0.65, 1), nCU, replace = TRUE)
+      prodScalars <- sample(c(0.65, 1, 1.35), nCU, replace = TRUE)
     } else if (prod == "divergentSmall") {
       prodScalars <- ifelse(cuPar$medianRec < median(cuPar$medianRec), 0.65, 1)
     } else if (prod == "oneDown") {
@@ -466,6 +466,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   obsExpRateAg <- matrix(NA, nrow = nYears, ncol = nTrials)
   spwnrArray <- array(NA, dim = c(nYears, nCU, nTrials))
   recArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  alphaArray <- array(NA, dim = c(nYears, nCU, nTrials))
   returnArray <- array(NA, dim = c(nYears, nCU, nTrials))
   logRSArray <- array(NA, dim = c(nYears, nCU, nTrials))
   recDevArray <- array(NA, dim = c(nYears, nCU, nTrials))
@@ -1703,6 +1704,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     # Store diagnostic outputs
     spwnrArray[ , , n] <- S # these arrays generated to pass to synch list
     recArray[ , , n] <- recBY
+    alphaArray[ , , n] <- alphaMat
     returnArray[ , , n] <- recRY
     logRSArray[ , , n] <- logRS
     obsTotalCatch <- obsAmCatch + obsMixCatch + obsSingCatch
@@ -1828,11 +1830,12 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                sep = "/"))
 
   # CU- and trial-specific time series data (e.g. used to calculate synchrony)
-  synchList <- list(nameOM, plotOrder, nPrime, spwnrArray, recArray,
+  synchList <- list(nameOM, plotOrder, nPrime, alphaArray, spwnrArray, recArray,
                     returnArray, logRSArray, recDevArray, migMortArray,
                     singCatchArray, totalCatchArray)
-  names(synchList) <- c("nameOM", "plotOrder", "nPrime", "S", "recBY", "recRY",
-                        "logRS", "recDev", "migMort", "singCatch", "totCatch")
+  names(synchList) <- c("nameOM", "plotOrder", "nPrime", "alpha", "S", "recBY",
+                        "recRY", "logRS", "recDev", "migMort", "singCatch",
+                        "totCatch")
   fileName <- ifelse(variableCU == "TRUE",
                      paste(cuNameOM, cuNameMP, "synchArrays.RData", sep = "_"),
                      paste(nameOM, nameMP, "synchArrays.RData", sep = "_"))
