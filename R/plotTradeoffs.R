@@ -172,6 +172,8 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
 #' @param shape A character value that defaults to \code{NULL}, but can take
 #' values \code{"mp"} or \code{"om"}, and specifies along which categorical
 #' variable shapes should be plotted. Note maximum number of levels is 5.
+#' @param hotColors A logical (default \code{TRUE}) that specifies whether
+#' symbols should be filled with \code{viridis} palette or solid black.
 #' @param showUncertainty A logical specifying whether whiskers for each
 #' variables credible interval should be plotted.
 #' @param legendLab A character representing the legend title.
@@ -191,10 +193,10 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
 #' @export
 plotAgTradeoff <- function(agDat, consVar = "medSpawners",
                            catchVar = "medCatch", facet = "om", shape = NULL,
-                           showUncertainty = FALSE, legendLab = NULL,
-                           xLab = NULL, yLab = NULL, mainLab = NULL,
-                           axisSize = 14, dotSize = 4, lineSize = 1.25,
-                           legendSize = 14, freeY = TRUE) {
+                           hotColors = TRUE, showUncertainty = FALSE,
+                           legendLab = NULL, xLab = NULL, yLab = NULL,
+                           mainLab = NULL, axisSize = 14, dotSize = 4,
+                           lineSize = 1.25, legendSize = 14, freeY = TRUE) {
   xLab <- ifelse(is.null(xLab), catchVar, xLab)
   yLab <- ifelse(is.null(yLab), consVar, yLab)
 
@@ -203,6 +205,7 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
   #change factor names to make plotting universal
   dum$var <- plyr::mapvalues(dum$var, from = c(consVar, catchVar),
                              to = c("consVar", "catchVar"))
+
   #necessary to spread for tradeoff plots; NOTE: if errors, check indexing correct)
   wideDum <- dum %>%
     gather(temp, value, avg, lowQ, highQ) %>%
@@ -219,7 +222,7 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
 
   if (!is.null(facet)) {
     if (facet == "mp") {
-     wideDum <- wideDum %>%
+      wideDum <- wideDum %>%
         mutate(facetVar = as.factor(mp))
     } else if (facet == "om") {
       wideDum <- wideDum %>%
@@ -230,7 +233,7 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
   if (is.null(shape)) {
     wideDum <- wideDum %>%
       mutate(shapeVar = as.factor(hcr))
-      secLegendLab = "Harvest\nControl Rule"
+    secLegendLab = "Harvest\nControl Rule"
   } else if (shape == "hcr") {
     wideDum <- wideDum %>%
       mutate(shapeVar = as.factor(hcr))
@@ -252,20 +255,35 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
     names(shapePalette) <- levels(wideDum$shapeVar)
   }
 
-  p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg, shape = shapeVar,
-                           alpha = keyVar)) +
-    geom_point(size = dotSize, fill = "black") +
+  if (hotColors == TRUE) {
+    colPalMag <- viridis::viridis(length(unique(wideDum$keyVar)), begin = 1,
+                                  end = 0, option = "magma")
+    names(colPalMag) <- unique(wideDum$keyVar)
+    p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg,
+                             shape = shapeVar, fill = keyVar)) +
+      geom_point(size = dotSize) +
+      scale_shape_manual(values = shapePalette, name = secLegendLab) +
+      scale_fill_manual(values = colPalMag, name = legendLab) +
+      guides(fill = guide_legend(override.aes = list(shape = 21)),
+             shape = guide_legend(override.aes = list(fill = "black")))
+  } else {
+    p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg, shape = shapeVar,
+                             alpha = keyVar)) +
+      geom_point(size = dotSize, fill = "black") +
+      scale_alpha_discrete(range = c(0.15, 1), name = legendLab) +
+      scale_shape_manual(values = shapePalette, name = secLegendLab)
+  }
+
+  p <- p +
     theme_sleekX() +
     theme(strip.text = element_text(size = axisSize),
           axis.text = element_text(size = 0.9 * axisSize),
           axis.title = element_text(size = axisSize),
           legend.text = element_text(size = 0.9 * legendSize),
           legend.title = element_text(size = legendSize)) +
-    labs(x = xLab, y = yLab, title = mainLab) +
-    scale_shape_manual(values = shapePalette, name = secLegendLab) +
-    scale_alpha_discrete(range = c(0.15, 1), name = legendLab)
+    labs(x = xLab, y = yLab, title = mainLab)
 
-  if(!is.null(facet)) {
+  if (!is.null(facet)) {
     p <- p +
       facet_wrap(~ facetVar, scales = "free")
   }
@@ -292,3 +310,4 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
     return(q)
   }
 }
+
