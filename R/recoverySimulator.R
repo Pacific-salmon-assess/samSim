@@ -32,19 +32,21 @@
 # erCorrMat <- read.csv(here("data/fraserDat/erMortCorrMatrix.csv"), stringsAsFactors=F,
 #                       row.names = NULL)
 
-## CHUM PARS (adjust file paths)
-# simParF <- read.csv(here("data/opModelScenarios/nassOMInputs_varyCorr.csv"), stringsAsFactors=F)
-# cuPar <- read.csv(here("data/nassCUpars.csv"), stringsAsFactors=F)
-# srDat <- read.csv(here("data/nassRecDatTrim.csv"), stringsAsFactors=F)
-# catchDat <- read.csv(here("data/nassCatchDatTrim.csv"), stringsAsFactors=F)
-# ricPars <- read.csv(here("data/northCoastDat/nassChumMCMCPars.csv"), stringsAsFactors=F)
+## CHUM PARS
+# simParF <- read.csv(here("data/opModelScenarios/nassOMInputs_ref.csv"),
+#                     stringsAsFactors=F)
+# cuPar <- read.csv(here("data/nassDat/nassCUpars.csv"), stringsAsFactors=F)
+# srDat <- read.csv(here("data/nassDat/nassRecDatTrim.csv"), stringsAsFactors=F)
+# catchDat <- read.csv(here("data/nassDat/nassCatchDatTrim.csv"), stringsAsFactors=F)
+# ricPars <- read.csv(here("data/nassDat/nassChumMCMCPars.csv"),
+#                     stringsAsFactors=F)
 
 ## Misc. objects to run single trial w/ "reference" OM
 # uniqueProd <- TRUE
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 5
-# simPar <- simParF[46, ]
+# simPar <- simParF[1, ]
 # makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 # random <- FALSE
 
