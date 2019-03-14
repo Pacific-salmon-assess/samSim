@@ -46,7 +46,7 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 5
-# simPar <- simParF[1, ]
+# simPar <- simParF[46, ]
 # makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 # random <- FALSE
 
@@ -305,7 +305,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     }
   }
   finalAlpha <- prodScalars * alpha
-  trendAlpha <- (finalAlpha - alpha) / (2 * gen)
+  trendLength <- 3 * gen
+  trendAlpha <- (finalAlpha - alpha) / trendLength
   cuProdTrends <- dplyr::case_when(
     prodScalars == "0.65" ~ "decline",
     prodScalars == "1" ~ "stable",
@@ -863,15 +864,11 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     for (y in (nPrime + 1):nYears) {
       ### Population dynamics submodel
       #In first year switch from reference alpha used in priming to testing
-      #alpha
-      if (y == (nPrime + 1)) {
-        alphaMat[y, ] <- alpha
+      #alpha; add trend for 3 generations by default
+      if (y > (nPrime + 1) & y < (nPrime + trendLength + 1)) {
+        alphaMat[y, ] <- alphaMat[y - 1, ] + trendAlpha
       } else {
-        # Declining and divergent productivity will have variable final alpha;
-        # all other regimes do not
-        alphaMat[y, ] <- ifelse(alphaMat[y - 1, ] > finalAlpha,
-                                alphaMat[y - 1, ] + trendAlpha,
-                                alphaMat[y - 1, ])
+        alphaMat[y, ] <- alphaMat[y - 1, ]
       }
 
       for (k in 1:nCU) {
