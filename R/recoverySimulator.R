@@ -46,7 +46,7 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 5
-# simPar <- simParF[46, ]
+# simPar <- simParF[44, ]
 # makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 # random <- FALSE
 
@@ -283,6 +283,11 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   if (prod == "high") {
     alpha <- 1.35 * refAlpha
   }
+  # is the productivity scenario stable
+  stable <- ifelse(prod %in% c("decline", "divergent", "divergentSmall",
+                               "oneUp", "oneDown"),
+                   FALSE,
+                   TRUE)
   #for stable trends use as placeholder for subsequent ifelse
   finalAlpha <- alpha
   prodScalars <- rep(1, nCU)
@@ -865,11 +870,15 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       ### Population dynamics submodel
       #In first year switch from reference alpha used in priming to testing
       #alpha; add trend for 3 generations by default
-      if (y > (nPrime + 1) & y < (nPrime + trendLength + 1)) {
-        alphaMat[y, ] <- alphaMat[y - 1, ] + trendAlpha
+      if (y > (nPrime + 1)) {
+        if (stable == FALSE & y < (nPrime + trendLength + 1)) {
+          alphaMat[y, ] <- alphaMat[y - 1, ] + trendAlpha
+        } else {
+          alphaMat[y, ] <- finalAlpha
+        } #end if stable == FALSE and inside trendPeriod
       } else {
         alphaMat[y, ] <- alphaMat[y - 1, ]
-      }
+      } #end if y > (nPrime + 1)
 
       for (k in 1:nCU) {
         if (model[k] == "ricker") {
