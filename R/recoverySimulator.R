@@ -46,7 +46,7 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 5
-# simPar <- simParF[44, ]
+# simPar <- simParF[8, ]
 # makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 # random <- FALSE
 
@@ -96,6 +96,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   extinctThresh <- simPar$extinctThresh #minimum number of spawners before set to 0
   preFMigMort <- ifelse(is.null(simPar$preFMigMort), 1,
                         as.numeric(simPar$preFMigMort)) #proportion of en route mortality occurring before single stock fisheries
+  #should BMs be fixed at normative period; if yes than BMs aren't updated during
+  #sim period
+  normPeriod <- ifelse(is.null(simPar$normPeriod), TRUE, simPar$normPeriod)
 
   ## CU-specific parameters
   cuPar$stkName <- abbreviate(cuPar$stkName, minlength = 4)
@@ -880,40 +883,55 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         alphaMat[y, ] <- alphaMat[y - 1, ]
       } #end if y > (nPrime + 1)
 
+      #Only estimate BMs if normative period not being used, otherwise assume
+      #they are equal to last year of observation
       for (k in 1:nCU) {
         if (model[k] == "ricker") {
-          sEqVar[y, k, n] <- refAlpha[k] / beta[k]
-          sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha[k]))) / beta[k]
-          sGen[y, k, n] <- as.numeric(sGenSolver(
-            theta = c(refAlpha[k], refAlpha[k] / sEqVar[y, k, n], ricSig[k]),
-            sMSY = sMSY[y, k, n]
-          ))
-        }
+          if (normPeriod == TRUE) {
+            sMSY[y, k, n] <- sMSY[nPrime, k, n]
+            sGen[y, k, n] <- sGen[nPrime, k, n]
+          } else if (normPeriod == TRUE) {
+            sEqVar[y, k, n] <- refAlpha[k] / beta[k]
+            sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha[k]))) / beta[k]
+            sGen[y, k, n] <- as.numeric(sGenSolver(
+              theta = c(refAlpha[k], refAlpha[k] / sEqVar[y, k, n], ricSig[k]),
+              sMSY = sMSY[y, k, n]
+            ))
+          }
+        } #end if model == ricker
         if (model[k] == "larkin") {
-          #modified alpha used to estimate Larkin BMs
-          alphaPrimeMat[y, k] <- refAlpha[k] - (larB1[k] * S[y - 1, k]) -
-            (larB2[k] * S[y-2, k]) - (larB3[k] * S[y - 3, k])
-          sEqVar[y, k, n] <- ifelse(alphaPrimeMat[y, k] > 0,
-                                    alphaPrimeMat[y, k] / beta[k],
-                                    NA)
-          cycleSMSY[y, k] <- ifelse(alphaPrimeMat[y, k] > 0,
-                                    (1 - gsl::lambert_W0(exp(
-                                      1 - alphaPrimeMat[y, k]))) / beta[k],
-                                    NA)
-          cycleSGen[y, k] <- ifelse(alphaPrimeMat[y, k] > 0,
-                                    as.numeric(sGenSolver(
-                                      theta = c(alphaPrimeMat[y, k],
-                                                alphaPrimeMat[y, k] /
-                                                  sEqVar[y, k, n],
-                                                larSig[k]),
-                                      sMSY = cycleSMSY[y, k])),
-                                    NA)
-          #calculate annual benchmarks as medians within cycle line
-          sMSY[y, k, n] <- median(cycleSMSY[seq(cycle[y], y, 4), k],
-                                  na.rm = TRUE)
-          sGen[y, k, n] <- median(cycleSGen[seq(cycle[y], y, 4), k],
-                                  na.rm = TRUE)
-        }
+          if (normPeriod == TRUE) {
+            #calculate last observed year on same cycle line as current so that
+            #4 different normative BMs are used for Larkin stocks
+            larkinBMYear <- max(seq(cycle[y], nPrime, 4))
+            sMSY[y, k, n] <- sMSY[larkinBMYear, k, n]
+            sGen[y, k, n] <- sGen[larkinBMYear, k, n]
+          } else if (normPeriod == FALSE) {
+            #modified alpha used to estimate Larkin BMs
+            alphaPrimeMat[y, k] <- refAlpha[k] - (larB1[k] * S[y - 1, k]) -
+              (larB2[k] * S[y-2, k]) - (larB3[k] * S[y - 3, k])
+            sEqVar[y, k, n] <- ifelse(alphaPrimeMat[y, k] > 0,
+                                      alphaPrimeMat[y, k] / beta[k],
+                                      NA)
+            cycleSMSY[y, k] <- ifelse(alphaPrimeMat[y, k] > 0,
+                                      (1 - gsl::lambert_W0(exp(
+                                        1 - alphaPrimeMat[y, k]))) / beta[k],
+                                      NA)
+            cycleSGen[y, k] <- ifelse(alphaPrimeMat[y, k] > 0,
+                                      as.numeric(sGenSolver(
+                                        theta = c(alphaPrimeMat[y, k],
+                                                  alphaPrimeMat[y, k] /
+                                                    sEqVar[y, k, n],
+                                                  larSig[k]),
+                                        sMSY = cycleSMSY[y, k])),
+                                      NA)
+            #calculate annual benchmarks as medians within cycle line
+            sMSY[y, k, n] <- median(cycleSMSY[seq(cycle[y], y, 4), k],
+                                    na.rm = TRUE)
+            sGen[y, k, n] <- median(cycleSGen[seq(cycle[y], y, 4), k],
+                                    na.rm = TRUE)
+          } #end if normPeriod == FALSE
+        }#end if model == Larkin
         if (is.na(sGen[y, k, n] & sMSY[y, k, n]) == FALSE) {
           if (sGen[y, k, n] > sMSY[y, k, n]) {
             warning("True lower benchmark greater than upper benchmark;
@@ -924,7 +942,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         } else {
           warning("Neither benchmark could be estimated")
         }
-      }
+      } #end for k in 1:nCU
 
       recRY[y, ] <- recBY[y - 2, ] * ppnAges[y - 2, , 1] + recBY[y - 3, ] *
         ppnAges[y - 3, , 2] + recBY[y - 4, ] * ppnAges[y - 4, , 3] +
@@ -1381,67 +1399,79 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #___________________________________________________________________
       ### Assessment submodel
       #Benchmark estimates
+      #Build SRR (even with normative period useful for diagnostics)
       for (k in 1:nCU) {
-        #Calculate true percentile BMs
-        #(cannot be calculated earlier because require updated spawner estimates)
-        temp <- S[1:y, k]
-        sNoNA <- temp[!is.na(temp)]
-        n25th <- round(length(sNoNA) * 0.25, 0)
-        n50th <- round(length(sNoNA) * 0.50, 0)
-        # n75th <- round(length(sNoNA) * 0.75, 0)
-        s25th[y, k, n] <- sort(sNoNA)[n25th]
-        s50th[y, k, n] <- sort(sNoNA)[n50th]
-        # s75th[y, k, n] <- sort(sNoNA)[n75th]
-        #Calculate observed percentile BMs
-        temp <- obsS[1:y, k]
-        obsSNoNA <- temp[!is.na(temp)]
-        obsN25th <- round(length(obsSNoNA) * 0.25, 0)
-        obsN50th <- round(length(obsSNoNA) * 0.50, 0)
-        # obsN75th <- round(length(obsSNoNA) * 0.75, 0)
-        estS25th[y, k, n] <- sort(obsSNoNA)[obsN25th]
-        estS50th[y, k, n] <- sort(obsSNoNA)[obsN50th]
-        # estS75th[y, k, n] <- sort(obsSNoNA)[obsN75th]
-        #Build SRR
         srMod <- quickLm(xVec = obsS[, k], yVec = obsLogRS[, k])
         estYi[y, k, n] <- srMod[[1]]
         estSlope[y, k, n] <- srMod[[2]]
         estRicB[y, k, n] <- ifelse(extinct[y, k] == 1, NA, -estSlope[y, k, n])
         estRicA[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estYi[y, k, n])
-        #Calculate SR BMs
-        estSMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
-                                   (1 - gsl::lambert_W0(exp(
-                                     1 - estRicA[y, k, n]))) /
-                                     estRicB[y, k, n])
-        if (is.na(estRicB[y, k, n]) == FALSE) {
-          if (estRicB[y, k, n] > 0) {
-            if ((1 / estRicB[y, k, n]) <= max(obsS[,k], na.rm = TRUE) * 4) {
-              estSGen[y, k, n] <- as.numeric(sGenSolver(
-                theta = c(estRicA[y, k, n], estRicB[y, k, n], ricSig[k]),
-                sMSY = estSMSY[y, k, n]))
-            } else {
-              #if a BM cannot be estimated set it to the last estimated value
-              estSGen[y, k, n] <- estSGen[max(which(!is.na(
-                estSGen[, k, n]))), k, n]
-              estSMSY[y, k, n] <- estSMSY[max(which(!is.na(
-                estSMSY[, k, n]))), k, n]
-              fb1[y, k] <- 1
-            }
-          }# End of if(estRicB[y, n]>0)
-        } else{
-          estSGen[y, k, n] <- estSGen[max(which(!is.na(estSGen[, k, n]))), k, n]
-          estSMSY[y, k, n] <- estSMSY[max(which(!is.na(estSMSY[, k, n]))), k, n]
-          fb2[y, k] <- 1
-        } #end(if(is.na(estRicB)))
-      } #end for(k in 1:nCU)
-      if (is.na(estSGen[y, k, n]) == FALSE & is.na(estSMSY[y, k, n]) == FALSE) {
-        if (estSGen[y, k, n] > estSMSY[y, k, n]) {
-          warning("Estimated lower benchmark greater than upper benchmark;
-                  set to NA")
-          estSGen[y, k, n] <- estSGen[max(which(!is.na(estSGen[, k, n]))), k, n]
-          estSMSY[y, k, n] <- estSMSY[max(which(!is.na(estSMSY[, k, n]))), k, n]
-          fb3[y, k] <- 1
-        }
       }
+      #If normative period is TRUE than do not estimate BMs (they will diverge
+      #from true BMs for reasons other than obs error)
+      if (normPeriod == TRUE) {
+        s25th[y, , n] <- s25th[nPrime, , n]
+        s50th[y, , n] <- s50th[nPrime, , n]
+        estS25th[y, , n] <- s25th[nPrime, , n]
+        estS50th[y, , n] <- s50th[nPrime, , n]
+        estSGen[y, , n] <- sGen[y, , n]
+        estSMSY[y, , n] <- sMSY[y, , n]
+      } else if (normPeriod == FALSE) {
+        for (k in 1:nCU) {
+          #Calculate true percentile BMs
+          temp <- S[1:y, k]
+          sNoNA <- temp[!is.na(temp)]
+          n25th <- round(length(sNoNA) * 0.25, 0)
+          n50th <- round(length(sNoNA) * 0.50, 0)
+          # n75th <- round(length(sNoNA) * 0.75, 0)
+          s25th[y, k, n] <- sort(sNoNA)[n25th]
+          s50th[y, k, n] <- sort(sNoNA)[n50th]
+          # s75th[y, k, n] <- sort(sNoNA)[n75th]
+          #Calculate observed percentile BMs
+          temp <- obsS[1:y, k]
+          obsSNoNA <- temp[!is.na(temp)]
+          obsN25th <- round(length(obsSNoNA) * 0.25, 0)
+          obsN50th <- round(length(obsSNoNA) * 0.50, 0)
+          # obsN75th <- round(length(obsSNoNA) * 0.75, 0)
+          estS25th[y, k, n] <- sort(obsSNoNA)[obsN25th]
+          estS50th[y, k, n] <- sort(obsSNoNA)[obsN50th]
+          # estS75th[y, k, n] <- sort(obsSNoNA)[obsN75th]
+          #Calculate SR BMs
+          estSMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
+                                     (1 - gsl::lambert_W0(exp(
+                                       1 - estRicA[y, k, n]))) /
+                                       estRicB[y, k, n])
+          if (is.na(estRicB[y, k, n]) == FALSE) {
+            if (estRicB[y, k, n] > 0) {
+              if ((1 / estRicB[y, k, n]) <= max(obsS[,k], na.rm = TRUE) * 4) {
+                estSGen[y, k, n] <- as.numeric(sGenSolver(
+                  theta = c(estRicA[y, k, n], estRicB[y, k, n], ricSig[k]),
+                  sMSY = estSMSY[y, k, n]))
+              } else {
+                #if a BM cannot be estimated set it to the last estimated value
+                estSGen[y, k, n] <- estSGen[max(which(!is.na(
+                  estSGen[, k, n]))), k, n]
+                estSMSY[y, k, n] <- estSMSY[max(which(!is.na(
+                  estSMSY[, k, n]))), k, n]
+                fb1[y, k] <- 1
+              }
+            }# End of if(estRicB[y, n]>0)
+          } else{
+            estSGen[y, k, n] <- estSGen[max(which(!is.na(estSGen[, k, n]))), k, n]
+            estSMSY[y, k, n] <- estSMSY[max(which(!is.na(estSMSY[, k, n]))), k, n]
+            fb2[y, k] <- 1
+          } #end(if(is.na(estRicB)))
+        } #end for(k in 1:nCU)
+        if (is.na(estSGen[y, k, n]) == FALSE & is.na(estSMSY[y, k, n]) == FALSE) {
+          if (estSGen[y, k, n] > estSMSY[y, k, n]) {
+            warning("Estimated lower benchmark greater than upper benchmark;
+                  set to NA")
+            estSGen[y, k, n] <- estSGen[max(which(!is.na(estSGen[, k, n]))), k, n]
+            estSMSY[y, k, n] <- estSMSY[max(which(!is.na(estSMSY[, k, n]))), k, n]
+            fb3[y, k] <- 1
+          }
+        }
+      } #end if normPeriod = FALSE
 
       #___________________________________________________________________
       ### Population dynamics submodel
@@ -1509,18 +1539,10 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             model[k] == "larkin" & cycle[y] == domCycle[k]) {
           if (bm == "stockRecruit") {
             #is spawner abundance greater than upper/lower BM
-            upperBM[y, k] <- ifelse(!is.na(sMSY[y, k, n]),
-                                    0.8 * sMSY[y, k, n],
-                                    0)
-            lowerBM[y, k] <- ifelse(!is.na(sGen[y, k, n]),
-                                    sGen[y, k, n],
-                                    0)
-            upperObsBM[y, k] <- ifelse(!is.na(estSMSY[y, k, n]),
-                                    0.8 * estSMSY[y, k, n],
-                                    0)
-            lowerObsBM[y, k] <- ifelse(!is.na(estSGen[y, k, n]),
-                                    estSGen[y, k, n],
-                                    0)
+            upperBM[y, k] <- 0.8 * sMSY[y, k, n]
+            lowerBM[y, k] <- sGen[y, k, n]
+            upperObsBM[y, k] <- 0.8 * estSMSY[y, k, n]
+            lowerObsBM[y, k] <- estSGen[y, k, n]
           }
           if (bm == "percentile") {
             upperBM[y, k] <- s50th[y, k, n]

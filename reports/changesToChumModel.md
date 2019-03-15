@@ -525,7 +525,17 @@ Potential issues
 -	However since reductions in alpha lead to reductions in Smsy, this resulted in PMs such as the ppn of CUs above their BM appearing relatively optimistic, particularly if management is not able to accurately update those markers
 -	Instead always calculate BMs relative to default (i.e. median) productivity to maximize comparisons among OMs 
 
-### 51) Add divergent productivity trends (Feb 27)
+### 51) Add divergent productivity trends (Feb 27; March 9)
 -	Add generic divergent productivity scenario where CUs are selected at random and assigned either increasing, decreasing or stable trends
 -	Increasing and decreasing productivity are currently set at 1.35 and 0.65 the reference productivity value
+- Also include
+  - divergentSmall: all CUs below median spawner abundance assigned declining trend
+  - oneUp/oneDown: one CU is assigned an opposite trend
 -	Eventually plan to add a CU-specific option, but will require adjusting cuPars input file and holding off until we decide whether this OM is worth keeping
+
+### 52) Add normative period argument for benchmarks (Mar 15)
+- When TRUE (default) benchmarks are "frozen" after observation period so that comparisons among OMs and MPs are directly comparable
+- Side effect is that many calculations (true BMs and est BMs) do not have to be performed during sim period
+- **NOTE** estimated BMs are assumed to be equal to true when normative period is being used because they will diverge from true due to time series 
+  - SR model parameters still estimated for diagnostics
+- In the case of Larkin stocks cycle-line specific BMs from the last observed generation are used
