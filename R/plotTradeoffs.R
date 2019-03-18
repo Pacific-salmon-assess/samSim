@@ -26,8 +26,9 @@
 #' @param xLab A character representing the x axis label.
 #' @param yLab A character representing the y axis label.
 #' @param main A logical specifying whether a plot title should be added.
-#' @param freeY A logical specifying whether y-axis values should be allowed to
-#' vary across facets.
+#' @param scaleAxis A character vector that can take values `c("fixed", "free",
+#' "free_x", "free_y")` that determines which axes, if any, have variable axes dimensions
+#' across facets.
 #' @return Returns a ggplot object.
 #'
 #' @examples
@@ -41,7 +42,7 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
                            facet = "mu", panel = "om", showUncertainty = FALSE,
                            legendLab = NULL, xLab = NULL, yLab = NULL, main = TRUE,
                            axisSize = 14, dotSize = 4, lineSize = 1.25,
-                           legendSize = 14, freeY = TRUE) {
+                           legendSize = 14, freeY = TRUE, scaleAxis = "free") {
   xLab <- ifelse(is.null(xLab), catchVar, xLab)
   yLab <- ifelse(is.null(yLab), consVar, yLab)
   #save index variables
@@ -118,7 +119,7 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
       scale_shape_manual(values = c(21, 25), name = "Control Rule") +
       scale_alpha_discrete(range = c(0.3, 1), name = legendLab)  +
       scale_fill_manual(values = colPal, name = "CU") +
-      facet_wrap(~ facetVar, scales = "free")
+      facet_wrap(~ facetVar, scales = scaleAxis)
     if (length(unique(wideDum$hcr)) < 2) {
       p <- p +
         guides(shape = "none")
@@ -135,10 +136,6 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
     if (facet == "cu" | facet == "mp" | facet == "om") {
       p <- p +
         guides(fill = FALSE)
-    }
-    if (freeY == FALSE) {
-      p <- p +
-        facet_wrap(~ facetVar, scales = "fixed")
     }
     if (showUncertainty == FALSE) {
       return(p)
@@ -187,8 +184,9 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
 #' @param xLab A character representing the x axis label.
 #' @param yLab A character representing the y axis label.
 #' @param mainLab A character specifying a plot title (defaults to NULL).
-#' @param freeY A logical specifying whether y-axis values should be allowed to
-#' vary across facets.
+#' @param scaleAxis A character vector that can take values `c("fixed", "free",
+#' "free_x", "free_y")` that determines which axes, if any, have variable axes dimensions
+#' across facets.
 #' @return Returns a ggplot object.
 #'
 #' @examples
@@ -203,7 +201,7 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
                            hotColors = TRUE, showUncertainty = FALSE,
                            legendLab = NULL, xLab = NULL, yLab = NULL,
                            mainLab = NULL, axisSize = 14, dotSize = 4,
-                           lineSize = 1.25, legendSize = 14, freeY = TRUE) {
+                           lineSize = 1.25, legendSize = 14, scaleAxis = "free") {
   xLab <- ifelse(is.null(xLab), catchVar, xLab)
   yLab <- ifelse(is.null(yLab), consVar, yLab)
 
@@ -292,7 +290,7 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
 
   if (!is.null(facet)) {
     p <- p +
-      facet_wrap(~ facetVar, scales = "free")
+      facet_wrap(~ facetVar, scales = scaleAxis)
   }
   if (length(unique(wideDum$shapeVar)) < 2) {
     p <- p +
@@ -300,10 +298,6 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
   } else {
     p <- p +
       guides(shape = guide_legend(override.aes = list(fill = "black")))
-  }
-  if (freeY == FALSE) {
-    p <- p +
-      facet_wrap(~facetVar, scales = "fixed")
   }
   if (showUncertainty == FALSE) {
     return(p)
