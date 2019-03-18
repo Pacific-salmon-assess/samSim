@@ -33,13 +33,18 @@
 #' head(d$pLow) #lower percentile estimates for alpha only
 #' @export
 
-getSRPars <- function(pars, alphaOnly = TRUE, highP = 0.9, lowP = 0.1, stks = NULL) {
+getSRPars <- function(pars, alphaOnly = TRUE, highP = 0.9, lowP = 0.1,
+                      stks = NULL) {
   srLow <- NULL
   srMed <- NULL
   srHigh <- NULL
   if (!is.null(stks)) {
     pars <- pars %>%
       filter(stk %in% stks)
+  }
+  if (!is.null(pars$CU)) {
+    pars <- pars %>%
+      select(-CU)
   }
   stkKey <- unique(pars$stk)
   perc <- pars %>%

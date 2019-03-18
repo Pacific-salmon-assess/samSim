@@ -16,15 +16,15 @@
 #Temporary inputs
 here <- here::here
 require(samSim)
-simParF <- read.csv(here("data", "manProcScenarios",
-                         "fraserMPInputs_varyAllocationVaryFixedER.csv"),
-                    stringsAsFactors = F)
-cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
+# simParF <- read.csv(here("data", "manProcScenarios",
+#                          "fraserMPInputs_varyAllocationVaryFixedER.csv"),
+#                     stringsAsFactors = F)
+# cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
 # srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
 # catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors=F)
-ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors=F)
-larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"), stringsAsFactors=F)
-tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
+# ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors=F)
+# larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"), stringsAsFactors=F)
+# tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
 
 # simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorr.csv"),
 #                     stringsAsFactors = F)
@@ -33,13 +33,13 @@ tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
 #                       row.names = NULL)
 
 ## CHUM PARS
-# simParF <- read.csv(here("data/opModelScenarios/nassOMInputs_ref.csv"),
-#                     stringsAsFactors=F)
-# cuPar <- read.csv(here("data/nassDat/nassCUpars.csv"), stringsAsFactors=F)
-# srDat <- read.csv(here("data/nassDat/nassRecDatTrim.csv"), stringsAsFactors=F)
-# catchDat <- read.csv(here("data/nassDat/nassCatchDatTrim.csv"), stringsAsFactors=F)
-# ricPars <- read.csv(here("data/nassDat/nassChumMCMCPars.csv"),
-#                     stringsAsFactors=F)
+simParF <- read.csv(here("data/opModelScenarios/nassOMInputs_ref.csv"),
+                    stringsAsFactors=F)
+cuPar <- read.csv(here("data/nassDat/nassCUpars.csv"), stringsAsFactors=F)
+srDat <- read.csv(here("data/nassDat/nassRecDatTrim.csv"), stringsAsFactors=F)
+catchDat <- read.csv(here("data/nassDat/nassCatchDatTrim.csv"), stringsAsFactors=F)
+ricPars <- read.csv(here("data/nassDat/nassChumMCMCPars_wAR.csv"),
+                    stringsAsFactors=F)
 
 ## Misc. objects to run single trial w/ "reference" OM
 uniqueProd <- TRUE
