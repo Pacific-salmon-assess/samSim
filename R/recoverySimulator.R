@@ -14,17 +14,17 @@
 #' @export
 
 #Temporary inputs
-# here <- here::here
-# require(samSim)
-# simParF <- read.csv(here("data", "manProcScenarios",
-#                          "fraserMPInputs_varyAllocationVaryFixedER.csv"),
-#                     stringsAsFactors = F)
-# cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
+here <- here::here
+require(samSim)
+simParF <- read.csv(here("data", "manProcScenarios",
+                         "fraserMPInputs_varyAllocationVaryFixedER.csv"),
+                    stringsAsFactors = F)
+cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
 # srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
 # catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors=F)
-# ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors=F)
-# larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"), stringsAsFactors=F)
-# tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
+ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors=F)
+larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"), stringsAsFactors=F)
+tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
 
 # simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorr.csv"),
 #                     stringsAsFactors = F)
@@ -42,13 +42,13 @@
 #                     stringsAsFactors=F)
 
 ## Misc. objects to run single trial w/ "reference" OM
-# uniqueProd <- TRUE
-# variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
-# dirName <- "TEST"
-# nTrials <- 5
-# simPar <- simParF[8, ]
-# makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
-# random <- FALSE
+uniqueProd <- TRUE
+variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
+dirName <- "TEST"
+nTrials <- 5
+simPar <- simParF[8, ]
+makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
+random <- FALSE
 
 recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                         variableCU=FALSE, makeSubDirs=TRUE, ricPars,
@@ -148,7 +148,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   nAges <- ncol(ageStruc) #total number of ages at return in ageStruc matrix (does not mean that modeled populations actually contain 4 ages at maturity)
   tauAge <- cuPar$tauCycAge * simPar$adjustAge #CU-specific variation in age-at-maturity, adjusted by scenario
   medAbundance <- cbind(cuPar$medianRec, cuPar$lowQRec, cuPar$highQRec) #matrix of long term abundances (median, lower and upper quantile)
-  recCap <- 5 * cuPar$highQRec #default recruitment cap; if TS available will use 3x max obs (in following loop)
+  recCap <- 3 * cuPar$highQRec #default recruitment cap; if TS available will use 3x max obs (in following loop)
 
   if (species == "pink") { ### PINK FUNCTIONALITY NEEDS TO BE TESTED
     gen <- 2
@@ -159,68 +159,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     } else { #chum
       gen <- 5
     }
-  }
-
-  ## Stock-recruitment data
-  if (exists("srDat")) { #transform rec data if available
-    if (exists("catchDat")) { #add catch data if available
-      #catchDat comes first so that R can be pulled regardless of DF width
-      recDat <- Reduce(function(x, y) merge(x, y, by = c("stk", "yr")),
-                       list(catchDat, srDat))
-    } else{
-      recDat <- srDat
-    }
-    #remove stocks from SR dataset that aren't in CU parameter inputs
-    recDat <- recDat %>%
-      dplyr::filter(stk %in% cuPar$stk) %>%
-      dplyr::rowwise() %>%
-      dplyr::mutate(totalRec = sum(rec2, rec3, rec4, rec5, rec6))
-    if (length(unique(recDat$stk)) != length(unique(cuPar$stk))) {
-      stop("SR input dataset does not match parameter inputs")
-    }
-    # trim SR data so that empty rows are excluded; otherwise gaps may be
-    # retained when catch data is more up to date
-    recDat <- recDat[!is.na(recDat$totalRec), ]
-    maxYears <- recDat %>%
-      dplyr::group_by(stk) %>%
-      dplyr::summarise(maxYr = max(yr))
-    # crop any stks with time series that end at a late year
-    commonMaxYr <- min(maxYears$maxYr)
-    recDat <- recDat %>%
-      dplyr::filter(!yr > commonMaxYr)
-    recDat <- with(recDat, recDat[order(stk, yr),])
-    summRec <- recDat %>%
-      dplyr::group_by(stk) %>%
-      dplyr::summarise(tsLength = length(ets),
-                       maxRec = max(totalRec, na.rm = TRUE))
-    nPrime <- max(summRec[, "tsLength"])
-    recCap <- 3 * summRec$maxRec
-    dumFull <- vector("list", nCU)
-    #list of stk numbers to pass to following for loop
-    stkList <- unique(cuPar$stk)
-    #add NAs to front end of shorter TS to ensure all matrices are same length
-    for (k in 1:nCU) {
-      dum <- recDat[recDat$stk == stkList[k], ]
-      if (nrow(dum) < nPrime) {
-        empties <- nPrime - nrow(dum)
-        emptyMat <- matrix(NA, nrow = empties, ncol = ncol(recDat))
-        colnames(emptyMat) <- colnames(dum)
-        dum <- rbind(emptyMat, dum)
-      }
-      if(!is.null(dum["frfnCatch"])) {
-        dum <- dum %>%
-          dplyr::rename(singCatch = frfnCatch)
-      }
-      if(!is.null(dum["marCatch"])) {
-        dum <- dum %>%
-          dplyr::rename(mixCatch = marCatch)
-      }
-      #convert from tbbl to dataframe to silence unknown column warnings
-      dumFull[[k]] <- as.data.frame(dum)
-    }
-    recDat <- dumFull
-    #calculate firstYr here because catch and rec data may differ in length
-    firstYr <- min(sapply(recDat, function(x) min(x$yr, na.rm=TRUE)))
   }
 
   ## Stock-recruitment parameters
@@ -259,7 +197,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #treatments but this is currently replaced by applying a simple scalar
       #based on mean differences estimated from kalman filter
       dumLark <- getSRPars(pars = larkPars, alphaOnly = TRUE, highP = 0.95,
-                       lowP = 0.05, stks = stkID)
+                           lowP = 0.05, stks = stkID)
       larA <- (dumLark$pMed[["alpha"]])
       larB <- (dumLark$pMed[["beta0"]])
       larB1 <- (dumLark$pMed[["beta1"]])
@@ -328,7 +266,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   #adjust sigma up or down
   sig <- ifelse(model == "ricker", ricSig, larSig) * adjSig
 
-  residMatrix <- getResiduals(recDat, model) #pull residuals from observed data and save
   #Add correlations in rec deviations
   if (simPar$corrMat == TRUE) { #replace uniform correlation w/ custom matrix
     if (nrow(cuCustomCorrMat) != nCU) {
@@ -350,13 +287,114 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   #   diag(covMortMat) <- as.numeric(enRouteSig^2)
   # }
 
-  nYears <- nPrime + simYears #total model run length = TS priming period duration + specified simulation length
+
+  ## Stock-recruitment data
+  if (exists("srDat")) { #transform rec data if available
+    if (exists("catchDat")) { #add catch data if available
+      #catchDat comes first so that R can be pulled regardless of DF width
+      recDat <- Reduce(function(x, y) merge(x, y, by = c("stk", "yr")),
+                       list(catchDat, srDat))
+    } else{
+      recDat <- srDat
+    }
+    #remove stocks from SR dataset that aren't in CU parameter inputs
+    recDat <- recDat %>%
+      dplyr::filter(stk %in% cuPar$stk) %>%
+      dplyr::rowwise() %>%
+      dplyr::mutate(totalRec = sum(rec2, rec3, rec4, rec5, rec6))
+    if (length(unique(recDat$stk)) != length(unique(cuPar$stk))) {
+      stop("SR input dataset does not match parameter inputs")
+    }
+    # trim SR data so that empty rows are excluded; otherwise gaps may be
+    # retained when catch data is more up to date
+    recDat <- recDat[!is.na(recDat$totalRec), ]
+    maxYears <- recDat %>%
+      dplyr::group_by(stk) %>%
+      dplyr::summarise(maxYr = max(yr))
+    # crop any stks with time series that end at a late year
+    commonMaxYr <- min(maxYears$maxYr)
+    recDat <- recDat %>%
+      dplyr::filter(!yr > commonMaxYr)
+    recDat <- with(recDat, recDat[order(stk, yr),])
+    summRec <- recDat %>%
+      dplyr::group_by(stk) %>%
+      dplyr::summarise(tsLength = length(ets),
+                       maxRec = max(totalRec, na.rm = TRUE))
+    # define nPrime
+    nPrime <- max(summRec[, "tsLength"])
+    dumFull <- vector("list", nCU)
+    #list of stk numbers to pass to following for loop
+    stkList <- unique(cuPar$stk)
+    #add NAs to front end of shorter TS to ensure all matrices are same length
+    for (k in 1:nCU) {
+      dum <- recDat[recDat$stk == stkList[k], ]
+      if (nrow(dum) < nPrime) {
+        empties <- nPrime - nrow(dum)
+        emptyMat <- matrix(NA, nrow = empties, ncol = ncol(recDat))
+        colnames(emptyMat) <- colnames(dum)
+        dum <- rbind(emptyMat, dum)
+      }
+      if(!is.null(dum["frfnCatch"])) {
+        dum <- dum %>%
+          dplyr::rename(singCatch = frfnCatch)
+      }
+      if(!is.null(dum["marCatch"])) {
+        dum <- dum %>%
+          dplyr::rename(mixCatch = marCatch)
+      }
+      #convert from tbbl to dataframe to silence unknown column warnings
+      dumFull[[k]] <- as.data.frame(dum)
+    }
+    recOut <- dumFull
+    nYears <- nPrime + simYears #total model run length = TS priming period duration + specified simulation length
+    cycle <- genCycle(min(recOut[[1]]$yr), nYears) #vector used to orient Larkin BM estimates and TAM rules
+    residMatrix <- getResiduals(recOut, model) #pull residuals from observed data and save
+    #calculate firstYr here because catch and rec data may differ in length
+    firstYr <- min(sapply(recOut, function(x) min(x$yr, na.rm = TRUE)))
+  }
+
+  #### TO BE ADDED #####
+
+  # If recruitment data is not passed (or if it's ignored) prime simulation
+  # with predefined abundances and recruitment (without harvest)
+  # if (!is.na(simPar$initialS)) {
+  #   initialS <- rep(simPar$initialS, nCU)
+  #   recOut <- vector("list", nCU)
+  #   nPrime <- gen * 3
+  #   nYears <- nPrime + simYears #total model run length = TS priming period duration + specified simulation length
+  #   cycle <- rep(c(1, 2, 3, 4), length.out = nYears) #vector used to orient Larkin BM estimates and TAM rules
+  #   for (k in 1:nCU) {
+  #     recOut[[k]] <- data.frame(stk = seq(1:nCU)[k],
+  #                               yr = seq(1:(gen + 1)),
+  #                               ets = initialS[k],
+  #                               rec = NA,
+  #                               rec2 = NA,
+  #                               rec3 = NA,
+  #                               rec4 = NA,
+  #                               rec5 = NA,
+  #                               rec6 = NA)
+  #   }
+  #   for(y in 1:(gen + 1)) {
+  #     errorCU <- sn::rmst(n = 1, xi = rep(0, nCU),
+  #                         alpha = rep(0, nCU), nu = 10000,
+  #                         Omega = covMat)
+  #     dum <- rickerModel(initialS, refAlpha, beta, error = errorCU)[[1]]
+  #     for(k in 1:nCU) {
+  #       recOut[[k]]["rec"] <- dum[k]
+  #       ppnAges <- ppnAgeErr(ageStruc[k, ], tauAge[k],
+  #                            error = runif(nAges, 0.0001, 0.9999))
+  #       recOut[[k]][y, c("rec2", "rec3", "rec4", "rec5", "rec6")] <- dum[k] *
+  #         ppnAges
+  #     }
+  #   }
+  # }
+  #####
+
   ppn2 <- ageStruc[, 1] #proportion at age parameters
   ppn3 <- ageStruc[, 2]
   ppn4 <- ageStruc[, 3]
   ppn5 <- ageStruc[, 4]
   ppn6 <- ageStruc[, 5]
-  cycle <- genCycle(min(recDat[[1]]$yr), nYears) #vector used to orient Larkin BM estimates and TAM rules
   drawTrial <- round(runif(1, min = 0.5, max = nTrials)) #randomly selects trial to draw and plot
   obsErrDat <- data.frame(mu = manUnit, #df used to store MU-specific observation errors; can't use matrix because mix of numeric and characters; updated annually
                           cu = stkName,
@@ -367,6 +405,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   )
   earlyPeriod <- (nPrime + gen + 1):(nPrime + gen + 4) #defines years representing 4th generation after sim starts; used for some PMs
   endEarly <- max(earlyPeriod)
+
 
   #_____________________________________________________________________
   ## Create directories (based on all scenarios in a sim run)
@@ -657,12 +696,12 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       alphaMat[y, ] <- refAlpha
 
       for (k in 1:nCU) {
-        S[y, k] <- recDat[[k]]$ets[y]
+        S[y, k] <- recOut[[k]]$ets[y]
         #calculate total recruitment as sum of all age classes
-        recBY[y, k] <- sum(recDat[[k]][y, c("rec2", "rec3", "rec4", "rec5",
+        recBY[y, k] <- sum(recOut[[k]][y, c("rec2", "rec3", "rec4", "rec5",
                                             "rec6")])
         #each age is a matrix, columns CUs, rows years
-        ppnAges[y, k, ] <- as.matrix(recDat[[k]][y, c("rec2", "rec3", "rec4",
+        ppnAges[y, k, ] <- as.matrix(recOut[[k]][y, c("rec2", "rec3", "rec4",
                                                       "rec5", "rec6")] /
                                        recBY[y, k])
         #if ppns can't be estimated due to TS gaps replace with mean values
@@ -672,21 +711,21 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                      ppnAges[y, k, j])
         }
         if (exists("catchDat")) {
-          amCatch[y, k] <- ifelse(is.null(recDat[[k]]$amCatch[y]),
+          amCatch[y, k] <- ifelse(is.null(recOut[[k]]$amCatch[y]),
                                   0, #not available for Fraser
-                                  recDat[[k]]$amCatch[y])
-          mixCatch[y, k] <- ifelse(is.null(recDat[[k]]$mixCatch[y]),
+                                  recOut[[k]]$amCatch[y])
+          mixCatch[y, k] <- ifelse(is.null(recOut[[k]]$mixCatch[y]),
                                    0, #not available for Fraser
-                                   recDat[[k]]$mixCatch[y])
-          singCatch[y, k] <- ifelse(is.null(recDat[[k]]$singCatch[y]),
+                                   recOut[[k]]$mixCatch[y])
+          singCatch[y, k] <- ifelse(is.null(recOut[[k]]$singCatch[y]),
                                     0,
-                                    recDat[[k]]$singCatch[y])
+                                    recOut[[k]]$singCatch[y])
         } else {
           amCatch[y , k] <- 0
           mixCatch[y, k] <- 0
           singCatch[y, k] <- 0
         }
-        expRate[y, k] <- ifelse(exists("catchDat"), recDat[[k]]$totalER[y], 0)
+        expRate[y, k] <- ifelse(exists("catchDat"), recOut[[k]]$totalER[y], 0)
         logRS[y, k] <- log(recBY[y, k] / S[y, k])
       }
       totalCatch[y, ] <- amCatch[y, ] + mixCatch[y, ] + singCatch[y, ]

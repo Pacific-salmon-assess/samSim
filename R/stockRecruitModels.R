@@ -44,24 +44,24 @@ rickerModel <- function(S, a, b, error, rho = NULL, prevErr = NULL) {
     prevErr <- 0
   }
   err <- prevErr * rho + error
-  if (a >= 0) {
-    if (b != 0 & S > 0) {
+  # if (a >= 0) {
+  #   if (b != 0 & S > 0) {
       R <- S * exp(a - b * S) * exp(err)
       errNext <- log(R / S) - (a - b * S)
-    }
-    if (b == 0 & S > 0) {
-      R <- S * exp(err)
-      errNext <- log(R / S)
-    }
-  }
-  if (a < 0 & S > 0) {
-    R <- S * exp(a) * exp(error)
-    errNext <- log(R / S)
-  }
-  if (S == 0) {
-    R <- 0
-    errNext <- err
-  }
+  #   }
+  #   if (b == 0 & S > 0) {
+  #     R <- S * exp(err)
+  #     errNext <- log(R / S)
+  #   }
+  # }
+  # if (a < 0 & S > 0) {
+  #   R <- S * exp(a) * exp(error)
+  #   errNext <- log(R / S)
+  # }
+  # if (S == 0) {
+  #   R <- 0
+  #   errNext <- err
+  # }
   return(list(R, errNext))
 }
 
