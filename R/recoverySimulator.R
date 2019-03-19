@@ -46,7 +46,7 @@ uniqueProd <- TRUE
 variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 dirName <- "TEST"
 nTrials <- 5
-simPar <- simParF[8, ]
+simPar <- simParF[1, ]
 makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 random <- FALSE
 
@@ -123,13 +123,13 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   }
   #minimum exploitation rate applied with TAM rule even at low abundance
   minER <- cuPar$minER
-  if (simPar$enRouteMort == TRUE) {
+  enRouteMort <- ifelse(is.null(simPar$enRouteMort), FALSE, simPar$enRouteMort)
+  if (enRouteMort == TRUE) {
     # ER mort rate (i.e. between marine and term. fisheries);
     # taken from in-river difference between estimates (post-2000)
     enRouteMR <- cuPar$meanDBE
     enRouteSig <- cuPar$sdDBE
-  }
-  if (is.null(simPar$enRouteMort) | simPar$enRouteMort == FALSE) {
+  } else if (enRouteMort == FALSE) {
     enRouteMR <- rep(0, length.out = nrow(cuPar))
     enRouteSig <- rep(0, length.out = nrow(cuPar))
   } #end if is.null(enRouteMort)
@@ -297,24 +297,29 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     } else{
       recDat <- srDat
     }
+    ### MOVE TO FUNCTIONS
+    ungroupRowwiseDF <- function(x) {
+      class(x) <- c( "tbl_df", "data.frame")
+      x
+    }
     #remove stocks from SR dataset that aren't in CU parameter inputs
     recDat <- recDat %>%
       dplyr::filter(stk %in% cuPar$stk) %>%
       dplyr::rowwise() %>%
-      dplyr::mutate(totalRec = sum(rec2, rec3, rec4, rec5, rec6))
+      dplyr::mutate(totalRec = sum(rec2, rec3, rec4, rec5, rec6)) %>%
+      dplyr::filter(!is.na(totalRec)) %>%
+      ungroupRowwiseDF()
+
     if (length(unique(recDat$stk)) != length(unique(cuPar$stk))) {
       stop("SR input dataset does not match parameter inputs")
     }
     # trim SR data so that empty rows are excluded; otherwise gaps may be
     # retained when catch data is more up to date
-    recDat <- recDat[!is.na(recDat$totalRec), ]
     maxYears <- recDat %>%
       dplyr::group_by(stk) %>%
       dplyr::summarise(maxYr = max(yr))
-    # crop any stks with time series that end at a late year
-    commonMaxYr <- min(maxYears$maxYr)
     recDat <- recDat %>%
-      dplyr::filter(!yr > commonMaxYr)
+      dplyr::filter(!yr > min(maxYears$maxYr))
     recDat <- with(recDat, recDat[order(stk, yr),])
     summRec <- recDat %>%
       dplyr::group_by(stk) %>%
@@ -327,18 +332,19 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     stkList <- unique(cuPar$stk)
     #add NAs to front end of shorter TS to ensure all matrices are same length
     for (k in 1:nCU) {
-      dum <- recDat[recDat$stk == stkList[k], ]
+      dum <- recDat %>%
+        dplyr::filter(stk == stkList[k])
       if (nrow(dum) < nPrime) {
         empties <- nPrime - nrow(dum)
         emptyMat <- matrix(NA, nrow = empties, ncol = ncol(recDat))
         colnames(emptyMat) <- colnames(dum)
         dum <- rbind(emptyMat, dum)
       }
-      if(!is.null(dum["frfnCatch"])) {
+      if(!"singCatch" %in% colnames(dum) & "frfnCatch" %in% colnames(dum)) {
         dum <- dum %>%
           dplyr::rename(singCatch = frfnCatch)
       }
-      if(!is.null(dum["marCatch"])) {
+      if(!"mixCatch" %in% colnames(dum) & "marCatch" %in% colnames(dum)) {
         dum <- dum %>%
           dplyr::rename(mixCatch = marCatch)
       }
