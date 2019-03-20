@@ -1,2 +1,5 @@
-scenario,nameOM,nameMP,keyVar,plotOrder,species,simYears,harvContRule,benchmark,canER,usER,propMixHigh,singleHCR,varyAllocation,prodRegime,rho,arSigTransform,correlCU,corrMat,tauCatch,obsSig,mixOUSig,singOUSig,obsMixCatchSig,obsSingCatchSig,obsAgeErr,lowCatchThresh,highCatchThresh,extinctThresh,adjustSig,adjustAge
-obsSig,lowErr,0.3,mixOUSig,1,chum,55,fixedER,stockRecruit,0.3,0,1,FALSE,FALSE,med,0.5,FALSE,0.05,FALSE,0,0,0,0,0,0,0.1,NA,NA,100,1,1
+scenario,nameOM,nameMP,keyVar,plotOrder,species,simYears,harvContRule,benchmark,canER,usER,propMixHigh,singleHCR,varyAllocation,prodRegime,rho,arSigTransform,correlCU,corrMat,tauCatch,obsSig,mixOUSig,singOUSig,obsMixCatchSig,obsSingCatchSig,obsAgeErr,lowCatchThresh,highCatchThresh,agEscTarget,extinctThresh,adjustSig,adjustAge
+pilot,noErr,0.3,mixOUSig,1,chum,55,fixedER,stockRecruit,0.3,0,1,FALSE,FALSE,med,0.5,FALSE,0.05,FALSE,0,0,0,0,0,0,0,NA,NA,30000,100,1,1
+pilot,noErr,0,mixOUSig,1,chum,55,fixedER,stockRecruit,0,0,1,FALSE,FALSE,med,0.5,FALSE,0.05,FALSE,0,0,0,0,0,0,0,NA,NA,30000,100,1,1
+pilot,noErr,0.1,mixOUSig,1,chum,55,fixedER,stockRecruit,0.1,0,1,FALSE,FALSE,med,0.5,FALSE,0.05,FALSE,0,0,0,0,0,0,0,NA,NA,30000,100,1,1
+pilot,noErr,0.5,mixOUSig,1,chum,55,fixedER,stockRecruit,0.5,0,1,FALSE,FALSE,med,0.5,FALSE,0.05,FALSE,0,0,0,0,0,0,0,NA,NA,30000,100,1,1
