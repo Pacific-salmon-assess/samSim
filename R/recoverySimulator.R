@@ -14,8 +14,8 @@
 #' @export
 
 #Temporary inputs
-here <- here::here
-require(samSim)
+# here <- here::here
+# require(samSim)
 # simParF <- read.csv(here("data", "manProcScenarios",
 #                          "fraserMPInputs_varyAllocationVaryFixedER.csv"),
 #                     stringsAsFactors = F)
@@ -33,22 +33,22 @@ require(samSim)
 #                       row.names = NULL)
 
 ## CHUM PARS
-simParF <- read.csv(here("data/opModelScenarios/nassOMInputs_ref.csv"),
-                    stringsAsFactors=F)
-cuPar <- read.csv(here("data/nassDat/nassCUpars.csv"), stringsAsFactors=F)
-srDat <- read.csv(here("data/nassDat/nassRecDatTrim.csv"), stringsAsFactors=F)
-catchDat <- read.csv(here("data/nassDat/nassCatchDatTrim.csv"), stringsAsFactors=F)
-ricPars <- read.csv(here("data/nassDat/nassChumMCMCPars_wAR.csv"),
-                    stringsAsFactors=F)
+# simParF <- read.csv(here("data/opModelScenarios/nassOMInputs_ref.csv"),
+#                     stringsAsFactors=F)
+# cuPar <- read.csv(here("data/nassDat/nassCUpars.csv"), stringsAsFactors=F)
+# srDat <- read.csv(here("data/nassDat/nassRecDatTrim.csv"), stringsAsFactors=F)
+# catchDat <- read.csv(here("data/nassDat/nassCatchDatTrim.csv"), stringsAsFactors=F)
+# ricPars <- read.csv(here("data/nassDat/nassChumMCMCPars_wAR.csv"),
+#                     stringsAsFactors=F)
 
 ## Misc. objects to run single trial w/ "reference" OM
-uniqueProd <- TRUE
-variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
-dirName <- "TEST"
-nTrials <- 5
-simPar <- simParF[1, ]
-makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
-random <- FALSE
+# uniqueProd <- TRUE
+# variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
+# dirName <- "TEST"
+# nTrials <- 5
+# simPar <- simParF[1, ]
+# makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
+# random <- FALSE
 
 recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                         variableCU=FALSE, makeSubDirs=TRUE, ricPars,
@@ -240,14 +240,11 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     } else if (prod == "divergentSmall") {
       prodScalars <- ifelse(cuPar$medianRec < median(cuPar$medianRec), 0.65, 1)
     } else if (prod == "oneDown") {
-      # drawCU <- round(runif(1, min = 0.5, max = nCU))
-      # cuPar$stkName[which(cuPar$medianRec == min(cuPar$medianRec))]
-      #arbitrarily set to Cultus for now
-      prodScalars[10] <- 0.65
+      drawCU <- round(runif(1, min = 0.5, max = nCU))
+      prodScalars[drawCU] <- 0.65
     } else if (prod == "oneUp") {
-      # drawCU <- round(runif(1, min = 0.5, max = nCU))
-      #arbitrarily set to Harrison for now
-      prodScalars[17] <- 1.35
+      drawCU <- round(runif(1, min = 0.5, max = nCU))
+      prodScalars[drawCU] <- 1.35
     }
   }
   finalAlpha <- prodScalars * alpha
