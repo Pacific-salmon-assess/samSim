@@ -26,8 +26,6 @@
 # larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"), stringsAsFactors=F)
 # tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
 
-# simParF <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorr.csv"),
-#                     stringsAsFactors = F)
 # cuCustomCorrMat <- read.csv(here("data/fraserDat/prodCorrMatrix.csv"), stringsAsFactors=F)
 # erCorrMat <- read.csv(here("data/fraserDat/erMortCorrMatrix.csv"), stringsAsFactors=F,
 #                       row.names = NULL)
@@ -46,7 +44,7 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 5
-# simPar <- simParF[1, ]
+# simPar <- simParF[10, ]
 # makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 # random <- FALSE
 
@@ -454,7 +452,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                    "adjustAge" = simPar$adjustAge,
                    "mixOUSig" = mixOUSig,
                    "adjustForecast" = simPar$adjustForecast,
-                   "adjustEnRoute" = simPar$adjustEnRoute)
+                   "adjustEnRoute" = simPar$adjustEnRoute,
+                   "obsSig" = simPar$obsSig,
+                   "obsMixCatch" = simPar$obsMixCatch)
   if (is.null(keyVar)) {
     warning("Key variable misspecified; necessary for plotting")
   }
