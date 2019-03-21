@@ -38,15 +38,24 @@ buildDataCU <- function(dirNames, cuVars, keyVarName, selectedCUs = NULL) {
                                       dirNames[i], sep = "/"),
                          full.names = FALSE, recursive = FALSE)
 
+    if (length(subDirs) == 0) {
+      subDirs <- "blank"
+    }
     for (j in seq_along(subDirs)) {
       if (is.null(selectedCUs == TRUE)) {
-        cuList <- genOutputList(dirNames[i], subDirs[j], agg = FALSE)
+        cuList <- if (subDirs[j] == "blank") {
+          genOutputList(dirNames[i], agg = FALSE)
+        } else {
+          genOutputList(dirNames[i], subDirs[j], agg = FALSE)
+        }
       } else {
-        cuList <- genOutputList(dirNames[i], subDirs[j],
-                                selectedCUs = selectedCUs,
-                                agg = FALSE)
+        cuList <- if (subDirs[j] == "blank") {
+          genOutputList(dirNames[i], selectedCUs = selectedCUs, agg = FALSE)
+        } else {
+          genOutputList(dirNames[i], subDirs[j], selectedCUs = selectedCUs,
+                        agg = FALSE)
+        }
       }
-
       nCU <- length(cuList[[1]]$stkName)
       keyVarValue <- rep(sapply(cuList, function(x) unique(x$keyVar)),
                          each  = nCU)
@@ -124,25 +133,34 @@ buildDataAgg <- function(dirNames, agVars, keyVarName) {
                                       dirNames[i], sep = "/"),
                          full.names = FALSE, recursive = FALSE)
 
+    ## NEED TO REPLACE WITH TRUE CONDITIONAL BASED ON INPUT ARGUMENT
+    if (length(subDirs) == 0) {
+      subDirs <- "blank"
+    }
     for (j in seq_along(subDirs)) {
-      agList <- genOutputList(dirNames[i], subDirs[j], agg = TRUE)
+      #set subdirectory to blank if there aren't any present
+      agList <- if (subDirs[j] == "blank") {
+        genOutputList(dirNames[i], agg = TRUE)
+      } else {
+        genOutputList(dirNames[i], subDirs[j], agg = TRUE)
+      }
       singleScenDat = NULL
       for (k in seq_along(agVars)) {
         dum <- data.frame(keyVar = sapply(agList, function(x)
-                            unique(as.character(x$keyVar))),
-                          om = sapply(agList, function(x) unique(x$opMod)),
-                          mp = sapply(agList, function(x) unique(x$manProc)),
-                          hcr = sapply(agList, function(x) unique(x$hcr)),
-                          plotOrder = sapply(agList, function(x)
-                            unique(x$plotOrder)),
-                          var = rep(agVars[k], length.out = length(agList)),
-                          avg = as.vector(sapply(agList, function(x)
-                            median(x[[agVars[k]]]))),
-                          lowQ = as.vector(sapply(agList, function(x)
-                            qLow(x[[agVars[k]]]))),
-                          highQ = as.vector(sapply(agList, function(x)
-                            qHigh(x[[agVars[k]]]))),
-                          row.names = NULL
+          unique(as.character(x$keyVar))),
+          om = sapply(agList, function(x) unique(x$opMod)),
+          mp = sapply(agList, function(x) unique(x$manProc)),
+          hcr = sapply(agList, function(x) unique(x$hcr)),
+          plotOrder = sapply(agList, function(x)
+            unique(x$plotOrder)),
+          var = rep(agVars[k], length.out = length(agList)),
+          avg = as.vector(sapply(agList, function(x)
+            median(x[[agVars[k]]]))),
+          lowQ = as.vector(sapply(agList, function(x)
+            qLow(x[[agVars[k]]]))),
+          highQ = as.vector(sapply(agList, function(x)
+            qHigh(x[[agVars[k]]]))),
+          row.names = NULL
         )
         singleScenDat <- rbind(singleScenDat, dum, row.names = NULL)
       }
