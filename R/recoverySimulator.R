@@ -44,7 +44,7 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 5
-# simPar <- simParF[10, ]
+# simPar <- simParF[16, ]
 # makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 # random <- FALSE
 
@@ -114,7 +114,10 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   muName <- unique(manUnit)
   nMU <- length(muName)
   model <- cuPar$model #stock recruit model type (larkin, ricker)
-  domCycle <- ifelse(is.null(cuPar$domCycle), NA, cuPar$domCycle) #which cycle line is dominant (for Larkin stocks only)
+  #which cycle line is dominant (for Larkin stocks only)
+  domCycle <- sapply(seq_along(stkName), function (x) {
+    ifelse(is.null(cuPar$domCycle[x]), NA, cuPar$domCycle[x])
+  })
   if (is.numeric(simPar$usER) == TRUE) {
     amER <- rep(simPar$usER, length.out = nCU)
   } else {
@@ -295,6 +298,12 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     } else{
       recDat <- srDat
     }
+
+    # Abbreviate CU names for e.g. Nass
+    if (!is.null(recDat$CU)) {
+      recDat$CU <- abbreviate(recDat$CU, minlength = 4)
+    }
+
     ### MOVE TO FUNCTIONS
     ungroupRowwiseDF <- function(x) {
       class(x) <- c( "tbl_df", "data.frame")
@@ -304,8 +313,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     recDat <- recDat %>%
       dplyr::filter(stk %in% cuPar$stk) %>%
       dplyr::rowwise() %>%
-      dplyr::mutate(totalRec = sum(rec2, rec3, rec4, rec5, rec6),
-                    CU = abbreviate(CU, minlength = 4)) %>%
+      dplyr::mutate(totalRec = sum(rec2, rec3, rec4, rec5, rec6)) %>%
       ungroupRowwiseDF()
 
     if (length(unique(recDat$stk)) != length(unique(cuPar$stk))) {
