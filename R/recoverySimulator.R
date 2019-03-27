@@ -304,11 +304,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       recDat$CU <- abbreviate(recDat$CU, minlength = 4)
     }
 
-    ### MOVE TO FUNCTIONS
-    ungroupRowwiseDF <- function(x) {
-      class(x) <- c( "tbl_df", "data.frame")
-      x
-    }
     #remove stocks from SR dataset that aren't in CU parameter inputs
     recDat <- recDat %>%
       dplyr::filter(stk %in% cuPar$stk) %>%
