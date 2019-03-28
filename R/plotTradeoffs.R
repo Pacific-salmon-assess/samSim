@@ -187,6 +187,8 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
 #' @param scaleAxis A character vector that can take values `c("fixed", "free",
 #' "free_x", "free_y")` that determines which axes, if any, have variable axes dimensions
 #' across facets.
+#' @param facetLetter A logical that determines facets are labelled with letters
+#' for referencing in text.
 #' @return Returns a ggplot object.
 #'
 #' @examples
@@ -201,7 +203,8 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
                            hotColors = TRUE, showUncertainty = FALSE,
                            legendLab = NULL, xLab = NULL, yLab = NULL,
                            mainLab = NULL, axisSize = 14, dotSize = 4,
-                           lineSize = 1.25, legendSize = 14, scaleAxis = "free") {
+                           lineSize = 1.25, legendSize = 14, scaleAxis = "free",
+                           facetLetter = FALSE) {
   xLab <- ifelse(is.null(xLab), catchVar, xLab)
   yLab <- ifelse(is.null(yLab), consVar, yLab)
 
@@ -291,6 +294,30 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
   if (!is.null(facet)) {
     p <- p +
       facet_wrap(~ facetVar, scales = scaleAxis)
+    if (facetLetter == TRUE) {
+      nLetters <- length(unique(wideDum$facetVar))
+      if (scaleAxis %in% c("fixed", "free_y")) {
+        labDat <- data.frame(facetVar = unique(wideDum$facetVar),
+                             lab = paste(letters[1:nLetters], ")", sep = ""),
+                             maxX = ifelse(showUncertainty == TRUE,
+                                           max(wideDum$catchVar_highQ),
+                                           max(wideDum$catchVar_avg)))
+      } else {
+        maxX <- wideDum %>%
+          group_by(facetVar) %>%
+          summarize(maxX = ifelse(showUncertainty == TRUE,
+                                  max(catchVar_highQ),
+                                  max(catchVar_avg)))
+        labDat <- data.frame(facetVar = unique(wideDum$facetVar),
+                             lab = paste(letters[1:nLetters], ")", sep = "")) %>%
+          left_join(., maxX)
+      }
+      p <- p +
+        geom_text(data = labDat,
+                  mapping = aes(x = 0.95 * maxX, y = Inf, label = lab,
+                                vjust = 1.75),
+                  show.legend = FALSE, inherit.aes = FALSE)
+    } #end if(facetLett == TRUE)
   }
   if (length(unique(wideDum$shapeVar)) < 2) {
     p <- p +
