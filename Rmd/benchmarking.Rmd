@@ -19,8 +19,10 @@ newPackages <- listOfPackages[!(listOfPackages %in%
 if(length(newPackages)) install.packages(newPackages)
 lapply(listOfPackages, require, character.only = TRUE)
 
-simPar <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorr.csv"), 
+simPar <- read.csv(here("data/manProcScenarios/fraserMPInputs_varyAllocationVaryFixedER.csv"), 
                    stringsAsFactors = F)
+# simPar <- read.csv(here("data/opModelScenarios/fraserOMInputs_varyCorr.csv"), 
+#                    stringsAsFactors = F)
 cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors = F)
 srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors = F)
 catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), 
@@ -32,9 +34,10 @@ tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors = F)
 
 nTrials <- 10
 ## General robustness runs
-simParTrim <- subset(simPar,
-                     scenario == "lowSig" | scenario == "medSig" |
-                       scenario == "highSig")
+# simParTrim <- subset(simPar,
+#                      scenario == "lowSig" | scenario == "medSig" |
+#                        scenario == "highSig")
+simParTrim <- simPar[81,]
 
 scenNames <- unique(simParTrim$scenario)
 dirNames <- sapply(scenNames, function(x) paste(x, unique(simParTrim$species),
@@ -48,7 +51,7 @@ profvis({
   recoverySim(simParTrim[1, ], cuPar, catchDat = catchDat, srDat = srDat, 
                 variableCU = FALSE, ricPars, larkPars = larkPars, 
                 tamFRP = tamFRP, cuCustomCorrMat = NULL, dirName = dirNames[1], 
-                nTrials = 5, multipleMPs = FALSE)
+                nTrials = 10, makeSubDirs=TRUE, random = FALSE)
 })
 ```
 
@@ -63,7 +66,7 @@ tic()
     lapply(simsToRun, function(x) {
       recoverySim(x, cuPar, catchDat=catchDat, srDat=srDat, variableCU=FALSE,
                   ricPars, larkPars=larkPars, tamFRP=tamFRP, dirName=dirNames[i],
-                  nTrials=nTrials, multipleMPs=TRUE)
+                  nTrials=nTrials, makeSubDirs=TRUE, random = FALSE)
     })
   }
 toc()
@@ -97,7 +100,7 @@ for (i in seq_along(dirNames)) {
     recoverySim(x, cuPar, catchDat = catchDat, srDat = srDat, 
                 variableCU = FALSE, ricPars, larkPars = larkPars, 
                 tamFRP = tamFRP, cuCustomCorrMat = NULL, dirName = dirName, 
-                nTrials = nTrials, multipleMPs = FALSE)
+                nTrials = nTrials, makeSubDirs=TRUE, random = FALSE)
   })
   stopCluster(cl) #end cluster
 }
