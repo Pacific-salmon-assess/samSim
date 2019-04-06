@@ -15,39 +15,41 @@
 #' @param catchVar A character value corresponding to a catch based PM in
 #' cuDat$vars.
 #' @param facet A character value that can take the values:
-#' \code{"mu", "cu", "mp", "om"} and specifies along which categorical variable
+#' \code{"cu", "mp", "om"} and specifies along which categorical variable
 #' the plot should be faceted.
 #' @param panel  A character value that can take the values:
-#' \code{"mu", "mp", "om"} and specifies along which categorical variable new
+#' \code{"mp", "om"} and specifies along which categorical variable new
 #' pages in the output PDF will be generated.
 #' @param showUncertainty A logical specifying whether whiskers for each
 #' variable's credible interval should be plotted.
+#' @param hotColors A logical (default \code{TRUE}) that specifies whether
+#' symbols should be filled with \code{viridis} palette or solid black.
 #' @param legendLab A character representing the legend title.
 #' @param xLab A character representing the x axis label.
 #' @param yLab A character representing the y axis label.
 #' @param main A logical specifying whether a plot title should be added.
 #' @param scaleAxis A character vector that can take values `c("fixed", "free",
-#' "free_x", "free_y")` that determines which axes, if any, have variable axes dimensions
-#' across facets.
+#' "free_x", "free_y")` that determines which axes, if any, have variable axes
+#' dimensions across facets.
 #' @return Returns a ggplot object.
 #'
 #' @examples
 #' plotCUTradeoff(cuPlottingDF, consVar = "medSpawners", catchVar = "medCatch",
-#' facet = "mu", panel = "om", showUncertainty = FALSE,
+#' facet = "cu", panel = "om", showUncertainty = FALSE,
 #' legendLab = "Prop. TAC in mixed stock fishery", xLab = "Median Catch",
 #' yLab = "Median Spawners", main = FALSE)
 #'
 #' @export
 plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch",
-                           facet = "mu", panel = "om", showUncertainty = FALSE,
-                           legendLab = NULL, xLab = NULL, yLab = NULL, main = TRUE,
+                           facet = "cu", panel = "om", showUncertainty = FALSE,
+                           hotColors = TRUE, legendLab = NULL, xLab = NULL,
+                           yLab = NULL, main = TRUE,
                            axisSize = 14, dotSize = 4, lineSize = 1.25,
                            legendSize = 14, freeY = TRUE, scaleAxis = "free") {
   xLab <- ifelse(is.null(xLab), catchVar, xLab)
   yLab <- ifelse(is.null(yLab), consVar, yLab)
   #save index variables
   nCU <- length(unique(cuDat$cuName))
-  colPal <- viridis::viridis(nCU, begin = 0, end = 1)
 
   #identify whether second dimension of plots should be by om or MP
   #(first dimension is by keyvariable, faceting is by CU/MU)
@@ -56,9 +58,6 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
   }
   if (panel == "mp") {
     panels <- unique(cuDat$mp)
-  }
-  if (panel == "mu") {
-    panels <- unique(cuDat$muName)
   }
 
   # Plot
@@ -70,10 +69,6 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
     if (panel == "mp") {
       dum <- cuDat %>%
         filter(mp == panels[h])
-    }
-    if (panel == "mu") {
-      dum <- cuDat %>%
-        filter(muName == panels[h])
     }
     plotTitle <- ifelse(main == TRUE, paste(panels[h], "Plot", sep = ""), "")
 
@@ -89,10 +84,6 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
       mutate(keyVar = as.factor(keyVar))
 
     #identify faceting
-    if (facet == "mu") {
-      wideDum <- wideDum %>%
-        mutate(facetVar = as.factor(muName))
-    }
     if (facet == "cu") {
       wideDum <- wideDum %>%
         mutate(facetVar = as.factor(cuName))
@@ -106,9 +97,22 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
         mutate(facetVar = as.factor(om))
     }
 
-    p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg, shape = hcr,
-                             alpha = keyVar, fill = cuName)) +
-      geom_point(size = dotSize) +
+    if (hotColors == TRUE) {
+      colPalPlasma <- viridis::viridis(nCU, begin = 0, end = 1,
+                                       option = "plasma")
+      names(colPalPlasma) <- levels(wideDum$keyVar)
+      p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg, shape = hcr,
+                               fill = keyVar)) +
+        geom_point(size = dotSize) +
+        scale_fill_manual(values = colPalPlasma, name = legendLab) +
+        guides(fill = guide_legend(override.aes = list(shape = 21)))
+    } else if (hotColors == FALSE) {
+      p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg, shape = hcr,
+                               alpha = keyVar)) +
+        geom_point(size = dotSize, fill = "black") +
+        scale_alpha_discrete(range = c(0.3, 1), name = legendLab)
+    }
+    p <- p +
       theme_sleekX() +
       theme(strip.text = element_text(size = axisSize),
             axis.text = element_text(size = 0.9 * axisSize),
@@ -117,25 +121,14 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
             legend.title = element_text(size = legendSize)) +
       labs(x = xLab, y = yLab, title = plotTitle) +
       scale_shape_manual(values = c(21, 25), name = "Control Rule") +
-      scale_alpha_discrete(range = c(0.3, 1), name = legendLab)  +
-      scale_fill_manual(values = colPal, name = "CU") +
       facet_wrap(~ facetVar, scales = scaleAxis)
+
     if (length(unique(wideDum$hcr)) < 2) {
       p <- p +
         guides(shape = "none")
     } else {
       p <- p +
         guides(shape = guide_legend(override.aes = list(fill = "black")))
-    }
-    if (facet == "mu") {
-      p <- p +
-        guides(fill = guide_legend(override.aes = list(shape = 21,
-                                                       colour = "black",
-                                                       fill = colPal)))
-    }
-    if (facet == "cu" | facet == "mp" | facet == "om") {
-      p <- p +
-        guides(fill = FALSE)
     }
     if (showUncertainty == FALSE) {
       return(p)
@@ -264,14 +257,14 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
   }
 
   if (hotColors == TRUE) {
-    colPalMag <- viridis::viridis(length(unique(wideDum$keyVar)), begin = 1,
-                                  end = 0, option = "magma")
-    names(colPalMag) <- unique(wideDum$keyVar)
+    colPalPlasma <- viridis::viridis(length(unique(wideDum$keyVar)), begin = 1,
+                                  end = 0, option = "plasma")
+    names(colPalPlasma) <- unique(wideDum$keyVar)
     p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg,
                              shape = shapeVar, fill = keyVar)) +
       geom_point(size = dotSize) +
       scale_shape_manual(values = shapePalette, name = secLegendLab) +
-      scale_fill_manual(values = colPalMag, name = legendLab) +
+      scale_fill_manual(values = colPalPlasma, name = legendLab) +
       guides(fill = guide_legend(override.aes = list(shape = 21)),
              shape = guide_legend(override.aes = list(fill = "black")))
   } else {
