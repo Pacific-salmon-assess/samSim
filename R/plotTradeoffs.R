@@ -98,8 +98,8 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
     }
 
     if (hotColors == TRUE) {
-      colPalPlasma <- viridis::viridis(nCU, begin = 0, end = 1,
-                                       option = "plasma")
+      colPalPlasma <- viridis::viridis(length(levels(wideDum$keyVar)),
+                                       begin = 0, end = 1, option = "plasma")
       names(colPalPlasma) <- levels(wideDum$keyVar)
       p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg, shape = hcr,
                                fill = keyVar)) +
@@ -257,8 +257,8 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
   }
 
   if (hotColors == TRUE) {
-    colPalPlasma <- viridis::viridis(length(unique(wideDum$keyVar)), begin = 1,
-                                  end = 0, option = "plasma")
+    colPalPlasma <- viridis::viridis(length(unique(wideDum$keyVar)), begin = 0,
+                                  end = 1, option = "plasma")
     names(colPalPlasma) <- unique(wideDum$keyVar)
     p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg,
                              shape = shapeVar, fill = keyVar)) +
