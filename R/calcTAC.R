@@ -1,16 +1,14 @@
 #' Calculate total allowable catch
 #'
 #' This function calculates total allowable catch (TAC) for different MUs using
-#' either a) a fixed exploitation rate or b) a simplified version of the total
-#' allowable mortality rule currently used to manage the fishery. Total
-#' allowable catch is divided between one American and two Canadian fisheries
-#' (mixed stock and single stock) based on \code{ppnMix} variable.
+#' either a) a fixed exploitation rate, b) a simplified version of the total
+#' allowable mortality (TAM) rule currently used to manage the Fraser sockeye
+#' fishery, or c) a generic HCR that is consistent with the precautionary
+#' approach (genPA). TAC is divided between one American and two Canadian
+#' fisheries (mixed stock and single stock) based on \code{ppnMix} variable.
 #'
-#' All values should be passed as single values using apply family or for loops
-#' because if statements are common.
-#'
-#' In the case of the TAM rule TAC is based on  abundance relative to two
-#' fishery reference points. This determines whether exploitation is based
+#' In the case of the TAM rules TAC is based on abundance relative to two
+#' fishery reference points, which determines whether exploitation is based
 #' on a minimum exploitation rate, fixed escapement goal, or maximum
 #' exploitation rate. Note that abundance relative to reference points is
 #' adjusted downwards to account for anticipated en route mortality
@@ -18,6 +16,11 @@
 #' \code{overlapConstraint} which represents whether other MUs that co-migrate
 #' are at sufficiently low abundance to limit a given fishery (see
 #' \code{overlapConstraint} for additional details).
+#'
+#' In the case of the genPA rule TAC is also based on abundance relative to two
+#' fishery reference points, but there is no management adjustment or overlap
+#' constraint. When abundance is below the lower FRP min ER is applied, between
+#' the two it increases linearly, and above it is max (typically Umsy).
 #'
 #' @param rec A numeric representing MU-specific return abundance.
 #' @param canER A numeric representing the target Canadian exploitation rate if
@@ -80,52 +83,47 @@ calcTAC <- function(rec, canER, harvContRule, amER, ppnMixVec, species = NULL,
                     manAdjustment = NULL, lowFRP = NULL, highFRP = NULL,
                     minER = NULL, maxER = NULL, overlapConstraint = NULL,
                     constrainMix = TRUE) {
-  if (species == "sockeye") {
-    if (harvContRule == "fixedER") {
-      totalTAC <- rec * canER
+  if (harvContRule == "TAM") {
+    if (length(minER) == 1) { #adjust input data to appropriate vector length
+      minER <- rep(minER, length.out = length(rec))
     }
-    if (harvContRule == "TAM") {
-      if (length(minER) == 1) { #adjust input data to appropriate vector length
-        minER <- rep(minER, length.out = length(rec))
+    totalTAC <- rep(NA, length = length(rec))
+    for (k in seq_along(rec)) {
+      #if recruitment below lower RP, en route mort not accounted for; minEr used
+      if (rec[k] < lowFRP[k]) {
+        totalTAC[k] <- minER[k] * rec[k]
       }
-      totalTAC <- rep(NA, length = length(rec))
-      for (k in seq_along(rec)) {
-        #if recruitment below lower RP, en route mort not accounted for; minEr used
-        if (rec[k] < lowFRP[k]) {
-          totalTAC[k] <- minER[k] * rec[k]
-        }
-        #if stock is between ref points, ERs are either scaled to adjusted
-        #recruitment or minER
-        if ((rec[k] > lowFRP[k]) & (rec[k] < highFRP[k])) {
-          escTarget <- lowFRP[k]
-          # escapement goal is adjusted up based on pMA and recruitment
-          # (equivalent to esc target + MA)
-          adjTarget <- escTarget * (1 + manAdjustment[k])
-          calcER <- ifelse(rec[k] > adjTarget,
-                           (rec[k] - adjTarget) / rec[k],
-                           0)
-          #if recruitment greater than adjusted target, potential TAC = diff
-          #between the two (converted to er for next line)
-          tacER <- ifelse(calcER > minER[k],
-                          calcER,
-                          minER[k])
-          totalTAC[k] <- tacER * rec[k]
-        }
-        #if stock is above upper reference point, ERs set to max ()
-        if (rec[k] > highFRP[k]) {
-          #escapement target increases w/ abundance (i.e. constant ER)
-          escTarget <- ((1 - maxER) * rec[k])
-          adjTarget <- escTarget * (1 + manAdjustment[k])
-          calcER <- ifelse(rec[k] > adjTarget,
-                           (rec[k] - adjTarget) / rec[k],
-                           0)
-          tacER <- ifelse(calcER > minER[k],
-                          calcER,
-                          minER[k])
-          totalTAC[k] <- tacER * rec[k]
-        }
-      } #end for k in seq_along
-    } #end if harvContRule == TAC
+      #if stock is between ref points, ERs are either scaled to adjusted
+      #recruitment or minER
+      if ((rec[k] > lowFRP[k]) & (rec[k] < highFRP[k])) {
+        escTarget <- lowFRP[k]
+        # escapement goal is adjusted up based on pMA and recruitment
+        # (equivalent to esc target + MA)
+        adjTarget <- escTarget * (1 + manAdjustment[k])
+        calcER <- ifelse(rec[k] > adjTarget,
+                         (rec[k] - adjTarget) / rec[k],
+                         0)
+        #if recruitment greater than adjusted target, potential TAC = diff
+        #between the two (converted to er for next line)
+        tacER <- ifelse(calcER > minER[k],
+                        calcER,
+                        minER[k])
+        totalTAC[k] <- tacER * rec[k]
+      }
+      #if stock is above upper reference point, ERs set to max ()
+      if (rec[k] > highFRP[k]) {
+        #escapement target increases w/ abundance (i.e. constant ER)
+        escTarget <- ((1 - maxER) * rec[k])
+        adjTarget <- escTarget * (1 + manAdjustment[k])
+        calcER <- ifelse(rec[k] > adjTarget,
+                         (rec[k] - adjTarget) / rec[k],
+                         0)
+        tacER <- ifelse(calcER > minER[k],
+                        calcER,
+                        minER[k])
+        totalTAC[k] <- tacER * rec[k]
+      }
+    } #end for k in seq_along
     #adjust total TAC to account for AFE (400k fish) when calculating us TAC
     #divide 400k allocation evenly among all CUs; pmin used to constrain amTAC
     #to positive values (i.e. if afe greater than cu-specific TAC)
@@ -133,10 +131,15 @@ calcTAC <- function(rec, canER, harvContRule, amER, ppnMixVec, species = NULL,
     amTAC <- amER * (totalTAC - afe)
     canTAC <- totalTAC - amTAC
   } else {
-    #sockeye is odd in that Americans get a proportion of total TAC, not total
+    #Fraser sockeye is odd in that Americans get a proportion of total TAC, not total
     #escapement; all other fisheries simplify by calculating simultaneously
-    amTAC <- amER * rec
-    canTAC <- canER * rec
+    if (harvContRule == "fixedER") {
+      amTAC <- amER * rec
+      canTAC <- canER * rec
+    }
+    if (harvContRule == "genPA") {
+
+    }
   }
   mixTAC <- canTAC * ppnMixVec
   unconMixTAC <- mixTAC

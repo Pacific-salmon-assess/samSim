@@ -14,17 +14,17 @@
 #' @export
 
 #Temporary inputs
-# here <- here::here
-# require(samSim)
-# simParF <- read.csv(here("data", "manProcScenarios",
-#                          "fraserMPInputs_varyAllocationVaryFixedER.csv"),
-#                     stringsAsFactors = F)
-# cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
-# srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
-# catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors=F)
-# ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors=F)
-# larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"), stringsAsFactors=F)
-# tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
+here <- here::here
+require(samSim)
+simParF <- read.csv(here("data", "manProcScenarios",
+                         "fraserMPInputs_varyAllocationVaryFixedER.csv"),
+                    stringsAsFactors = F)
+cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors=F)
+srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
+catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors=F)
+ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors=F)
+larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"), stringsAsFactors=F)
+tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
 
 # cuCustomCorrMat <- read.csv(here("data/fraserDat/prodCorrMatrix.csv"), stringsAsFactors=F)
 # erCorrMat <- read.csv(here("data/fraserDat/erMortCorrMatrix.csv"), stringsAsFactors=F,
@@ -40,13 +40,13 @@
 #                     stringsAsFactors=F)
 
 ## Misc. objects to run single trial w/ "reference" OM
-# uniqueProd <- TRUE
-# variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
-# dirName <- "TEST"
-# nTrials <- 5
-# simPar <- simParF[16, ]
-# makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
-# random <- FALSE
+uniqueProd <- TRUE
+variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
+dirName <- "TEST"
+nTrials <- 5
+simPar <- simParF[121, ]
+makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
+random <- FALSE
 
 recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                         variableCU=FALSE, makeSubDirs=TRUE, ricPars,
@@ -148,6 +148,10 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   }
   forecastMean <- cuPar$meanForecast
   forecastSig <- cuPar$sdForecast * simPar$adjustForecast
+  if (!is.null(cuPar$lowOCP)) {
+    lowOCP <- cuPar$lowOCP
+    highOCP <- cuPar$highOCP
+  }
   ageStruc <- matrix(c(cuPar$meanRec2, cuPar$meanRec3, cuPar$meanRec4, cuPar$meanRec5, cuPar$meanRec6), nrow=nCU, ncol=5) #mean proportion of each age class in returns
   nAges <- ncol(ageStruc) #total number of ages at return in ageStruc matrix (does not mean that modeled populations actually contain 4 ages at maturity)
   tauAge <- cuPar$tauCycAge * simPar$adjustAge #CU-specific variation in age-at-maturity, adjusted by scenario
@@ -447,8 +451,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   keyVar <- switch(simPar$keyVar,
                    "prodRegime" = prod,
                    "synch" = correlCU,
-                   "expRate" = ifelse(harvContRule == "TAM", harvContRule,
-                                      canER),
+                   "expRate" = ifelse(harvContRule == "fixedER", canER,
+                                      harvContRule),
                    "ppnMix" = ppnMix,
                    "sigma" = adjSig,
                    "endYear" = endYr,
@@ -1182,23 +1186,32 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                       tamFRP$manUnit == manUnit[k], "highRefPt"]
         }
       }
+      if (harvContRule == "genPA") {
+        lowRefPt[y, ] <- lowOCP
+        highRefPt[y, ] <- highOCP
+      }
 
       #NOTE this PM is very CU-specific and should be modified to be more
       #generic
       for (m in 1:nMU) {
         CUs <- which(manUnit %in% muName[m])
         if (species == "sockeye") {
-          lowRefPtMU[y, m] <- tamFRP[tamFRP$cyc == cycle[y] &
-                                       tamFRP$manUnit == muName[m], "lowRefPt"]
-          highRefPtMU[y, m] <- tamFRP[tamFRP$cyc == cycle[y] &
-                                        tamFRP$manUnit == muName[m],
-                                      "highRefPt"]
-          #extract management adjustment to multiply FRP by (i.e.
-          #recruit abundance has to exceed threshold that accounts for en route
-          #mort)
-          adjEG <- (unique(cuPar[cuPar$manUnit == muName[m], "medMA"]) + 1) *
-            lowRefPtMU[y, m]
-          #if forecasted recruitment within an MU is over lower ref pt,
+          if (harvContRule %in% c("TAM", "fixedER")) {
+            lowRefPtMU[y, m] <- tamFRP[tamFRP$cyc == cycle[y] &
+                                         tamFRP$manUnit == muName[m], "lowRefPt"]
+            highRefPtMU[y, m] <- tamFRP[tamFRP$cyc == cycle[y] &
+                                          tamFRP$manUnit == muName[m],
+                                        "highRefPt"]
+            #extract management adjustment to multiply FRP by (i.e.
+            #recruit abundance has to exceed threshold that accounts for en route
+            #mort)
+            adjEG <- (unique(cuPar[cuPar$manUnit == muName[m], "medMA"]) + 1) *
+              lowRefPtMU[y, m]
+          }
+          if (harvContRule == "genPA") {
+            adjEG <-  unique(lowRefPt[y, CUs])
+          }
+          #if  recruitment within an MU is over lower ref pt,
           #assume fishery should be open
           openFishery[y, m] <- ifelse(sum(recRY[y, CUs]) > adjEG, 1, 0)
         }
