@@ -33,9 +33,6 @@
 #' Thus their catch/harvest rate is generally below the input parameter.
 #' @param ppnMix A numeric representing the proportion of the Canadian TAC
 #' allocated to mixed stock fisheries.
-#' @param species A character that can currently take either \code{chum} or
-#' \code{sockeye} values. Determines how American TAC is partitioned relative
-#' to Canadian.
 #' @param manAdjustment A numeric  representing MU-specific management
 #' adjustments. These values are used to adjust forecasted spawner abundance
 #' to account for en route mortality (i.e. they increase the target escapement
@@ -70,23 +67,22 @@
 #'                                manUnit)$muConstrained
 #'
 #' ## Fixed ER version
-#' calcTAC(rec, canER = 0.4, harvContRule = "fixedER", amER = 0.1, ppnMix = 1,
-#'         species = "sockeye")
+#' calcTAC(rec, canER = 0.4, harvContRule = "fixedER", amER = 0.1, ppnMix = 1)
 #' ## TAM version
 #' calcTAC(rec, canER, harvContRule = "TAM", amER = 0.1, ppnMix = 1,
-#'         species = "sockeye", manAdjustment = manAdjustment, lowFRP = lowFRP,
+#'         manAdjustment = manAdjustment, lowFRP = lowFRP,
 #'         highFRP = highFRP,  minER = 0.1, maxER = 0.6,
 #'         overlapConstraint = overlapConstraint)
 #'
 #' @export
-calcTAC <- function(rec, canER, harvContRule, amER, ppnMixVec, species = NULL,
+calcTAC <- function(rec, canER, harvContRule, amER, ppnMixVec,
                     manAdjustment = NULL, lowFRP = NULL, highFRP = NULL,
                     minER = NULL, maxER = NULL, overlapConstraint = NULL,
                     constrainMix = TRUE) {
+  if (length(minER) == 1) { #adjust input data to appropriate vector length
+    minER <- rep(minER, length.out = length(rec))
+  }
   if (harvContRule == "TAM") {
-    if (length(minER) == 1) { #adjust input data to appropriate vector length
-      minER <- rep(minER, length.out = length(rec))
-    }
     totalTAC <- rep(NA, length = length(rec))
     for (k in seq_along(rec)) {
       #if recruitment below lower RP, en route mort not accounted for; minEr used
@@ -113,7 +109,7 @@ calcTAC <- function(rec, canER, harvContRule, amER, ppnMixVec, species = NULL,
       #if stock is above upper reference point, ERs set to max ()
       if (rec[k] > highFRP[k]) {
         #escapement target increases w/ abundance (i.e. constant ER)
-        escTarget <- ((1 - maxER) * rec[k])
+        escTarget <- ((1 - maxER[k]) * rec[k])
         adjTarget <- escTarget * (1 + manAdjustment[k])
         calcER <- ifelse(rec[k] > adjTarget,
                          (rec[k] - adjTarget) / rec[k],
@@ -138,8 +134,30 @@ calcTAC <- function(rec, canER, harvContRule, amER, ppnMixVec, species = NULL,
       canTAC <- canER * rec
     }
     if (harvContRule == "genPA") {
-
-    }
+      tacER <- rep(NA, length = length(rec))
+      if (length(minER) == 1) { #adjust input data to appropriate vector length
+        minER <- rep(minER, length.out = length(rec))
+      }
+      for (k in seq_along(rec)) {
+        #if recruitment below lower RP, en route mort not accounted for; minEr used
+        if (rec[k] < lowFRP[k]) {
+          tacER[k] <- minER[k]
+        }
+        if ((rec[k] > lowFRP[k]) & (rec[k] < highFRP[k])) {
+          calcER <- maxER[k] * ((rec[k] - lowFRP[k]) / (highFRP[k] - lowFRP[k]))
+          tacER[k] <- ifelse(calcER > minER[k],
+                          calcER,
+                          minER[k])
+        }
+        #if stock is above upper reference point, ERs set to max ()
+        if (rec[k] > highFRP[k]) {
+          #escapement target increases w/ abundance (i.e. constant ER)
+          tacER[k] <- maxER[k] * rec[k]
+        }
+      } #end for k in seq_along
+      amTAC <- amER * rec
+      canTAC <- tacER * rec
+    } #end harvContRule == "genPA
   }
   mixTAC <- canTAC * ppnMixVec
   unconMixTAC <- mixTAC
@@ -162,3 +180,13 @@ calcTAC <- function(rec, canER, harvContRule, amER, ppnMixVec, species = NULL,
   names(tacList) <- c("amTAC", "mixTAC", "singTAC", "unconMixTAC")
   return(tacList)
 }
+#
+#
+# rec = recRYManU[y, ]; canER = canER;
+# harvContRule = harvContRule; amER = amER;
+# ppnMixVec = ppnMixVec;
+# species = species; manAdjustment = manAdjustment;
+# lowFRP = lowRefPt[y, ]; highFRP = highRefPt[y, ];
+# minER = minER; maxER = maxER;
+# overlapConstraint = overlapConstraint[y, ];
+# constrainMix = constrainMix
