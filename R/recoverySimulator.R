@@ -17,7 +17,7 @@
 # here <- here::here
 # require(samSim)
 # simParF <- read.csv(here("data", "manProcScenarios",
-#                          "fraserMPInputs_varyAllocationVaryFixedER.csv"),
+#                          "fraserMPInputs_varyAllocation_noError.csv"),
 #                     stringsAsFactors = F)
 # cuPar <- read.csv(here("data/fraserDat/summOnlyCUpars.csv"), stringsAsFactors=F)
 # srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
@@ -44,7 +44,7 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 5
-# simPar <- simParF[1, ]
+# simPar <- simParF[16, ]
 # makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 # random <- FALSE
 

@@ -14,3 +14,4 @@ highFixedRetro_noErr,ref,NA,ppnMix,2,sockeye,20,fixedER,stockRecruit,0.7,NA,0.75
 highFixedRetro_noErr,ref,NA,ppnMix,3,sockeye,20,fixedER,stockRecruit,0.7,NA,0.5,TRUE,TRUE,retro,FALSE,med,NA,NA,0.2,TRUE,0.4,FALSE,0,0,0,0,0,0,0,0.5,1,0.0001,1,1,1,1,0
 highFixedRetro_noErr,ref,NA,ppnMix,4,sockeye,20,fixedER,stockRecruit,0.7,NA,0.25,TRUE,TRUE,retro,FALSE,med,NA,NA,0.2,TRUE,0.4,FALSE,0,0,0,0,0,0,0,0.5,1,0.0001,1,1,1,1,0
 highFixedRetro_noErr,ref,NA,ppnMix,5,sockeye,20,fixedER,stockRecruit,0.7,NA,0,TRUE,TRUE,retro,FALSE,med,NA,NA,0.2,TRUE,0.4,FALSE,0,0,0,0,0,0,0,0.5,1,0.0001,1,1,1,1,0
+genericNoErr,noErr,NA,ppnMix,1,sockeye,50,genPA,percentile,NA,NA,1,TRUE,TRUE,retro,FALSE,med,NA,NA,0.2,TRUE,0.4,FALSE,0,0,0,0,0,0,0,0.5,1,0.0001,1,1,1,1,0

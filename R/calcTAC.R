@@ -152,7 +152,7 @@ calcTAC <- function(rec, canER, harvContRule, amER, ppnMixVec,
         #if stock is above upper reference point, ERs set to max ()
         if (rec[k] > highFRP[k]) {
           #escapement target increases w/ abundance (i.e. constant ER)
-          tacER[k] <- maxER[k] * rec[k]
+          tacER[k] <- maxER[k]
         }
       } #end for k in seq_along
       amTAC <- amER * rec
