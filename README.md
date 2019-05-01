@@ -59,10 +59,27 @@ Simulations are run by installing the samSim package and using the `recoverySim(
 #### `simPar`
 `simPar` is a .csv file that contains the input parameters that characterize a specific simulation run, but which are *shared* among CUs. Each row represents a unique scenario (i.e. combination of operating model and management procedure). Generally it is easiest to create multiple `simPar` input files, each of which contain a coherent analysis (e.g. one input focusing on the effects of different harvest control rules across changing productivity regimes, a second input examining the effects of survey effort), but this is not strictly necessary. Contents include:
   
-  - *scenario* - scenario name
-  - *nameOM* - operating model name
-  - *nameMP* - management procedure name
-  - *keyVar* - focal variable of the analysis; subjective since typically multiple variables will differ among scenarios, but should be a focal point of main figures. Currently can be one of the following arguments: prodRegime, synch, expRate, ppnMix, sigma, endYear, adjustAge, mixOUSig, adjustForecast, adjustEnRoute, obsSig, obsMixCatch (**NOTE these should eventually be defined explicitly)
-  - *plotOrder* - order in which grouped scenarios will be plotted (useful when keyVar is not an ordinal or numeric variable)
-  - *species* - lower case species name (chum and sockeye have been tested robustly; pink and coho have not; chinook should be used with extreme caution since most stocks do not meet assumptions of the model)
-  - *simYears* - length of the simulation period (excluding priming period)
+  - `scenario` - scenario name
+  - `nameOM` - operating model name
+  - `nameMP` - management procedure name
+  - `keyVar` - focal variable of the analysis; subjective since typically multiple variables will differ among scenarios, but should be a focal point of main figures. Currently can be one of the following arguments: `prodRegime`, `synch`, `expRate`, `ppnMix`, `sigma`, `endYear`, `adjustAge`, `mixOUSig`, `adjustForecast`, `adjustEnRoute`, `obsSig`, `obsMixCatch` (**NOTE these should eventually be defined explicitly**)
+  - `plotOrder` - order in which grouped scenarios will be plotted (useful when keyVar is not an ordinal or numeric variable)
+  - `species` - lower case species name (chum and sockeye have been tested robustly; pink and coho have not; chinook should be used with extreme caution since most stocks do not meet assumptions of the model)
+  - `simYears` - length of the simulation period (excluding priming period)
+  - `harvContRule` - harvest control rule (`TAM`, `fixedER`, `genPA`)
+  - `benchmark` - biological benchmark used to assess conservation status (`stockRecruit`, `percentile`)
+  - `canER` - total Canadian exploitation rate
+  - `usER` - American exploitation rate (note can also be supplied as CU-specific value in cuPars)
+  - `propMixHigh` - proportion of Canadian catch allocated to mixed-stock fisheries (can range from 0 to 1)
+  - `enRouteMortality` - on/off switch for en route mortality
+  - `constrain` - if `TRUE` and harvest control rule is TAM then mixed stock fisheries are constrained
+  - `singleHCR` - single stock harvest control rule (`FALSE`, `retro`, `forecast`)
+  - `moveTAC` - if `TRUE` and single stock quota from low-abundance CUs is re-allocated to other CUs
+  - `prodRegime` - productivity regime (`low`, `lowStudT`, `med`, `studT`, `skew`, `skewT`, `decline`, `divergent`, `divergentSmall`, `oneUp`,  `oneDown`, `high`)
+  - `startYear` - indicates when a productivity decline (if specified by `prodRegime == "decline"`) should start
+  - `endYear` - indicates when a productivity decline (if specified by `prodRegime == "decline"`) should end
+  - `rho` - temporal autocorrelation coefficient in recruitment deviations
+  - `arSigTransform` - if `TRUE` estimates of sigma from input are transformed so that they account for temporal autocorrelation
+  - `correlCU` - the correlation among CUs in recruitment deviations
+  - `corrMat` - if `TRUE` a custom correlation matrix is past and used to specify the covariance matrix for recruitment deviations
+  
