@@ -45,7 +45,7 @@ ricPars <- read.csv(here("data", "fraserDat", "pooledRickerMCMCPars.csv"),
 larkPars <- read.csv(here("data", "fraserDat", "pooledLarkinMCMCPars.csv"),
                      stringsAsFactors=F)
 # Fishery reference points necessary for the total allowable mortality rule (not
-# necessary for non-Fraser sockeye CUs or if fixedER HCR is being used)
+# necessary for non-Fraser sockeye CUs)
 tamFRP <- read.csv(here("data", "fraserDat", "tamRefPts.csv"),
                    stringsAsFactors=F)
 
@@ -56,7 +56,7 @@ dirNames <- sapply(scenNames, function(x) paste(x, unique(simPar$species),
                                                 sep = "_"))
 ```
 
-One argument in `recoverySim()` worth focusing on is `makeSubDirs`, which controls how model output is saved. `recoverySim()` automatically creates a directory based on the `dirName` argument. When `makeSubDirs = TRUE` (the default), the function also creates a subdirectory for each unique value of `simPar$nameOM`. This allows users to cluster similar OM/MPs together. Note that individual filenames are a combination of `nameOM` and `nameMP`.  For convenience sake dirName is often set to either `simPar$scenario` or `simPar$nameMP`, but not `simPar$nameOM` for obvious reasons. Thus scenarios but be saved in a unique directory OR have unique combinations of `nameOM` and `nameMP` to avoid being overwritten. Here we set `makeSubDirs = FALSE` because each scenario contains only one OM or MP. 
+One argument in `recoverySim()` worth focusing on is `makeSubDirs`, which controls how model output is saved. `recoverySim()` automatically creates a directory based on the `dirName` argument. When `makeSubDirs = TRUE` (the default), the function also creates a subdirectory for each unique value of `simPar$nameOM`. This allows users to cluster similar OM/MPs together. Note that individual filenames are a combination of `nameOM` and `nameMP`.  For convenience's sake `dirName` is often set to either `simPar$scenario` or `simPar$nameMP`, but not `simPar$nameOM` for obvious reasons. Thus scenarios must be saved in a unique directory OR have unique combinations of `nameOM` and `nameMP` to avoid being overwritten. Here we set `makeSubDirs = FALSE` because each scenario contains only one OM or MP. 
 
 ```{r checkScenarios, echo = TRUE}
 length(unique(simPar$scenario)) == nrow(simPar)
