@@ -17,9 +17,11 @@
 # here <- here::here
 # require(samSim)
 # simParF <- read.csv(here("data", "manProcScenarios",
-#                          "fraserMPInputs_varyAllocation_noError.csv"),
+#                          "fraserMPInputs_varyAllocation.csv"),
 #                     stringsAsFactors = F)
-# cuPar <- read.csv(here("data/fraserDat/summOnlyCUpars.csv"), stringsAsFactors=F)
+# cuPar <- read.csv(here("data/fraserDat/summOnlyCUpars.csv"),
+#                   stringsAsFactors=F) %>%
+#   dplyr::filter(manUnit == "Summ")
 # srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
 # catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors=F)
 # ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors=F)
@@ -44,7 +46,7 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 5
-# simPar <- simParF[16, ]
+# simPar <- simParF[6, ]
 # makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 # random <- FALSE
 
@@ -1234,7 +1236,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       }
 
       ppnOpenFishery[y, n] <- mean(openFishery[y, ])
-      if (harvContRule == "TAM") {
+      if (harvContRule == "TAM" & constrainMix == "TRUE") {
         #should fisheries be constrained
         overlapConstraint[y, ] <- constrain(recRYManU[y, ], highRefPt[y, ],
                                             manAdjustment,
