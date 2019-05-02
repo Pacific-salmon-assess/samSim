@@ -229,7 +229,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     alpha <- 0.65 * refAlpha
   }
   if (prod %in% c("med", "studT", "skew", "skewT", "decline", "divergent",
-                  "divergentSmall", "oneUp",  "oneDown")) {
+                  "oneUp",  "oneDown")) {
     alpha <- refAlpha
   }
   if (prod == "high") {
