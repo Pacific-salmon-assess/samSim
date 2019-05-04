@@ -69,17 +69,74 @@ Simulations are run by installing the samSim package and using the `recoverySim(
   - `harvContRule` - harvest control rule (`TAM`, `fixedER`, `genPA`)
   - `benchmark` - biological benchmark used to assess conservation status (`stockRecruit`, `percentile`)
   - `canER` - total Canadian exploitation rate
-  - `usER` - American exploitation rate (note can also be supplied as CU-specific value in cuPars)
+  - `usER` - American exploitation rate (note can also be supplied as CU-specific value in `cuPars`)
   - `propMixHigh` - proportion of Canadian catch allocated to mixed-stock fisheries (can range from 0 to 1)
   - `enRouteMortality` - on/off switch for en route mortality
   - `constrain` - if `TRUE` and harvest control rule is TAM then mixed stock fisheries are constrained
   - `singleHCR` - single stock harvest control rule (`FALSE`, `retro`, `forecast`)
   - `moveTAC` - if `TRUE` and single stock quota from low-abundance CUs is re-allocated to other CUs
-  - `prodRegime` - productivity regime (`low`, `lowStudT`, `med`, `studT`, `skew`, `skewT`, `decline`, `divergent`, `divergentSmall`, `oneUp`,  `oneDown`, `high`)
+  - `prodRegime` - productivity regime (`low`, `lowStudT`, `med`, `studT`, `skew`, `skewT`, `decline`, `divergent`, `oneUp`,  `oneDown`, `high`)
   - `startYear` - indicates when a productivity decline (if specified by `prodRegime == "decline"`) should start
   - `endYear` - indicates when a productivity decline (if specified by `prodRegime == "decline"`) should end
   - `rho` - temporal autocorrelation coefficient in recruitment deviations
   - `arSigTransform` - if `TRUE` estimates of sigma from input are transformed so that they account for temporal autocorrelation
   - `correlCU` - the correlation among CUs in recruitment deviations
-  - `corrMat` - if `TRUE` a custom correlation matrix is past and used to specify the covariance matrix for recruitment deviations
+  - `corrMat` - if `TRUE` a custom correlation matrix is required to be passed as an input and is used to specify the covariance matrix for recruitment deviations
+  - `tauCatch` - logistic variation in CU-specific catches
+  - `obsSig` - log-normal variation in spawner observation error 
+  - `mixOUSig` - beta-distributed variation in mixed-stock fishery outcome uncertainty; input parameter represents the standard deviation used to calculate the location parameter
+  - `singOUSig` - beta-distributed variation in single-stock fishery outcome uncertainty; input parameter represents the standard deviation used to calculate the location parameter
+  - `obsMixCatch` - log-normal variation in mixed-stock catch observation error
+  - `obsSingCatch` - log-normal variation in single-stock catch observation error
+  - `obsAgeErr` - logistic variation in observed age error
+  - `lowCatchThresh` - lower aggregate catch target (used as a performance metric)
+  - `highCatchThresh` - upper aggregate catch target (used as a performance metric)
+  - `extinctThresh` - quasi-extinction threshold
+  - `adjustSig` - scalar on CU-specific sigmas (recruitment deviations)
+  - `adjustAge` - scalar on `tauCatch`
+  - `adjustEnRouteSig` - scalar on en route mortality rates
+
+
+#### `CUPars`
+`CUPars` are .csv files that contain CU-specific input parameters. Note that these parameters should *not* vary among simulation runs. Differences in operating models that involve CU-specific traits (e.g. population dynamics) can typically be introduced via options in the `simPar` file. Each row represents a specific CU. 
+
+Mandatory contents include:
+
+  - `manUnit` - management unit
+  - `stkName` - CU name
+  - `stk` - CU identification number (can be assigned arbitrarily or based on previous modeling exercises)
+  - `model` - stock-recruit model used to forward simulate dynamics (`ricker`, `larkin`)
+  - `minER` - minimum Canadian exploitation rate
+  - `alpha` - productivity parameter for Ricker models
+  - `beta0` - density-dependence parameter for Ricker models
+  - `sigma` - recruitment variation for Ricker models
+  - `meanRec2` - mean proportion of age-2 recruits
+  - `meanRec3` - mean proportion of age-3 recruits
+  - `meanRec4` - mean proportion of age-4 recruits
+  - `meanRec5` - mean proportion of age-5 recruits
+  - `meanRec6` - mean proportion of age-6 recruits
+  - `medianRec` - median historical recruitment
+  - `lowQRec` - 25th percentile historical recruitment
+  - `highQRec` - 75th percentile historical recruitment
+
+Optional contents include:
   
+  - Necessary if modeling cyclic stocks
+    - `domCycle` - integer to identify the dominant cycle line in Larkin stocks (`1, 2, 3, 4` or `NA`)
+    - `tauCycAge` - logistinc variation in age structure
+    - `larkAlpha` - productivity parameter for Larkin models
+    - `larkBeta0` - density-dependence parameter for Larkin models
+    - `larkBeta1` - lag-1 density-dependence parameter for Larkin models
+    - `larkBeta2` - lag-2 density-dependence parameter for Larkin models
+    - `larkBeta3` - lag-3 density-dependence parameter for Larkin models
+    - `larkSigma` - recruitment variation for Larkin models
+  - Necessary if American exploitation differs among CUs
+    - `usER` - American exploitation rate
+  - Necessary if modeling en route mortality
+    - `meanDBE` - mean difference between estimates (a proxy for en route mrotality)
+    - `sdDBE` - interannual standard deviation of difference between estimates
+  - Necessary if modeling TAM harvest control rule
+    - `medMA` - median mortality adjustment used in TAM harvest control rule
+  - Necessary if modeling forecast process
+    - `meanForecast` - mean forecast relative to observed
+    - `sdForecast` - interannual standard deviation of forecast
