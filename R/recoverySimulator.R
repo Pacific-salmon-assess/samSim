@@ -46,7 +46,7 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 5
-# simPar <- simParF[6, ]
+# simPar <- simParF[4, ]
 # makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 # random <- FALSE
 
@@ -1276,16 +1276,19 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       amTAC[is.na(amTAC)] <- 0
       mixTAC[y, ] <- tacs[['mixTAC']] * truePpn
       mixTAC[is.na(mixTAC)] <- 0
+      singTAC[y, ] <- tacs[['singTAC']] * truePpn
+      singTAC[is.na(singTAC)] <- 0
+
 
       #NOTE THAT USE OF FORECAST PPN FOR SINGLE STOCK FISHERIES CAUSES THEM
       #TO DIVERGE RELATIVE TO MIXED (use true ppns)
-      singTAC[y, ] <- if (ppnMix == "flex") {
-        #if using flexing secondary HCR single fishery TAC = the foregone TAC
-        #from the mixed-stock fishery
-        (tacs[["unconMixTAC"]] - tacs[['mixTAC']]) * forecastPpn
-      } else {
-        tacs[['singTAC']] * forecastPpn
-      }
+      # singTAC[y, ] <- if (ppnMix == "flex") {
+      #   #if using flexing secondary HCR single fishery TAC = the foregone TAC
+      #   #from the mixed-stock fishery
+      #   (tacs[["unconMixTAC"]] - tacs[['mixTAC']]) * forecastPpn
+      # } else {
+      #   tacs[['singTAC']] * forecastPpn
+      # }
 
       ## Apply single stock harvest control rules
       #If a single stock HCR is in effect, assess status based on forecast or
