@@ -46,7 +46,7 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 5
-# simPar <- simParF[6, ]
+# simPar <- simParF[4, ]
 # makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 # random <- FALSE
 
@@ -159,7 +159,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   nAges <- ncol(ageStruc) #total number of ages at return in ageStruc matrix (does not mean that modeled populations actually contain 4 ages at maturity)
   tauAge <- cuPar$tauCycAge * simPar$adjustAge #CU-specific variation in age-at-maturity, adjusted by scenario
   medAbundance <- cbind(cuPar$medianRec, cuPar$lowQRec, cuPar$highQRec) #matrix of long term abundances (median, lower and upper quantile)
-  recCap <- 3 * cuPar$highQRec #default recruitment cap; if TS available will use 3x max obs (in following loop)
 
   if (species == "pink") { ### PINK FUNCTIONALITY NEEDS TO BE TESTED
     gen <- 2
@@ -901,6 +900,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     infillRecBY <- infill(recBY[1:nPrime, ])
     infillS <- infill(S[1:nPrime, ])
 
+    #Default recruitment cap reflecting observed abundance (not quantiles)
+    recCap <- 2 * apply(recBY[1:nPrime, ], 2, max)
+
     # Note that BMs and aggregate PMs are not recalculated after interpolation
     for (y in (nPrime - 12):nPrime) {
       for (k in 1:nCU) {
@@ -1276,16 +1278,19 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       amTAC[is.na(amTAC)] <- 0
       mixTAC[y, ] <- tacs[['mixTAC']] * truePpn
       mixTAC[is.na(mixTAC)] <- 0
+      singTAC[y, ] <- tacs[['singTAC']] * truePpn
+      singTAC[is.na(singTAC)] <- 0
+
 
       #NOTE THAT USE OF FORECAST PPN FOR SINGLE STOCK FISHERIES CAUSES THEM
       #TO DIVERGE RELATIVE TO MIXED (use true ppns)
-      singTAC[y, ] <- if (ppnMix == "flex") {
-        #if using flexing secondary HCR single fishery TAC = the foregone TAC
-        #from the mixed-stock fishery
-        (tacs[["unconMixTAC"]] - tacs[['mixTAC']]) * forecastPpn
-      } else {
-        tacs[['singTAC']] * forecastPpn
-      }
+      # singTAC[y, ] <- if (ppnMix == "flex") {
+      #   #if using flexing secondary HCR single fishery TAC = the foregone TAC
+      #   #from the mixed-stock fishery
+      #   (tacs[["unconMixTAC"]] - tacs[['mixTAC']]) * forecastPpn
+      # } else {
+      #   tacs[['singTAC']] * forecastPpn
+      # }
 
       ## Apply single stock harvest control rules
       #If a single stock HCR is in effect, assess status based on forecast or
