@@ -159,7 +159,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   nAges <- ncol(ageStruc) #total number of ages at return in ageStruc matrix (does not mean that modeled populations actually contain 4 ages at maturity)
   tauAge <- cuPar$tauCycAge * simPar$adjustAge #CU-specific variation in age-at-maturity, adjusted by scenario
   medAbundance <- cbind(cuPar$medianRec, cuPar$lowQRec, cuPar$highQRec) #matrix of long term abundances (median, lower and upper quantile)
-  recCap <- 3 * cuPar$highQRec #default recruitment cap; if TS available will use 3x max obs (in following loop)
 
   if (species == "pink") { ### PINK FUNCTIONALITY NEEDS TO BE TESTED
     gen <- 2
@@ -900,6 +899,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     # Only necessary to infill values in gappy time series
     infillRecBY <- infill(recBY[1:nPrime, ])
     infillS <- infill(S[1:nPrime, ])
+
+    #Default recruitment cap reflecting observed abundance (not quantiles)
+    recCap <- 2 * apply(recBY[1:nPrime, ], 2, max)
 
     # Note that BMs and aggregate PMs are not recalculated after interpolation
     for (y in (nPrime - 12):nPrime) {
