@@ -16,11 +16,12 @@
 #Temporary inputs
 # here <- here::here
 # require(samSim)
-# simParF <- read.csv(here("data", "opModelScenarios",
-#                          "fraserOMInputs_varyCorrMultiHCR.csv"),
+# simParF <- read.csv(here("data", "manProcScenarios",
+#                          "fraserMPInputs_varyAllocationProdRange.csv"),
 #                     stringsAsFactors = F)
 # cuPar <- read.csv(here("data/fraserDat/fraserCUParsFRP.csv"),
-#                   stringsAsFactors=F)
+#                   stringsAsFactors=F) %>%
+#   dplyr::filter(manUnit == "Summ")
 # srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
 # catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors=F)
 # ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors=F)
@@ -45,7 +46,7 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 5
-# simPar <- simParF[10, ]
+# simPar <- simParF[1, ]
 # makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 # random <- FALSE
 
@@ -229,14 +230,12 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   refAlpha <- ifelse(model == "ricker", ricA, larA)
   if (prod == "low" | prod == "lowStudT") {
     alpha <- 0.65 * refAlpha
-  }
-  if (prod %in% c("med", "studT", "skew", "skewT", "decline", "divergent",
-                  "oneUp",  "oneDown")) {
+  } else if (prod == "high") {
+    alpha <- 1.35 * refAlpha
+  } else {
     alpha <- refAlpha
   }
-  if (prod == "high") {
-    alpha <- 1.35 * refAlpha
-  }
+
   # is the productivity scenario stable
   stable <- ifelse(prod %in% c("decline", "divergent", "divergentSmall",
                                "oneUp", "oneDown"),
@@ -247,8 +246,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   prodScalars <- rep(1, nCU)
   if (prod == "decline" ) {
     prodScalars <- rep(0.65, nCU)
-  } else if (prod %in% c("divergent", "divergentSmall", "oneUp", "oneDown")) {
-    if (prod == "divergent") {
+  } else if (prod == "divergent") {
       prodScalars <- sample(c(0.65, 1, 1.35), nCU, replace = TRUE)
     } else if (prod == "divergentSmall") {
       prodScalars <- ifelse(cuPar$medianRec < median(cuPar$medianRec), 0.65, 1)
@@ -258,8 +256,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     } else if (prod == "oneUp") {
       drawCU <- round(runif(1, min = 0.5, max = nCU))
       prodScalars[drawCU] <- 1.35
+    } else if (prod == "scalar") {
+      prodScalars <- rep(simPar$prodScalar, nCU)
     }
-  }
   finalAlpha <- prodScalars * alpha
   trendLength <- 3 * gen
   trendAlpha <- (finalAlpha - alpha) / trendLength
