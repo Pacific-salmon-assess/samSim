@@ -41,7 +41,7 @@
 #'
 #' @export
 plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch",
-                           facet = "cu", panel = "om", showUncertainty = FALSE,
+                           facet = "cu", panel = NULL, showUncertainty = FALSE,
                            hotColors = TRUE, legendLab = NULL, xLab = NULL,
                            yLab = NULL, main = TRUE,
                            axisSize = 14, dotSize = 4, lineSize = 1.25,
@@ -53,23 +53,26 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
 
   #identify whether second dimension of plots should be by om or MP
   #(first dimension is by keyvariable, faceting is by CU/MU)
-  if (panel == "om") {
-    panels <- unique(cuDat$om)
-  }
-  if (panel == "mp") {
-    panels <- unique(cuDat$mp)
+  panels <- if (is.null(panel)) {
+    NA
+  } else if (panel == "om") {
+    unique(cuDat$om)
+  } else if (panel == "mp") {
+    unique(cuDat$mp)
   }
 
   # Plot
   plotList <- lapply(seq_along(panels), function(h) { #iterate across catch variables
-    if (panel == "om") {
-      dum <- cuDat %>%
+    dum <- if(is.null(panel)) {
+      cuDat
+    } else if (panel == "om") {
+      cuDat %>%
         filter(om == panels[h])
-    }
-    if (panel == "mp") {
-      dum <- cuDat %>%
+    } else if (panel == "mp") {
+      cuDat %>%
         filter(mp == panels[h])
     }
+
     plotTitle <- ifelse(main == TRUE, paste(panels[h], "Plot", sep = ""), "")
 
     dum <- dum %>% filter(var == catchVar | var == consVar)
@@ -97,21 +100,24 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
         mutate(facetVar = as.factor(om))
     }
 
-    if (hotColors == TRUE) {
-      colPalPlasma <- viridis::viridis(length(levels(wideDum$keyVar)),
-                                       begin = 0, end = 1, option = "plasma")
-      names(colPalPlasma) <- levels(wideDum$keyVar)
-      p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg, shape = hcr,
-                               fill = keyVar)) +
-        geom_point(size = dotSize) +
-        scale_fill_manual(values = colPalPlasma, name = legendLab) +
-        guides(fill = guide_legend(override.aes = list(shape = 21)))
-    } else if (hotColors == FALSE) {
-      p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg, shape = hcr,
-                               alpha = keyVar)) +
-        geom_point(size = dotSize, fill = "black") +
-        scale_alpha_discrete(range = c(0.3, 1), name = legendLab)
-    }
+    #groupDat for axis break limits
+    axBreaks <-
+
+      if (hotColors == TRUE) {
+        colPalPlasma <- viridis::viridis(length(levels(wideDum$keyVar)),
+                                         begin = 0, end = 1, option = "plasma")
+        names(colPalPlasma) <- levels(wideDum$keyVar)
+        p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg, shape = hcr,
+                                 fill = keyVar)) +
+          geom_point(size = dotSize) +
+          scale_fill_manual(values = colPalPlasma, name = legendLab) +
+          guides(fill = guide_legend(override.aes = list(shape = 21)))
+      } else if (hotColors == FALSE) {
+        p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg, shape = hcr,
+                                 alpha = keyVar)) +
+          geom_point(size = dotSize, fill = "black") +
+          scale_alpha_discrete(range = c(0.3, 1), name = legendLab)
+      }
     p <- p +
       theme_sleekX() +
       theme(strip.text = element_text(size = axisSize),
@@ -121,7 +127,9 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
             legend.title = element_text(size = legendSize)) +
       labs(x = xLab, y = yLab, title = plotTitle) +
       scale_shape_manual(values = c(21, 25), name = "Control Rule") +
-      facet_wrap(~ facetVar, scales = scaleAxis)
+      facet_wrap(~ facetVar, scales = scaleAxis) +
+      scale_x_continuous(breaks = scales::pretty_breaks(n = 3)) +
+      scale_y_continuous(breaks = scales::pretty_breaks(n = 3))
 
     if (length(unique(wideDum$hcr)) < 2) {
       p <- p +
