@@ -34,3 +34,6 @@ rsconnect/
 
 # Simulation outputs
 outputs
+
+data/area3Chum
+data/fraserDat/unused
