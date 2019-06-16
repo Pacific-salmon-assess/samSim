@@ -17,15 +17,16 @@
 # here <- here::here
 # require(samSim)
 # simParF <- read.csv(here("data", "manProcScenarios",
-#                          "fraserMPInputs_varyAllocationProdRange.csv"),
+#                         "fraserMPInputs_varyAllocationVaryMixHCR.csv"),
+#                    stringsAsFactors = F)
+# cuPar <- read.csv(here("data/fraserDat/summOnlyCUPars.csv"), stringsAsFactors = F)
+#
+# ricPars <- read.csv(here("data/fraserDat/trimRecursiveRickerMCMCPars.csv"),
 #                     stringsAsFactors = F)
-# cuPar <- read.csv(here("data/fraserDat/fraserCUParsFRP.csv"),
-#                   stringsAsFactors=F) %>%
-#   dplyr::filter(manUnit == "Summ")
+# larkPars <- read.csv(here("data/fraserDat/trimRecursiveLarkinMCMCPars.csv"),
+#                      stringsAsFactors = F)
 # srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors=F)
 # catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors=F)
-# ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors=F)
-# larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"), stringsAsFactors=F)
 # tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
 
 # cuCustomCorrMat <- read.csv(here("data/fraserDat/prodCorrMatrix.csv"), stringsAsFactors=F)
@@ -46,7 +47,7 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 5
-# simPar <- simParF[3, ]
+# simPar <- simPar[1, ]
 # makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 # random <- FALSE
 
@@ -700,7 +701,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     lowRefPt <- matrix(NA, nrow = nYears, ncol = nCU)
     highRefPt <- matrix(NA, nrow = nYears, ncol = nCU)
     adjForeRec <-  matrix(NA, nrow = nYears, ncol = nCU)
-    tagetCanER <- matrix(NA, nrow = nYears, ncol = nCU)
+    targetCanER <- matrix(NA, nrow = nYears, ncol = nCU)
     tamSingER <- matrix(NA, nrow = nYears, ncol = nCU)
     foreRecErr <- matrix(NA, nrow = nYears, ncol = nCU)
     # Fall-back matrices for diagnostics
@@ -1421,7 +1422,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       expRateAg[y, n] <- ifelse(recRYAg[y, n] == 0, 0,
                                 catchAg[y, n] / recRYAg[y, n])
       #only Canadian fisheries
-      tagetCanER[y, ] <- apply(rbind(mixTAC[y, ], singTAC[y, ]), 2, sum) /
+      targetCanER[y, ] <- apply(rbind(mixTAC[y, ], singTAC[y, ]), 2, sum) /
         recRY[y, ]
       targetExpRateAg[y, n] <- ifelse(harvContRule == "fixedER",
                                       canER + amER,
@@ -1831,7 +1832,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     #NOTE CHANGE IF FIXED ERs VARY AMONG CUs
     targetER[n, ] <- ifelse(harvContRule == "fixedER",
                             rep(canER, nCU),
-                            apply(tagetCanER[(nPrime+1):nYears, ], 2,
+                            apply(targetCanER[(nPrime+1):nYears, ], 2,
                                   function(x) mean(x, na.rm = TRUE)))
     #data of interest
     yrsSeq <- seq(from = nPrime + 1, to = nYears, by = 1)
