@@ -1,0 +1,20 @@
+---
+title: "benchmarking.Rmd"
+author: "Cam Freshwater"
+date: "January 30, 2019"
+output: html_document
+---
+
+** Introduction **
+
+Fisheries management is often complicated by pervasive uncertainty and competing objectives among stakeholders; however, these difficulties are particularly pronounced in Pacific salmon fisheries. Most salmon species are highly migratory and their complex life histories typically obscure mechanisms responsible for driving interannual variability in recruitment (REF), as well as regime shifts in population productivity (REF). Furthermore, although salmon populations exhibit substantial genetic diversity, they are generally harvested in multi-stock fisheries and managers have limited ability to constrain harvest on depleted stocks (REF). Nevertheless, persistent declines in the abundance of many British Columbia salmon stocks have resulted in pressure to identify management strategies that can promote rebuilding to preserve biodiversity as outlined in Canada's Wild Salmon Policy.
+
+Closed-loop simulations can be used to identify management strategies that are robust to multiple dimensions of uncertainty including recruitment variation, changes in productivity regime, and deviations between target and realized catches (i.e. outcome uncertainty). Closed-loop simulations are also particularly well suited to evaluating how strategies balance conservation and socio-economic objectives. To this end closed-loop simulations can be combined with stakeholder engagement to formalize objectives and create a management strategy evaluation (REF). 
+
+Closed-loop simulation are composed of two central components. The _operating model_ represents the ecological dynamics of the relevant stocks, as well as the fishery that harvests them. The _management procedure_ represents the assessment process, as well as the harvest control rule that determines exploitation rates. Broadly, the models function by using a stock-recruit relationship to generate a cohort of recruits based on spawner abundance at the beginning of the simulation. Abundance is observed with error within the model and used to evaluate the status of the stock, which in turn determines target catch rates based on the harvest control rule. <!-- CF: technically this isn't how our model functions because the assessment process is decoupled from the model, but it seems to be the stereotypical MSE structure... --> Some fraction of recruits are removed, representing harvest within the fishery, the remainder become spawners, and the entire process iterates through time. 
+
+Closed-loop simulation analyses typically involve comparing _scenarios_ (unique combinations of operating models and management procedures) using various performance metrics. Performance metrics are selected to address the management objectives of greatest relevance to the stock aggregate and typically are composed of both conservation- and catch-based goals, at various ecological scales and time frames. For example, median catch in the first five years of the simulation may be used to evaluate short term economic objectives, while the proportion of stocks above a biological benchmark at the end of the simulation may be a proxy for conservation performance. Each scenario is simulated hundreds to thousands of times to incorporate stochastic processes (e.g. recruitment deviations, implementation uncertainty) into estimates of performance. 
+
+** `samSim` - A Generic Simulation Tool **
+
+The `samSim` R package contains functions to run and interpret closed-loop simulations to evaluate the rebuilding potential for Pacific salmon conservation units (CUs).
