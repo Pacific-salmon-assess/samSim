@@ -71,14 +71,14 @@ plotContTradeOffs <- function(agDat, keyVar = "expRate", double = TRUE) {
        mgp = c(3, 0.5, 0))
   mtext(side = 1, line = 2.25, xLab, cex = 1.2)
   if(mean(spwn$avg) > 1000) { #adjust plotting based on scale of spawners
-    axis(2, tick = T, at = format(c(-100 * min(spwn$avg),
+    axis(2, tick = T, at = format(c(-100,
                                     pretty(spwn$highQ, n = 3),
                                     2 * max(spwn$highQ)),
                                   digits = 2, nsmall = 0),
          mgp = c(3, 0.6, 0), las = 0)
     mtext(side = 2, line = 2.5, 'Escapement or Catch', cex = 1.2)
   } else if(mean(spwn$avg) < 1000) {
-    axis(2, tick = T, at = round(c(-100 * min(spwn$avg),
+    axis(2, tick = T, at = round(c(-100,
                                    pretty(spwn$highQ, n = 3),
                                    2 * max(spwn$highQ)),
                                  digits = 1),
