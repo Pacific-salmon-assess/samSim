@@ -11,18 +11,18 @@ listOfPackages <- c("here", "parallel", "doParallel", "foreach", "viridis",
 lapply(listOfPackages, library, character.only = TRUE)
 
 simPar <- read.csv(here("data", "manProcScenarios",
-                        "fraserMPInputs_varyAllocation.csv"),
+                        "fraserMPInputs_techReport.csv"),
                    stringsAsFactors = F)
 cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors = F)
 srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors = F)
 catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors = F)
-ricPars <- read.csv(here("data/trimRecursiveRickerMCMCPars.csv"), stringsAsFactors = F)
-larkPars <- read.csv(here("data/trimRecursiveLarkinMCMCPars.csv"),
+ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors = F)
+larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"),
                      stringsAsFactors = F)
-tamFRP <- read.csv(here("data/tamRefPts.csv"), stringsAsFactors = F)
+tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors = F)
 
 ## Define simulations to be run
-nTrials <- 150
+nTrials <- 250
 
 for(k in 1:nrow(simPar)) {
   if(is.na(simPar$nameMP[k])) {
@@ -79,3 +79,32 @@ for (i in seq_along(dirNames)) {
   stopCluster(cl) #end cluster
   toc()
 }
+
+#-----
+
+agDat <- buildDataAgg(dirNames, agVars =  agVarsToPlot,
+                         keyVarName = "expRate")
+
+refAgDat <- agDat %>%
+  filter(om == "ref",
+         hcr == "fixedER")
+plotContTradeOffs(refAgDat, keyVar = "expRate", double = TRUE)
+
+prodDat <- agDat %>%
+  filter(om %in% c("ref", "lowProd"),
+         expRate %in% c("0.1", "0.3", "0.5", "0.7", "0.9"),
+         hcr == "fixedER",
+         var %in% c("medRecRY", "ppnCUUpper", "medCatch")) %>%
+  mutate(var = recode(factor(var), "medRecRY" = "Median Return",
+                      # "medSpawners" = "Median Escapement",
+                      "ppnCUUpper" = "Ppn. CUs Above\nBenchmark",
+                      # "ppnCUExtinct" = "Ppn. CUs Extinct",
+                      "medCatch" = "Median Catch"),
+         om = recode(factor(om), "ref" = "Reference", "lowProd" = "Low"))
+
+plotAgDot(prodDat, group = "om", legendLab = "Productivity",
+          xLab = "Exploitation Rate", yLab = NULL, plotTitle = NULL,
+          axisSize = 12,
+          dotSize = 4, lineSize = 1, legendSize = 14)
+
+

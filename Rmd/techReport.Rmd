@@ -30,11 +30,52 @@ Simulated returns pass are next subject to American harvest, if relevant, which 
 
 ** `samSim` Outputs **
 
+```{r loadDat}
+library(samSim)
+library(tidyverse)
+
+simPar <- read.csv(here::here("data", "manProcScenarios",
+                        "fraserMPInputs_techReport.csv"),
+                   stringsAsFactors = F)
+scenNames <- unique(simPar$scenario)
+dirNames <- sapply(scenNames, function(x) paste(x, unique(simParTrim$species),
+                                                sep = "_"))
+agVarsToPlot <-  c("medRecRY", "medSpawners", "ppnCUUpper", "ppnCUExtinct",
+                   "medCatch")
+```
+
 The simulation model produces a range of outputs automatically. A PDF of diagnostics (Fig. 1) shows simulated stock-recruit figures, as well as time series of abundance, population parameters, and various performance metrics. Automatically generated R data and .csv files contain arrays of CU-specific time series, matrices of aggregate time series, and data frames of aggregate or CU-specific performance metrics. Each file contains all the Monte Carlo trials for a specific scenario. 
+
+```{r fig1}
+refAgDat <- buildDataAgg(dirNames, agVars =  agVarsToPlot,
+                         keyVarName = "expRate") %>%
+  filter(om == "ref",
+         hcr == "fixedER")
+plotContTradeOffs(refAgDat, keyVar = "expRate", double = TRUE)
+```
 
 The output files are used by additional `samSim` functions to create various summary figures. Each figures incorporates percentile intervals that calculated across Monte Carlo trials to provide an estimate of uncertainty. The `plotContTradeoffs` function generates double-y axis line plots that demonstrate how spawner abundance, stock status, and extinction probability change as exploitation rates increase within a single scenario (Fig. 1). 
 
 The `plotAgDot` and `plotCUDot` functions provide summaries of multiple performance metrics (aggregate or CU-specific respectively) across different management procedures or different operating models. For example, we can visualize declines in return size and catch stability as exploitation rates increase (Fig. 2).
+
+```{r fig2}
+prodDat <- agDat %>%
+  filter(om %in% c("ref", "lowProd"),
+         expRate %in% c("0.1", "0.3", "0.5", "0.7", "0.9"),
+         hcr == "fixedER", 
+         var %in% c("medRecRY", "ppnCUUpper", "medCatch")) %>% 
+  mutate(var = recode(factor(var), "medRecRY" = "Median Return",
+                      # "medSpawners" = "Median Escapement",
+                      "ppnCUUpper" = "Ppn. CUs Above\nBenchmark",
+                      # "ppnCUExtinct" = "Ppn. CUs Extinct",
+                      "medCatch" = "Median Catch"),
+         om = recode(factor(om), "ref" = "Reference", "lowProd" = "Low"))
+
+plotAgDot(prodDat, group = "om", legendLab = "Productivity",
+          xLab = "Exploitation Rate", yLab = NULL, plotTitle = NULL, 
+          axisSize = 12,
+          dotSize = 4, lineSize = 1, legendSize = 14)
+```
 
 The `plotAgTradeoff` and `plotCUTradeoff` functions plot a conservation metric on one axis and a catch metric on the other to visualize how the tradeoff between objectives varies among management procedures or operating models. Such figures can be particularly useful in identifying subsets of management procedures that meet pre-specified objectives (e.g. minimum median return sizes and catches), while readily incorporating different operating models (Fig. 3). 
 
