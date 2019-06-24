@@ -80,31 +80,3 @@ for (i in seq_along(dirNames)) {
   toc()
 }
 
-#-----
-
-agDat <- buildDataAgg(dirNames, agVars =  agVarsToPlot,
-                         keyVarName = "expRate")
-
-refAgDat <- agDat %>%
-  filter(om == "ref",
-         hcr == "fixedER")
-plotContTradeOffs(refAgDat, keyVar = "expRate", double = TRUE)
-
-prodDat <- agDat %>%
-  filter(om %in% c("ref", "lowProd"),
-         expRate %in% c("0.1", "0.3", "0.5", "0.7", "0.9"),
-         hcr == "fixedER",
-         var %in% c("medRecRY", "ppnCUUpper", "medCatch")) %>%
-  mutate(var = recode(factor(var), "medRecRY" = "Median Return",
-                      # "medSpawners" = "Median Escapement",
-                      "ppnCUUpper" = "Ppn. CUs Above\nBenchmark",
-                      # "ppnCUExtinct" = "Ppn. CUs Extinct",
-                      "medCatch" = "Median Catch"),
-         om = recode(factor(om), "ref" = "Reference", "lowProd" = "Low"))
-
-plotAgDot(prodDat, group = "om", legendLab = "Productivity",
-          xLab = "Exploitation Rate", yLab = NULL, plotTitle = NULL,
-          axisSize = 12,
-          dotSize = 4, lineSize = 1, legendSize = 14)
-
-

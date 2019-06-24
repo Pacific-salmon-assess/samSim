@@ -10,7 +10,7 @@ output:
       in_header: preamble-latex.tex
 ---
 
-** Introduction **
+##Introduction##
 
 Fisheries management is often complicated by pervasive uncertainty and competing objectives among stakeholders; however, these difficulties are particularly pronounced in Pacific salmon fisheries. Most salmon species are anadromous and highly migratory. Their complex life histories can obscure mechanisms responsible for driving interannual variability in recruitment (REF), as well as regime shifts in population productivity (REF). Furthermore, although salmon populations exhibit substantial genetic diversity, they are generally harvested in multi-stock fisheries and managers have limited ability to constrain harvest on depleted stocks (REF). Nevertheless, persistent declines in the abundance of many British Columbia salmon stocks have resulted in pressure to identify management strategies that can promote rebuilding and preserve biodiversity as outlined in Canada's Wild Salmon Policy.
 
@@ -20,7 +20,7 @@ Closed-loop simulation are composed of two central components. The _operating mo
 
 Closed-loop simulation analyses typically involve comparing _scenarios_ (unique combinations of operating models and management procedures) using various performance metrics. Performance metrics are selected to address the management objectives of greatest relevance to the stock aggregate and typically are composed of both conservation- and catch-based goals, at various ecological scales and time frames. For example, median catch in the first five years of the simulation may be used to evaluate short term economic objectives, while the proportion of stocks above a biological benchmark at the end of the simulation may be a proxy for conservation performance. Each scenario is simulated hundreds to thousands of times to incorporate stochastic processes (e.g. recruitment deviations, implementation uncertainty) into estimates of performance. 
 
-** `samSim` - A Generic Simulation Tool **
+##`samSim` - A Generic Simulation Tool##
 
 `samSim` is an R package containing functions to quantify the rebuilding potential for Pacific salmon populations. `recoverySim` is the function containing the closed-loop simulation model and is the primary function within the package. The model structure focuses on aggregates of salmon conservation units (CUs), the focal unit for assessing Canadian Pacific salmon status (DFO 2005). Generally all CUs included within a single analysis should be managed simultaneously as a management unit (MU); however, the model can be adapted to include multiple MUs with distinct harvest rates. Although initial case studies focused on Fraser River sockeye salmon and Area 3 chum salmon, `samSim` is intended to be applicable to any Pacific salmon species as long as two requirements are met. First, CU-specific stock-recruit parameters and age-at-maturity must be available to drive the operating model. Ideally these would be estimated from observed time series of age-structured spawner and recruit abundance, however they can also be generated using alternative techniques (e.g. habitat-based estimates; expert opinion). Second, harvest of immature fish must be minimal because offshore fisheries are not accounted for in the model.
 
@@ -28,9 +28,9 @@ Closed-loop simulation analyses typically involve comparing _scenarios_ (unique 
 
 Simulated returns pass are next subject to American harvest, if relevant, which typically occurs during return migrations before Canadian CUs enter nearshore areas. American catches are always generated using a fixed exploitation rate passed as an input value. Canadian mixed-CU fishery harvest occurs next and catch rates are determined by one of three harvest control rules (HCRs): fixed exploitation rate, generic abundance-based, or total allowable mortality (TAM) rule. The generic abundance-based HCR increases exploitation rates from a minimum value when return abundance exceeds user-specific reference points. The TAM rule is similar to the generic abundance-based HCR, but has additional modifications currently implemented in Fraser River sockeye salmon management. In both the American and Canadian mixed-CU fisheries, target catches (generated using the HCR) are converted to realized catches by incorporating stochastic outcome uncertainty. CU-specific realized catch is calculated as a function of relative abundance. Once catch has been removed the remaining returns become spawners, creating the subsequent generation of recruits. However, see _Additional Components_ section for alternative frameworks.
 
-** `samSim` Outputs **
+##`samSim` Outputs##
 
-```{r loadDat}
+```{r loadDat, include=FALSE}
 library(samSim)
 library(tidyverse)
 
@@ -38,32 +38,38 @@ simPar <- read.csv(here::here("data", "manProcScenarios",
                         "fraserMPInputs_techReport.csv"),
                    stringsAsFactors = F)
 scenNames <- unique(simPar$scenario)
-dirNames <- sapply(scenNames, function(x) paste(x, unique(simParTrim$species),
+dirNames <- sapply(scenNames, function(x) paste(x, unique(simPar$species),
                                                 sep = "_"))
 agVarsToPlot <-  c("medRecRY", "medSpawners", "ppnCUUpper", "ppnCUExtinct",
                    "medCatch")
+
+#set global figure options (links to .tex file)
+# knitr::knit_hooks$set(plot = function(x, options)  {
+#   hook_plot_tex(x, options)
+# })
 ```
 
-The simulation model produces a range of outputs automatically. A PDF of diagnostics (Fig. 1) shows simulated stock-recruit figures, as well as time series of abundance, population parameters, and various performance metrics. Automatically generated R data and .csv files contain arrays of CU-specific time series, matrices of aggregate time series, and data frames of aggregate or CU-specific performance metrics. Each file contains all the Monte Carlo trials for a specific scenario. 
+The simulation model produces a range of outputs automatically. A PDF of diagnostics shows simulated stock-recruit figures, as well as time series of abundance, population parameters, and various performance metrics. Automatically generated R data and .csv files contain arrays of CU-specific time series, matrices of aggregate time series, and data frames of aggregate or CU-specific performance metrics. Each file contains all the Monte Carlo trials for a specific scenario. 
 
-```{r fig1}
-refAgDat <- buildDataAgg(dirNames, agVars =  agVarsToPlot,
-                         keyVarName = "expRate") %>%
+The output files are used by additional `samSim` functions to create various summary figures. Each figures incorporates percentile intervals that calculated across Monte Carlo trials to provide an estimate of uncertainty. The `plotContTradeoffs` function generates double-y axis line plots that demonstrate how spawner abundance, stock status, and extinction probability change as exploitation rates increase within a single scenario (Fig. 1). 
+
+```{r fig1, echo=FALSE, warning=FALSE, fig.height=4, fig.width=5.5, fig.align="center", fig.cap="\\label{fig:fig1}Changes in aggregate conservation- and catch-based performance metrics (escapement - purple; catch - blue; proportion of CUs above benchmark - green; extinction risk - red) as fixed exploitation rates increase. Dark lines represent median values and polygons the 90th percentile interval across Monte Carlo trials."}
+agDat <- buildDataAgg(dirNames, agVars =  agVarsToPlot,
+                         keyVarName = "expRate")
+refAgDat <- agDat %>%
   filter(om == "ref",
          hcr == "fixedER")
 plotContTradeOffs(refAgDat, keyVar = "expRate", double = TRUE)
 ```
 
-The output files are used by additional `samSim` functions to create various summary figures. Each figures incorporates percentile intervals that calculated across Monte Carlo trials to provide an estimate of uncertainty. The `plotContTradeoffs` function generates double-y axis line plots that demonstrate how spawner abundance, stock status, and extinction probability change as exploitation rates increase within a single scenario (Fig. 1). 
+The `plotAgDot` and `plotCUDot` functions provide summaries of multiple performance metrics (aggregate or CU-specific respectively) across different management procedures or different operating models. For example, we can visualize declines in return size and the proportion of CUs above their biological benchmark as exploitation rates increase, as well as how such patterns differ among two different productivity regimes (Fig. 2).
 
-The `plotAgDot` and `plotCUDot` functions provide summaries of multiple performance metrics (aggregate or CU-specific respectively) across different management procedures or different operating models. For example, we can visualize declines in return size and catch stability as exploitation rates increase (Fig. 2).
-
-```{r fig2}
+```{r fig2, echo=FALSE, warning=FALSE, fig.height=3.5, fig.width=6, fig.align="center", fig.cap="\\label{fig:fig2}Performance across three metrics as a function of fixed exploitation rate (x-axis) and two productivity operating models (color). Points represent median values and whiskers the 90th percentile interval across Monte Carlo trials."}
 prodDat <- agDat %>%
   filter(om %in% c("ref", "lowProd"),
          expRate %in% c("0.1", "0.3", "0.5", "0.7", "0.9"),
          hcr == "fixedER", 
-         var %in% c("medRecRY", "ppnCUUpper", "medCatch")) %>% 
+         var %in% c("medRecRY", "ppnCUUpper", "medCatch", "med")) %>% 
   mutate(var = recode(factor(var), "medRecRY" = "Median Return",
                       # "medSpawners" = "Median Escapement",
                       "ppnCUUpper" = "Ppn. CUs Above\nBenchmark",
@@ -73,13 +79,27 @@ prodDat <- agDat %>%
 
 plotAgDot(prodDat, group = "om", legendLab = "Productivity",
           xLab = "Exploitation Rate", yLab = NULL, plotTitle = NULL, 
-          axisSize = 12,
-          dotSize = 4, lineSize = 1, legendSize = 14)
+          axisSize = 10, dotSize = 3, lineSize = 1, legendSize = 11)
 ```
 
-The `plotAgTradeoff` and `plotCUTradeoff` functions plot a conservation metric on one axis and a catch metric on the other to visualize how the tradeoff between objectives varies among management procedures or operating models. Such figures can be particularly useful in identifying subsets of management procedures that meet pre-specified objectives (e.g. minimum median return sizes and catches), while readily incorporating different operating models (Fig. 3). 
+The `plotAgTradeoff` and `plotCUTradeoff` functions plot a conservation metric on the x-axis and a catch metric on the y-axis to visualize how tradeoffs between objectives vary among management procedures or operating models. Such figures can be particularly useful in identifying subsets of management procedures that meet pre-specified objectives (e.g. minimum median return sizes and catches), while readily incorporating different operating models. For example, intermediate fixed exploitation rates or an abundance-based (TAM) harvest control rule may lead to optimal outcomes under reference productivity, but fail to meet threshold objectives when productivity is low (Fig. 3).
 
-** Additional Components **
+```{r fig3, echo=FALSE, warning=FALSE, fig.height=3.5, fig.width=6, fig.align="center", fig.cap="\\label{fig:fig3}Trade-offs between aggregate catch and escapement for fixed exploitation rate and total allowable mortality harvest control rules. Points represent median values and whiskers the 90th percentile interval across Monte Carlo trials."}
+prodDat2 <- agDat %>%
+  filter(om %in% c("ref", "lowProd"),
+         expRate %in% c("0.1", "0.3", "0.5", "0.7", "0.9", "TAM"),
+         var %in% c("medCatch", "medSpawners")) %>% 
+  mutate(om = recode(factor(om), "ref" = "Reference Productivty", 
+                     "lowProd" = "Low Productivity"))
+
+plotAgTradeoff(prodDat2, consVar = "medSpawners", catchVar = "medCatch",
+               facet = "om", shape = "hcr", showUncertainty = TRUE, 
+               mainLab = "", legendLab = "Exploitation\nRate",
+               xLab = "Median Catch", yLab = "Median Spawners", 
+               axisSize = 12, legendSize = 10, scaleAxis = "fixed")
+```
+
+##Additional Components##
 
 The basic `recoverySim` function is intended to provide an indication of how changes in exploitation rate will influence the long term status of an aggregate of CUs. However additional components of the simulation model can be adjusted to explore how these patterns change under different ecological assumptions or, alternatively, how more nuanced harvest control rules perform. The principal optional components are described below.
 
