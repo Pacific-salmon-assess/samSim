@@ -9,7 +9,7 @@ This document demonstrates an example simulation run with Fraser River sockeye s
 
 **NOTE this document will be updated to reflect simpler examples in the future.**
 
-First install necessary packages and load data. Note that `samSim` depends heavily on a large number of other packages, but that the relevant functions are installed automatically with when it is built. The other packages are largely for data processing or to run the simulations in parallel (additional details below).
+First install necessary packages and load data. `samSim` should be installed following instructions `in README.md`. Note that `samSim` depends heavily on a large number of other packages, but that the relevant functions are installed automatically with when it is built. The other packages are largely for data processing or to run the simulations in parallel (additional details below).
 
 ```{r importData, echo=TRUE, warning=FALSE}
 ## Check if necessary packages are available and install if necessary

@@ -15,6 +15,12 @@ The focal unit of the simulated dynamics are conservation units (CUs) - genetica
 
 A summary of relevant files and how to run a simulation are provided below. Most functions contain relatively detailed documentation (and sometimes functioning examples). Details on the operating model (biological dynamics and fishery interactions) and the management procedures (harvest control rule and assessment process) will be provided in a vignette to come.
 
+[After installing the package development prerequisites](https://support.rstudio.com/hc/en-us/articles/200486498) install `samSim` with:
+
+```{r}
+devtools::install_github("CamFreshwater/samSim")
+```
+
 -----
 
 ### Files
@@ -38,7 +44,7 @@ Directory generated automatically by running `recoverySim()`. Contains a *diagno
 Contains `recoverySim()` function as well as necessary helper and post-processing functions.
 
 #### reports
-Includes supplementary documentation describing model development and input data. **NOTE Should probably be removed.**
+Includes supplementary documentation describing model development and input data.
 
 #### Rmd
 Includes Rmarkdown files that include an example simulation run, as well as descriptions model structure and parameterization.
