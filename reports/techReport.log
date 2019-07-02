@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.14159265-2.6-0.99998 (MiKTeX 2.9.6350 64-bit) (preloaded format=xelatex 2019.4.7)  29 JUN 2019 18:05
+This is XeTeX, Version 3.14159265-2.6-0.99998 (MiKTeX 2.9.6350 64-bit) (preloaded format=xelatex 2019.4.7)  2 JUL 2019 07:19
 entering extended mode
 **./techReport.tex
 (techReport.tex
@@ -836,7 +836,7 @@ LaTeX Info: Redefining \nameref on input line 96.
 \openout3 = `techReport.out'.
 
 LaTeX Font Info:    Font shape `TU/lmtt/bx/n' in size <12> not available
-(Font)              Font shape `TU/lmtt/b/n' tried instead on input line 154.
+(Font)              Font shape `TU/lmtt/b/n' tried instead on input line 155.
 [1
 
 ]
@@ -846,21 +846,21 @@ File: techReport_files/figure-latex/fig2-1.pdf Graphic file (type QTm)
 <use  "techReport_files/figure-latex/fig2-1.pdf" > [3]
 File: techReport_files/figure-latex/fig3-1.pdf Graphic file (type QTm)
 <use  "techReport_files/figure-latex/fig3-1.pdf" > [4] [5] [6]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 466.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 473.
 [7]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 466.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 473.
 (techReport.aux)
-Package atveryend Info: Empty hook `AtVeryEndDocument' on input line 466.
-Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 466.
+Package atveryend Info: Empty hook `AtVeryEndDocument' on input line 473.
+Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 473.
 
 LaTeX Warning: There were multiply-defined labels.
 
  ) 
 Here is how much of TeX's memory you used:
- 23238 strings out of 427834
- 434015 string characters out of 3147368
+ 23237 strings out of 427834
+ 433992 string characters out of 3147368
  567361 words of memory out of 3000000
- 27059 multiletter control sequences out of 15000+200000
+ 27058 multiletter control sequences out of 15000+200000
  532770 words of font info for 34 fonts, out of 3000000 for 9000
  1328 hyphenation exceptions out of 8191
  46i,5n,68p,809b,400s stack positions out of 5000i,500n,10000p,200000b,50000s
