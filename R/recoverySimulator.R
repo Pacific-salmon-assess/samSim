@@ -932,8 +932,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       obsLogRS[y, ] <- log(obsRecBY[y, ] / obsS[y, ])
     } #end loop 2
 
+    #prime AR error
     laggedError[y, ] <- log(recBY[y, ] / S[y, ]) -
-      (alphaMat[y, ] - beta * S[y, ]) + (sig^2 / 2) #prime AR error
+      (alphaMat[y, ] - beta * S[y, ])
 
     #_____________________________________________________________________
     ### LOOP 3
@@ -958,7 +959,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           if (normPeriod == TRUE) {
             sMSY[y, k, n] <- sMSY[nPrime, k, n]
             sGen[y, k, n] <- sGen[nPrime, k, n]
-          } else if (normPeriod == TRUE) {
+          } else if (normPeriod == FALSE) {
             sEqVar[y, k, n] <- refAlpha[k] / beta[k]
             sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha[k]))) / beta[k]
             sGen[y, k, n] <- as.numeric(sGenSolver(
@@ -1171,6 +1172,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       if (is.null(forecastMean)) {
         obsErrDat[["forecast"]] <-  1
       } else {
+        # parameterize cautiously; forecastSig values should be constrained to
+        # smaller values than example input data (e.g. forecastSig = 3.6 can
+        # produce absurdly large errors)
         obsErrDat[["forecast"]] <- exp(qnorm(runif(nCU, 0.0001, 0.9999),
                                              log(forecastMean), forecastSig))
       }
@@ -1282,7 +1286,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       singTAC[y, ] <- tacs[['singTAC']] * truePpn
       singTAC[is.na(singTAC)] <- 0
 
-
       #NOTE THAT USE OF FORECAST PPN FOR SINGLE STOCK FISHERIES CAUSES THEM
       #TO DIVERGE RELATIVE TO MIXED (use true ppns)
       # singTAC[y, ] <- if (ppnMix == "flex") {
@@ -1337,17 +1340,20 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             }
           } #end if (model[k] == "larkin")
           ## Apply secondary HCR as appropriate
-          if (moveTAC == TRUE) {
-            #identify which CUs in the MU are above their upper OCP and in the
-            #same Mu
-            if (counterSingleBMLow[y, k] == 0) {
-              healthyCUs <- which(counterSingleBMHigh[y, ] > 0 &
-                                    manUnit %in% manUnit[k])
-              movedTAC <- singTAC[y, k] * forecastPpn[healthyCUs]
-              singTAC[y, healthyCUs] <- singTAC[y, healthyCUs] + movedTAC
-              singTAC[y, k] <- 0
-            } #end if counterSingleBMLow[y, k] == 0
-          } #end if moveTAC == TRUE
+
+          ## DEPRECATED ##
+          # if (moveTAC == TRUE) {
+          #   #identify which CUs in the MU are above their upper OCP and in the
+          #   #same Mu
+          #   if (counterSingleBMLow[y, k] == 0) {
+          #     healthyCUs <- which(counterSingleBMHigh[y, ] > 0 &
+          #                           manUnit %in% manUnit[k])
+          #     movedTAC <- singTAC[y, k] * forecastPpn[healthyCUs]
+          #     singTAC[y, healthyCUs] <- singTAC[y, healthyCUs] + movedTAC
+          #     singTAC[y, k] <- 0
+          #   } #end if counterSingleBMLow[y, k] == 0
+          # } #end if moveTAC == TRUE
+
         } #end for k in 1:nCU
       } #end if singleHCR != FALSE
 

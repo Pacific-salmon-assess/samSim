@@ -102,5 +102,4 @@ parLapply(cl, simsToRun, function(x) {
   })
 stopCluster(cl) #end cluster
 toc()
-
 ```
