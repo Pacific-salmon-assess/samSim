@@ -17,9 +17,12 @@
 # here <- here::here
 # require(samSim)
 # simParF <- read.csv(here("data", "manProcScenarios",
-#                         "fraserMPInputs_techReport.csv"),
+#                         "fraserMPInputs_varyAllocationVaryMixHCR.csv"),
 #                    stringsAsFactors = F)
-# cuPar <- read.csv(here("data/fraserDat/fraserCUpars.csv"), stringsAsFactors = F)
+# simParF2 <- read.csv(here("data", "manProcScenarios",
+#                          "fraserMPInputs_prodRangeSimInput.csv"),
+#                     stringsAsFactors = F)
+# cuPar <- read.csv(here("data/fraserDat/summOnlyCUPars.csv"), stringsAsFactors = F)
 # srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors = F)
 # catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors = F)
 # ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors = F)
@@ -45,7 +48,8 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 5
-# simPar <- simParF[1, ]
+# simPar <- simParF[26, ]
+# simPar2 <- simParF2[111,]
 # makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 # random <- FALSE
 

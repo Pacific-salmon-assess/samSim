@@ -23,7 +23,7 @@
 #' @param showUncertainty A logical specifying whether whiskers for each
 #' variable's credible interval should be plotted.
 #' @param hotColors A logical (default \code{TRUE}) that specifies whether
-#' symbols should be filled with \code{viridis} palette or solid black.
+#' symbols should be filled with \code{viridis} palette or grey scale.
 #' @param legendLab A character representing the legend title.
 #' @param xLab A character representing the x axis label.
 #' @param yLab A character representing the y axis label.
@@ -102,23 +102,20 @@ plotCUTradeoff <- function(cuDat, consVar = "medSpawners", catchVar = "medCatch"
 
     #groupDat for axis break limits
     axBreaks <-
-
       if (hotColors == TRUE) {
-        colPalPlasma <- viridis::viridis(length(levels(wideDum$keyVar)),
+        colPal <- viridis::viridis(length(levels(wideDum$keyVar)),
                                          begin = 0, end = 1, option = "plasma")
-        names(colPalPlasma) <- levels(wideDum$keyVar)
-        p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg, shape = hcr,
-                                 fill = keyVar)) +
-          geom_point(size = dotSize) +
-          scale_fill_manual(values = colPalPlasma, name = legendLab) +
-          guides(fill = guide_legend(override.aes = list(shape = 21)))
+        names(colPal) <- levels(wideDum$keyVar)
       } else if (hotColors == FALSE) {
-        p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg, shape = hcr,
-                                 alpha = keyVar)) +
-          geom_point(size = dotSize, fill = "black") +
-          scale_alpha_discrete(range = c(0.3, 1), name = legendLab)
+        colPal <- grDevices::gray.colors(n = length(levels(wideDum$keyVar)),
+                                   start = 0.9, end = 0.05)
+        names(colPal) <- levels(wideDum$keyVar)
       }
-    p <- p +
+    p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg, shape = hcr,
+                             fill = keyVar)) +
+      geom_point(size = dotSize) +
+      scale_fill_manual(values = colPal, name = legendLab) +
+      guides(fill = guide_legend(override.aes = list(shape = 21))) +
       theme_sleekX() +
       theme(strip.text = element_text(size = axisSize),
             axis.text = element_text(size = 0.9 * axisSize),
@@ -265,25 +262,22 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
   }
 
   if (hotColors == TRUE) {
-    colPalPlasma <- viridis::viridis(length(unique(wideDum$keyVar)), begin = 0,
+    colPal <- viridis::viridis(length(unique(wideDum$keyVar)), begin = 0,
                                   end = 1, option = "plasma")
-    names(colPalPlasma) <- unique(wideDum$keyVar)
-    p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg,
-                             shape = shapeVar, fill = keyVar)) +
-      geom_point(size = dotSize) +
-      scale_shape_manual(values = shapePalette, name = secLegendLab) +
-      scale_fill_manual(values = colPalPlasma, name = legendLab) +
-      guides(fill = guide_legend(override.aes = list(shape = 21)),
-             shape = guide_legend(override.aes = list(fill = "black")))
+    names(colPal) <- unique(wideDum$keyVar)
   } else {
-    p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg, shape = shapeVar,
-                             alpha = keyVar)) +
-      geom_point(size = dotSize, fill = "black") +
-      scale_alpha_discrete(range = c(0.15, 1), name = legendLab) +
-      scale_shape_manual(values = shapePalette, name = secLegendLab)
+    colPal <- grDevices::gray.colors(n = length(levels(wideDum$keyVar)),
+                                     start = 0.9, end = 0.05)
+    names(colPal) <- levels(wideDum$keyVar)
   }
 
-  p <- p +
+  p <- ggplot(wideDum, aes(x = catchVar_avg, y = consVar_avg,
+                                    shape = shapeVar, fill = keyVar)) +
+    geom_point(size = dotSize) +
+    scale_shape_manual(values = shapePalette, name = secLegendLab) +
+    scale_fill_manual(values = colPal, name = legendLab) +
+    guides(fill = guide_legend(override.aes = list(shape = 21)),
+           shape = guide_legend(override.aes = list(fill = "black"))) +
     theme_sleekX() +
     theme(strip.text = element_text(size = axisSize),
           axis.text = element_text(size = 0.9 * axisSize),
