@@ -310,7 +310,7 @@ plotAgTradeoff <- function(agDat, consVar = "medSpawners",
       p <- p +
         geom_text(data = labDat,
                   mapping = aes(x = 0.95 * maxX, y = Inf, label = lab,
-                                vjust = 1.75),
+                                vjust = 1.75), size = dotSize,
                   show.legend = FALSE, inherit.aes = FALSE)
     } #end if(facetLett == TRUE)
   }
