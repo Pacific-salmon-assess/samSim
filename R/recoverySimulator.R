@@ -159,9 +159,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   }
   maxER <- if (harvContRule == "genPA") {
     cuPar$uMSY
-    } else {
-      rep(0.6, times = nCU)
-    }
+  } else {
+    rep(0.6, times = nCU)
+  }
   ageStruc <- matrix(c(cuPar$meanRec2, cuPar$meanRec3, cuPar$meanRec4, cuPar$meanRec5, cuPar$meanRec6), nrow=nCU, ncol=5) #mean proportion of each age class in returns
   nAges <- ncol(ageStruc) #total number of ages at return in ageStruc matrix (does not mean that modeled populations actually contain 4 ages at maturity)
   tauAge <- cuPar$tauCycAge * simPar$adjustAge #CU-specific variation in age-at-maturity, adjusted by scenario
@@ -250,18 +250,18 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   if (prod == "decline" ) {
     prodScalars <- rep(0.65, nCU)
   } else if (prod == "divergent") {
-      prodScalars <- sample(c(0.65, 1, 1.35), nCU, replace = TRUE)
-    } else if (prod == "divergentSmall") {
-      prodScalars <- ifelse(cuPar$medianRec < median(cuPar$medianRec), 0.65, 1)
-    } else if (prod == "oneDown") {
-      drawCU <- round(runif(1, min = 0.5, max = nCU))
-      prodScalars[drawCU] <- 0.65
-    } else if (prod == "oneUp") {
-      drawCU <- round(runif(1, min = 0.5, max = nCU))
-      prodScalars[drawCU] <- 1.35
-    } else if (prod == "scalar") {
-      prodScalars <- rep(simPar$prodScalar, nCU)
-    }
+    prodScalars <- sample(c(0.65, 1, 1.35), nCU, replace = TRUE)
+  } else if (prod == "divergentSmall") {
+    prodScalars <- ifelse(cuPar$medianRec < median(cuPar$medianRec), 0.65, 1)
+  } else if (prod == "oneDown") {
+    drawCU <- round(runif(1, min = 0.5, max = nCU))
+    prodScalars[drawCU] <- 0.65
+  } else if (prod == "oneUp") {
+    drawCU <- round(runif(1, min = 0.5, max = nCU))
+    prodScalars[drawCU] <- 1.35
+  } else if (prod == "scalar") {
+    prodScalars <- rep(simPar$prodScalar, nCU)
+  }
   finalAlpha <- prodScalars * alpha
   trendLength <- 3 * gen
   trendAlpha <- (finalAlpha - alpha) / trendLength
@@ -1715,7 +1715,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                     "Obs RecRY Err", "Obs Mix Catch Err",
                     "Obs Single Catch Err",
                     "Obs US Catch Err", "Obs Exp Rate Err", "Forecast Err"
-        )
+      )
       plotTrialDat <- array(c(alphaMat, estRicA[ , , n], estRicB[ , , n],
                               S, obsS, recBY, obsRecBY, recRY,
                               mixCatch, singCatch, amCatch, migMort,
@@ -1907,7 +1907,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     ppnCUsExtinct[yrsSeq, n] <- apply(extinct[yrsSeq, ], 1, mean)
     ppnConstrained[yrsSeq, n] <- apply(overlapConstraint[yrsSeq, ], 1, mean)
     ppnCUsOpenSingle[yrsSeq, n] <- apply(counterSingleBMLow[yrsSeq, ], 1,
-                                            mean)
+                                         mean)
   } #End n trials
 
 
@@ -2010,7 +2010,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                        medRecBY = apply(recBYAg[yrsSeq, ], 2, median), #median aggregate recruit abundance across management period (i.e. loop 3 when status is assessed)
                        varRecBY = apply(recBYAg[yrsSeq, ], 2, cv), #cv aggregate recruit abundance across management period
                        medObsRecBY = apply(obsRecBYAg[yrsSeq, ], 2,
-                                            function(x) median(x, na.rm = TRUE)), #median aggregate estimated recruit abundance across management period (i.e. loop 3 when status is assessed)
+                                           function(x) median(x, na.rm = TRUE)), #median aggregate estimated recruit abundance across management period (i.e. loop 3 when status is assessed)
                        varObsRecBY = apply(obsRecBYAg[yrsSeq, ], 2, cv), #cv aggregate estimated recruit abundance across management period
                        medObsRecRY = apply(obsRecRYAg[yrsSeq, ], 2, median), #median aggregate estimated recruit abundance across management period (i.e. loop 3 when status is assessed)
                        varObsRecRY = apply(obsRecRYAg[yrsSeq, ], 2, cv), #cv aggregate estimated recruit abundance across management period
@@ -2034,7 +2034,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                        ppnMixedOpen = apply(ppnOpenFishery[yrsSeq, ], 2, mean), #proportion of years all fisheries are open
                        ppnSingleOpen = apply(na.omit(ppnCUsOpenSingle), 2, mean),
                        ppnYrsAllMixOpen = apply(ppnOpenFishery[yrsSeq, ], 2,
-                                                  function(x) length(which(x == 1.00)) / length(x)), #proportion of yrs all MU's fisheries are open
+                                                function(x) length(which(x == 1.00)) / length(x)), #proportion of yrs all MU's fisheries are open
                        ppnCUUpper = apply(ppnCUsUpperBM[yrsSeq, ], 2, mean), #mean proportion of CUs above upper benchmark in last generations of management period
                        ppnCULower = apply(ppnCUsLowerBM[yrsSeq, ], 2, mean), #mean proportion of CUs above lower benchmark in last generations of management period
                        ppnCUEstUpper = apply(na.omit(ppnCUsUpperObsBM), 2, mean), #proportion of CUs estimated above upper benchmark in last 2 generations of management period
