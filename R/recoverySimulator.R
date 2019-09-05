@@ -14,21 +14,18 @@
 #' @export
 
 #Temporary inputs
-# here <- here::here
-# require(samSim)
-# simParF <- read.csv(here("data", "manProcScenarios",
-#                         "fraserMPInputs_varyAllocationVaryMixHCR.csv"),
-#                    stringsAsFactors = F)
-# simParF2 <- read.csv(here("data", "manProcScenarios",
-#                          "fraserMPInputs_prodRangeSimInput.csv"),
-#                     stringsAsFactors = F)
-# cuPar <- read.csv(here("data/fraserDat/summOnlyCUPars.csv"), stringsAsFactors = F)
-# srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors = F)
-# catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors = F)
-# ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors = F)
-# larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"),
-#                      stringsAsFactors = F)
-# tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
+here <- here::here
+require(samSim)
+simParF <- read.csv(here("data", "manProcScenarios",
+                        "fraserMPInputs_varyAllocationVaryMixHCR.csv"),
+                   stringsAsFactors = F)
+cuPar <- read.csv(here("data/fraserDat/summOnlyCUPars.csv"), stringsAsFactors = F)
+srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors = F)
+catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors = F)
+ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors = F)
+larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"),
+                     stringsAsFactors = F)
+tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
 
 # cuCustomCorrMat <- read.csv(here("data/fraserDat/prodCorrMatrix.csv"), stringsAsFactors=F)
 # erCorrMat <- read.csv(here("data/fraserDat/erMortCorrMatrix.csv"), stringsAsFactors=F,
@@ -48,8 +45,7 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 5
-# simPar <- simParF[26, ]
-# simPar2 <- simParF2[111,]
+# simPar <- simParF[1, ]
 # makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 # random <- FALSE
 
@@ -1513,19 +1509,15 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           sNoNA <- temp[!is.na(temp)]
           n25th <- round(length(sNoNA) * 0.25, 0)
           n50th <- round(length(sNoNA) * 0.50, 0)
-          # n75th <- round(length(sNoNA) * 0.75, 0)
           s25th[y, k, n] <- sort(sNoNA)[n25th]
           s50th[y, k, n] <- sort(sNoNA)[n50th]
-          # s75th[y, k, n] <- sort(sNoNA)[n75th]
           #Calculate observed percentile BMs
           temp <- obsS[1:y, k]
           obsSNoNA <- temp[!is.na(temp)]
           obsN25th <- round(length(obsSNoNA) * 0.25, 0)
           obsN50th <- round(length(obsSNoNA) * 0.50, 0)
-          # obsN75th <- round(length(obsSNoNA) * 0.75, 0)
           estS25th[y, k, n] <- sort(obsSNoNA)[obsN25th]
           estS50th[y, k, n] <- sort(obsSNoNA)[obsN50th]
-          # estS75th[y, k, n] <- sort(obsSNoNA)[obsN75th]
           #Calculate SR BMs
           estSMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
                                      (1 - gsl::lambert_W0(exp(

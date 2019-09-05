@@ -58,9 +58,11 @@ calcRealCatch <- function(rec, tac, sigma = 0.1, random =  FALSE,
 
   if (sigma > 0) {
     mu <- pmin(0.99, tac / tempRec)
-    location <- pmax(0.0001,
+    #Constraint location and shape parameters to be non-negative, otherwise NaN
+    #produced
+    location <- pmax(0.00001,
                      mu^2 * (((1 - mu) / sigma^2) - (1 / mu)))
-    shape <- pmax(0.0001, location * (1 / mu - 1))
+    shape <- pmax(0.00001, location * (1 / mu - 1))
     ## Run as loop if 0s are present, otherwise vectorize
     if (any(tac == 0)) {
       nCU <- length(rec)
