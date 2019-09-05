@@ -14,18 +14,18 @@
 #' @export
 
 #Temporary inputs
-here <- here::here
-require(samSim)
-simParF <- read.csv(here("data", "manProcScenarios",
-                        "fraserMPInputs_varyAllocationVaryMixHCR.csv"),
-                   stringsAsFactors = F)
-cuPar <- read.csv(here("data/fraserDat/summOnlyCUPars.csv"), stringsAsFactors = F)
-srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors = F)
-catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors = F)
-ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors = F)
-larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"),
-                     stringsAsFactors = F)
-tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
+# here <- here::here
+# require(samSim)
+# simParF <- read.csv(here("data", "manProcScenarios",
+#                         "fraserMPInputs_varyAllocationVaryMixHCR.csv"),
+#                    stringsAsFactors = F)
+# cuPar <- read.csv(here("data/fraserDat/summOnlyCUPars.csv"), stringsAsFactors = F)
+# srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors = F)
+# catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors = F)
+# ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors = F)
+# larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"),
+#                      stringsAsFactors = F)
+# tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
 
 # cuCustomCorrMat <- read.csv(here("data/fraserDat/prodCorrMatrix.csv"), stringsAsFactors=F)
 # erCorrMat <- read.csv(here("data/fraserDat/erMortCorrMatrix.csv"), stringsAsFactors=F,
