@@ -85,6 +85,20 @@ plotAgDot(prodDat, group = "om", legendLab = "Productivity",
           axisSize = 10, dotSize = 3, lineSize = 1, legendSize = 11)
 ```
 
+```{r external_figs, warning=FALSE, include=FALSE}
+png(here::here("outputs", "figs", "tech_rep", "ribb_plot.png"), height = 4.5, 
+    width = 5.5, units = "in", res = 300)
+plotContTradeOffs(refAgDat, keyVar = "expRate", double = TRUE)
+dev.off()
+
+png(here::here("outputs", "figs", "tech_rep", "agg_dot.png"), height = 3.5, 
+    width = 6, units = "in", res = 300)
+plotAgDot(prodDat, group = "om", legendLab = "Productivity",
+          xLab = "Exploitation Rate", yLab = NULL, plotTitle = NULL, 
+          axisSize = 10, dotSize = 3, lineSize = 1, legendSize = 11)
+dev.off()
+```
+
 The `plotAgTradeoff` and `plotCUTradeoff` functions plot a conservation metric on the x-axis and a catch metric on the y-axis to visualize how tradeoffs between objectives vary among management procedures or operating models. Such figures can be particularly useful in identifying subsets of management procedures that meet pre-specified objectives (e.g. minimum median return sizes and catches), while readily incorporating different operating models. For example, intermediate fixed exploitation rates or an abundance-based (TAM) harvest control rule may lead to optimal outcomes under reference productivity, but fail to meet threshold objectives when productivity is low (Fig. 3).
 
 ```{r fig3, echo=FALSE, warning=FALSE, fig.height=3.5, fig.width=6, fig.align="center", fig.cap="\\label{fig:fig3}Trade-offs between aggregate catch and escapement for fixed exploitation rate and total allowable mortality harvest control rules. Points represent median values and whiskers the 90th percentile interval across Monte Carlo trials."}

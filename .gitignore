@@ -33,7 +33,8 @@ rsconnect/
 .Rproj.user
 
 # Simulation outputs
-outputs/diagnostics
+outputs/diagnostics/
+outputs/figs/
 
 data/area3Chum
 data/fraserDat/unused
