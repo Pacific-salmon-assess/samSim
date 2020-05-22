@@ -200,6 +200,13 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     stop("Full SR parameter dataset necessary to simulate alternative
          productivity scenarios")
   }
+  # is the productivity scenario stable
+  stable <- ifelse(prod %in% c("decline", "divergent", "divergentSmall",
+                               "oneUp", "oneDown"),
+                   FALSE,
+                   TRUE)
+  #default trend length (necessary even if prod is stable)
+  trendLength <- 3 * gen
 
   # Otherwise use wrapper function to generate SR parameter outputs
   # necessary because SR parameters can either be generated once or sampled from
@@ -207,10 +214,18 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   generateSR <- function(sampleSR = FALSE) {
     # should stock recruit parameters be sampled from posterior (DEFAULT NO)
     if (sampleSR == TRUE) {
+      #calculate number of mcmc iters in post
+      n_par_iter <- ricPars %>%
+        group_by(stk) %>%
+        group_size() %>%
+        min()
+      #sample
+      tt <- sample(seq(1, n_par_iter, by = 1), 1)
       par_df <- ricPars %>%
         filter(stk %in% stkID) %>%
         group_by(stk) %>%
-        sample_n(., 1)
+        mutate(iter = seq(1, n_par_iter, by = 1)) %>%
+        filter(iter == tt)
     } else {
       dum <- getSRPars(pars = ricPars, alphaOnly = TRUE, highP = 0.95,
                        lowP = 0.05, stks = stkID)
@@ -227,8 +242,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       if (sampleSR == TRUE) {
         par_df_lark <- larkPars %>%
           filter(stk %in% stkID) %>%
-          group_by(stk) %>%
-          sample_n(., 1)
+          group_by(stk)  %>%
+          mutate(iter = seq(1, n_par_iter, by = 1)) %>%
+          filter(iter == tt)
       } else {
         dum <- getSRPars(pars = larkPars, alphaOnly = TRUE, highP = 0.95,
                          lowP = 0.05, stks = stkID)
@@ -257,11 +273,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       alpha <- refAlpha
     }
 
-    # is the productivity scenario stable
-    stable <- ifelse(prod %in% c("decline", "divergent", "divergentSmall",
-                                 "oneUp", "oneDown"),
-                     FALSE,
-                     TRUE)
     #for stable trends use as placeholder for subsequent ifelse
     finalAlpha <- alpha
     prodScalars <- rep(1, nCU)
@@ -275,7 +286,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       prodScalars <- rep(simPar$prodScalar, nCU)
     }
     finalAlpha <- prodScalars * alpha
-    trendLength <- 3 * gen
     trendAlpha <- (finalAlpha - alpha) / trendLength
     cuProdTrends <- dplyr::case_when(
       prodScalars == "0.65" ~ "decline",
@@ -856,6 +866,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           }
           if (model[k] == "larkin") {
             #modified alpha used to estimate Larkin BMs
+            #NOTE these are often negative when sampling SR pars from posterior
             alphaPrimeMat[y, k] <- refAlpha[k] - (larB1[k] * S[y - 1, k]) -
               (larB2[k] * S[y-2, k]) - (larB3[k] * S[y - 3,  k])
             sEqVar[y, k, n] <- ifelse(alphaPrimeMat[y, k] > 0,
@@ -1495,7 +1506,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       }
       sAg[y, n] <- sum(S[y, ])
 
-      #___________________________________________________________________
+      #_________________________________________________________________________
       ### Observation submodel 2 (this years abundance)
       # Generate MU-specific observation error
       for (m in seq_along(muName)) {
