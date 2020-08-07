@@ -42,7 +42,6 @@ tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
 #                     stringsAsFactors=F)
 
 ## Misc. objects to run single trial w/ "reference" OM
-uniqueProd <- TRUE
 variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 dirName <- "TEST"
 nTrials <- 5
@@ -53,7 +52,7 @@ random <- FALSE
 recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                         variableCU=FALSE, makeSubDirs=TRUE, ricPars,
                         larkPars=NULL, tamFRP=NULL, cuCustomCorrMat=NULL,
-                        erCorrMat=NULL, dirName, nTrials=100, uniqueProd=TRUE,
+                        erCorrMat=NULL, dirName, nTrials=100,
                         random=FALSE) {
   # If random = TRUE then each simulation will start at a different point
   # i.e. should ALWAYS be FALSE except for convenience when running independent
@@ -177,6 +176,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
   ## Stock-recruitment parameters
   # When posterior estimates are unavailable pass directly from CU pars .csv
+
+  ### ADJUST TO EQUIVALENT OF SAMPLING
+
   ricA <- cuPar$alpha
   ricB <- cuPar$beta0
   ricSig <- cuPar$sigma
@@ -188,14 +190,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     larB3 <- cuPar$larkBeta3
     larSig <- cuPar$larkSigma
   }
-  #coerce all stocks to have the same alpha parameter (regardless of model
-  # structure), others will vary
-  if (uniqueProd == FALSE) {
-    ricA <- rep(mean(cuPar$alpha), length.out = nCU)
-    larA <- rep(mean(cuPar$alpha), length.out = nCU)
-    ricSig <- rep(mean(cuPar$sigma), length.out = nCU)
-    larSig <- rep(mean(cuPar$sigma), length.out = nCU)
-  }
+
+  #####
+
   if (prod != "med" & is.null(ricPars) == TRUE) {
     stop("Full SR parameter dataset necessary to simulate alternative
          productivity scenarios")
