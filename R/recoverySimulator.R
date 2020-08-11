@@ -188,13 +188,13 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   trendLength <- 3 * gen
 
   # Helper function to generate SR parameter outputs
-  generateSR <- function(get_sr_samples = FALSE) {
+  generateSR <- function(sampleSR = FALSE) {
     ## Following creates tibble, necessary because using a mix of Ricker and Larkin
     # models necessitates a different number of parameters
     # should stock recruit parameters be sampled from posterior (DEFAULT NO)
     #variables to retain from inputs
     to_keep <- c("stk", "model", "alpha", "beta", "sigma")
-    if (draw_sr_samples == TRUE) {
+    if (sampleSR == TRUE) {
       #calculate number of mcmc iters in post
       n_par_iter <- ricPars %>%
         group_by(stk) %>%
@@ -202,7 +202,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         min()
       tt <- sample(seq(1, n_par_iter, by = 1), 1)
       # function to sample from sr posterior
-      sampleSR <- function (x){
+      drawSRPars <- function (x){
         x %>%
           filter(stk %in% stkID) %>%
           group_by(stk) %>%
@@ -210,111 +210,114 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           filter(iter == tt) %>%
           arrange(stk)
       }
-      par_df_ric1 <- sampleSR(ricPars)
+      parRicDF1 <- drawSRPars(ricPars)
     } else {
       dum <- getSRPars(pars = ricPars, alphaOnly = TRUE, highP = 0.95,
                        lowP = 0.05, stks = stkID)
-      par_df_ric1 <- dum$pMed
+      parRicDF1 <- dum$pMed
     }
     #subset and move extra betas to column list for merge with larkin pars
-    par_df_ric <- par_df_ric1 %>%
+    parRicDF <- parRicDF1 %>%
       mutate(model = "ricker") %>%
       select(contains(to_keep)) %>%
       nest(extra_beta = contains("beta_"))
 
     # do the same for larkin parameters if present
     if (is.null(larkPars) == FALSE) {
-      if (draw_sr_samples == TRUE) {
-        par_df_lark1 <- sampleSR(larkPars)
+      if (sampleSR == TRUE) {
+        parLarkDF1 <- drawSRPars(larkPars)
       } else {
         dum <- getSRPars(pars = larkPars, alphaOnly = TRUE, highP = 0.95,
                          lowP = 0.05, stks = stkID)
-        par_df_lark1 <- dum$pMed
+        parLarkDF1 <- dum$pMed
       }
-      par_df_lark <- par_df_lark1 %>%
+      parLarkDF <- parLarkDF1 %>%
         mutate(model = "larkin") %>%
         select(contains(to_keep)) %>%
         nest(extra_beta = contains("beta_"))
     }
 
     #combine ricker and larkin into single tbl
-    cuPar %>%
+    parDF <- cuPar %>%
       select(stk, model) %>%
       as_tibble() %>%
-      left_join(., rbind(par_df_ric, par_df_lark), by = c("stk", "model"))
+      left_join(., rbind(parRicDF, parLarkDF), by = c("stk", "model"))
+
+    # adjust sigma (Ricker only) following Holt and Folkes 2015 if a
+    # transformation term is present and TRUE
+    if (is.null(simPar$arSigTransform) == FALSE & simPar$arSigTransform == TRUE) {
+      parDF <- parDF %>%
+        mutate(
+          sigma =case_when(
+            model == "larkin" ~ sigma,
+            model == "ricker" ~ sigma^2 * (1 - rho^2)
+          ))
+    }
+    #adjust sigma up or down with scalar
+    parDF$sigma <- parDF$sigma * adjSig
+
+    # save reference alpha values for use when calculating BMs, then adjust alpha
+    # based on productivity scenario
+    refAlpha <- parDF$alpha
+    if (prod == "low" | prod == "lowStudT") {
+      alpha <- 0.65 * refAlpha
+    } else if (prod == "high") {
+      alpha <- 1.35 * refAlpha
+    } else {
+      alpha <- refAlpha
+    }
+
+    #for stable trends use as placeholder for subsequent ifelse
+    prodScalars <- rep(1, nCU)
+    if (prod == "decline" ) {
+      prodScalars <- rep(0.65, nCU)
+    } else if (prod == "divergent") {
+      prodScalars <- sample(c(0.65, 1, 1.35), nCU, replace = TRUE)
+    } else if (prod == "divergentSmall") {
+      prodScalars <- ifelse(cuPar$medianRec < median(cuPar$medianRec), 0.65, 1)
+    } else if (prod == "scalar") {
+      prodScalars <- rep(simPar$prodScalar, nCU)
+    }
+    #replace alpha in parameter DF with adjusted version
+    parDF$alpha <- prodScalars * alpha
+    trendAlpha <- (parDF$alpha - alpha) / trendLength
+    cuProdTrends <- dplyr::case_when(
+      prodScalars == "0.65" ~ "decline",
+      prodScalars == "1" ~ "stable",
+      prodScalars == "1.35" ~ "increase"
+    )
+
+    if (is.null(simPar$adjustBeta) == FALSE) {
+      parDF$beta0 <- parDF$beta0 * simPar$adjustBeta
+    }
+
+    #Add correlations in rec deviations
+    if (simPar$corrMat == TRUE) { #replace uniform correlation w/ custom matrix
+      if (nrow(cuCustomCorrMat) != nCU) {
+        stop("Custom correlation matrix does not match number of CUs")
+      }
+      correlCU <- as.matrix(cuCustomCorrMat)
+    }
+    #calculate correlations among CUs
+    sigMat <- matrix(as.numeric(parDF$sigma), nrow = 1, ncol = nCU)
+    #calculate shared variance and correct based on correlation
+    covMat <- (t(sigMat) %*% sigMat) * correlCU
+    diag(covMat) <- as.numeric(parDF$sigma^2) #add variance
+
+    outList <- list(parDF = parDF, refAlpha = refAlpha, trendAlpha = trendAlpha,
+                    covMat = covMat)
+    return(outList)
   }
 
   # should SR pars be sampled from posterior estimates
-  draw_sr_samples <- ifelse(is.null(simPar$sampleSR), FALSE, simPar$sampleSR)
+  sampleSR <- ifelse(is.null(simPar$sampleSR), FALSE, simPar$sampleSR)
   # pull stock recruit samples from posterior if available, otherwise use values
   # from cuPars.csv (deprecated for now if added back in simply format to equal
-  # par_df)
+  # parDF)
   # if (is.null(ricPars) == FALSE) {
-  par_df <- generateSR(draw_sr_samples)
-  # } else {
-  #
-  # }
-
-  # adjust sigma (Ricker only) following Holt and Folkes 2015 if a
-  # transformation term is present and TRUE
-  if (is.null(simPar$arSigTransform) == FALSE & simPar$arSigTransform == TRUE) {
-    par_df <- par_df %>%
-      mutate(
-        sigma =case_when(
-          model == "larkin" ~ sigma,
-          model == "ricker" ~ sigma^2 * (1 - rho^2)
-        ))
+  if (sampleSR == FALSE) {
+    srParList <- generateSR(sampleSR)
   }
-  #adjust sigma up or down with scalar
-  par_df$sigma <- par_df$sigma * adjSig
-
-  # save reference alpha values for use when calculating BMs, then adjust alpha
-  # based on productivity scenario
-  refAlpha <- par_df$alpha
-  if (prod == "low" | prod == "lowStudT") {
-    alpha <- 0.65 * refAlpha
-  } else if (prod == "high") {
-    alpha <- 1.35 * refAlpha
-  } else {
-    alpha <- refAlpha
-  }
-
-  #for stable trends use as placeholder for subsequent ifelse
-  prodScalars <- rep(1, nCU)
-  if (prod == "decline" ) {
-    prodScalars <- rep(0.65, nCU)
-  } else if (prod == "divergent") {
-    prodScalars <- sample(c(0.65, 1, 1.35), nCU, replace = TRUE)
-  } else if (prod == "divergentSmall") {
-    prodScalars <- ifelse(cuPar$medianRec < median(cuPar$medianRec), 0.65, 1)
-  } else if (prod == "scalar") {
-    prodScalars <- rep(simPar$prodScalar, nCU)
-  }
-  #replace alpha in parameter DF with adjusted version
-  par_df$alpha <- prodScalars * alpha
-  trendAlpha <- (par_df$alpha - alpha) / trendLength
-  cuProdTrends <- dplyr::case_when(
-    prodScalars == "0.65" ~ "decline",
-    prodScalars == "1" ~ "stable",
-    prodScalars == "1.35" ~ "increase"
-  )
-
-  if (is.null(simPar$adjustBeta) == FALSE) {
-    par_df$beta0 <- par_df$beta0 * simPar$adjustBeta
-  }
-
-  #Add correlations in rec deviations
-  if (simPar$corrMat == TRUE) { #replace uniform correlation w/ custom matrix
-    if (nrow(cuCustomCorrMat) != nCU) {
-      stop("Custom correlation matrix does not match number of CUs")
-    }
-    correlCU <- as.matrix(cuCustomCorrMat)
-  }
-  #calculate correlations among CUs
-  sigMat <- matrix(as.numeric(par_df$sigma), nrow = 1, ncol = nCU)
-  #calculate shared variance and correct based on correlation
-  covMat <- (t(sigMat) %*% sigMat) * correlCU
-  diag(covMat) <- as.numeric(par_df$sigma^2) #add variance
 
   # Add correlations in en route mortality as above (CHANGE TO FUNCTION)
   # if (simPar$corrMort == TRUE) {
@@ -633,19 +636,12 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         srParList <- generateSR(sampleSR)
       }
       # Save values
+      parDF <- srParList[["parDF"]]
+      beta <- parDF$beta0
+      sigma <- parDF$sigma
+      trendAlpha <- srParList[["trendAlpha"]]
       refAlpha <- srParList[["refAlpha"]]
-      finalAlpha <- srParList[["finalAlpha"]]
-      beta <- srParList[["beta"]]
-      sig <- srParList[["sig"]]
-      ricSig <- srParList[["ricSig"]]
       covMat <- srParList[["covMat"]]
-      if (is.null(larkPars) == FALSE) {
-        larA <- srParList[["larA"]]
-        larB1 <- srParList[["larB1"]]
-        larB2 <- srParList[["larB2"]]
-        larB3 <- srParList[["larB3"]]
-        larSig <- srParList[["larSig"]]
-      }
     }
 
     #___________________________________________________________________________
@@ -845,13 +841,17 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha[k]))) /
               beta[k]
             sGen[y, k, n] <- as.numeric(sGenSolver(
-              theta = c(refAlpha[k], refAlpha[k] / sEqVar[y, k, n], ricSig[k]),
+              theta = c(refAlpha[k], refAlpha[k] / sEqVar[y, k, n], sigma[k]),
               sMSY = sMSY[y, k, n]
             ))
           }
           if (model[k] == "larkin") {
             #modified alpha used to estimate Larkin BMs
             #NOTE these are often negative when sampling SR pars from posterior
+            parDFTemp <- parDF %>% unnest(., cols = c(extra_beta))
+            larB1 <- parDFTemp$beta_1
+            larB2 <- parDFTemp$beta_2
+            larB3 <- parDFTemp$beta_3
             alphaPrimeMat[y, k] <- refAlpha[k] - (larB1[k] * S[y - 1, k]) -
               (larB2[k] * S[y-2, k]) - (larB3[k] * S[y - 3,  k])
             sEqVar[y, k, n] <- ifelse(alphaPrimeMat[y, k] > 0,
@@ -861,15 +861,12 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                       ((1 - gsl::lambert_W0(exp(
                                         1 - alphaPrimeMat[y, k]))) / beta[k]),
                                       NA)
-            # if (is.na(log(cycleSMSY[y, k]))) {
-            #   stop("Benchmark calculation is NA")
-            # }
             cycleSGen[y, k] <- ifelse(alphaPrimeMat[y, k] > 0,
                                       as.numeric(sGenSolver(
                                         theta = c(alphaPrimeMat[y, k],
                                                   alphaPrimeMat[y, k] /
                                                     sEqVar[y, k, n],
-                                                  larSig[k]),
+                                                  sigma[k]),
                                         sMSY = cycleSMSY[y, k])),
                                       NA)
             #calculate annual benchmarks as medians within cycle line
