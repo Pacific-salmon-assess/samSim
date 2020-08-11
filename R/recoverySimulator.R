@@ -175,24 +175,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   }
 
   ## Stock-recruitment parameters
-  # When posterior estimates are unavailable pass directly from CU pars .csv
-
-  ### ADJUST TO EQUIVALENT OF SAMPLING
-
-  ricA <- cuPar$alpha
-  ricB <- cuPar$beta0
-  ricSig <- cuPar$sigma
-  if (!is.null(cuPar$larkAlpha)) {
-    larA <- cuPar$larkAlpha
-    larB <- cuPar$larkBeta0
-    larB1 <- cuPar$larkBeta1
-    larB2 <- cuPar$larkBeta2
-    larB3 <- cuPar$larkBeta3
-    larSig <- cuPar$larkSigma
-  }
-
-  #####
-
   if (prod != "med" & is.null(ricPars) == TRUE) {
     stop("Full SR parameter dataset necessary to simulate alternative
          productivity scenarios")
@@ -205,129 +187,134 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   #default trend length (necessary even if prod is stable)
   trendLength <- 3 * gen
 
-  # Otherwise use wrapper function to generate SR parameter outputs
-  # necessary because SR parameters can either be generated once or sampled from
-  # posterior before each trial
-  generateSR <- function(sampleSR = FALSE) {
+  # Helper function to generate SR parameter outputs
+  generateSR <- function(get_sr_samples = FALSE) {
+    ## Following creates tibble, necessary because using a mix of Ricker and Larkin
+    # models necessitates a different number of parameters
     # should stock recruit parameters be sampled from posterior (DEFAULT NO)
-    if (sampleSR == TRUE) {
+    #variables to retain from inputs
+    to_keep <- c("stk", "model", "alpha", "beta", "sigma")
+    if (draw_sr_samples == TRUE) {
       #calculate number of mcmc iters in post
       n_par_iter <- ricPars %>%
         group_by(stk) %>%
         group_size() %>%
         min()
-      #sample
       tt <- sample(seq(1, n_par_iter, by = 1), 1)
-      par_df <- ricPars %>%
-        filter(stk %in% stkID) %>%
-        group_by(stk) %>%
-        mutate(iter = seq(1, n_par_iter, by = 1)) %>%
-        filter(iter == tt)
+      # function to sample from sr posterior
+      sampleSR <- function (x){
+        x %>%
+          filter(stk %in% stkID) %>%
+          group_by(stk) %>%
+          mutate(iter = seq(1, n_par_iter, by = 1)) %>%
+          filter(iter == tt) %>%
+          arrange(stk)
+      }
+      par_df_ric1 <- sampleSR(ricPars)
     } else {
       dum <- getSRPars(pars = ricPars, alphaOnly = TRUE, highP = 0.95,
                        lowP = 0.05, stks = stkID)
-      par_df <- dum$pMed
+      par_df_ric1 <- dum$pMed
     }
-    ricA <- par_df[["alpha"]]
-    ricB <- par_df[["beta0"]]
-    ricSig <- par_df[["sigma"]]
+    #subset and move extra betas to column list for merge with larkin pars
+    par_df_ric <- par_df_ric1 %>%
+      mutate(model = "ricker") %>%
+      select(contains(to_keep)) %>%
+      nest(extra_beta = contains("beta_"))
 
+    # do the same for larkin parameters if present
     if (is.null(larkPars) == FALSE) {
-      #getSRPars provides quantiles as well which can be used for high/low prod
-      #treatments but this is currently replaced by applying a simple scalar
-      #based on mean differences estimated from kalman filter
-      if (sampleSR == TRUE) {
-        par_df_lark <- larkPars %>%
-          filter(stk %in% stkID) %>%
-          group_by(stk)  %>%
-          mutate(iter = seq(1, n_par_iter, by = 1)) %>%
-          filter(iter == tt)
+      if (draw_sr_samples == TRUE) {
+        par_df_lark1 <- sampleSR(larkPars)
       } else {
         dum <- getSRPars(pars = larkPars, alphaOnly = TRUE, highP = 0.95,
                          lowP = 0.05, stks = stkID)
-        par_df_lark <- dum$pMed
+        par_df_lark1 <- dum$pMed
       }
-      larA <- par_df_lark[["alpha"]]
-      larB <- par_df_lark[["beta0"]]
-      larB1 <- par_df_lark[["beta1"]]
-      larB2 <- par_df_lark[["beta2"]]
-      larB3 <- par_df_lark[["beta3"]]
-      larSig <- par_df_lark[["sigma"]]
-    }
-    # adjust sigma (Ricker only) following Holt and Folkes 2015 if a
-    # transformation term is present and TRUE
-    if (is.null(simPar$arSigTransform) == FALSE & simPar$arSigTransform == TRUE) {
-      ricSig <- ricSig^2 * (1 - rho^2)
-    }
-    # save reference alpha values for use when calculating BMs, then adjust alpha
-    # based on productivity scenario
-    refAlpha <- ifelse(model == "ricker", ricA, larA)
-    if (prod == "low" | prod == "lowStudT") {
-      alpha <- 0.65 * refAlpha
-    } else if (prod == "high") {
-      alpha <- 1.35 * refAlpha
-    } else {
-      alpha <- refAlpha
+      par_df_lark <- par_df_lark1 %>%
+        mutate(model = "larkin") %>%
+        select(contains(to_keep)) %>%
+        nest(extra_beta = contains("beta_"))
     }
 
-    #for stable trends use as placeholder for subsequent ifelse
-    finalAlpha <- alpha
-    prodScalars <- rep(1, nCU)
-    if (prod == "decline" ) {
-      prodScalars <- rep(0.65, nCU)
-    } else if (prod == "divergent") {
-      prodScalars <- sample(c(0.65, 1, 1.35), nCU, replace = TRUE)
-    } else if (prod == "divergentSmall") {
-      prodScalars <- ifelse(cuPar$medianRec < median(cuPar$medianRec), 0.65, 1)
-    } else if (prod == "scalar") {
-      prodScalars <- rep(simPar$prodScalar, nCU)
-    }
-    finalAlpha <- prodScalars * alpha
-    trendAlpha <- (finalAlpha - alpha) / trendLength
-    cuProdTrends <- dplyr::case_when(
-      prodScalars == "0.65" ~ "decline",
-      prodScalars == "1" ~ "stable",
-      prodScalars == "1.35" ~ "increase"
-    )
-
-    beta <- ifelse(model == "ricker", ricB, larB)
-    if (is.null(simPar$adjustBeta) == FALSE) {
-      beta <- beta * simPar$adjustBeta
-    }
-    #adjust sigma up or down
-    sig <- ifelse(model == "ricker", ricSig, larSig) * adjSig
-
-    #Add correlations in rec deviations
-    if (simPar$corrMat == TRUE) { #replace uniform correlation w/ custom matrix
-      if (nrow(cuCustomCorrMat) != nCU) {
-        stop("Custom correlation matrix does not match number of CUs")
-      }
-      correlCU <- as.matrix(cuCustomCorrMat)
-    }
-    #calculate correlations among CUs
-    sigMat <- matrix(as.numeric(sig), nrow = 1, ncol = nCU)
-    #calculate shared variance and correct based on correlation
-    covMat <- (t(sigMat) %*% sigMat) * correlCU
-    diag(covMat) <- as.numeric(sig^2) #add variance
-
-    # export
-    outList <- list(refAlpha = refAlpha, finalAlpha = finalAlpha,
-                    beta = beta,
-                    sig = sig, ricSig = ricSig, covMat = covMat)
-    if (is.null(larkPars) == FALSE) {
-      outList[["larA"]] <- larA
-      outList[["larB1"]] <- larB1
-      outList[["larB2"]] <- larB2
-      outList[["larB3"]] <- larB3
-      outList[["larSig"]] <- larSig
-    }
-    return(outList)
+    #combine ricker and larkin into single tbl
+    cuPar %>%
+      select(stk, model) %>%
+      as_tibble() %>%
+      left_join(., rbind(par_df_ric, par_df_lark), by = c("stk", "model"))
   }
 
-  sampleSR <- ifelse(is.null(simPar$sampleSR), FALSE, simPar$sampleSR)
-  if (is.null(ricPars) == FALSE & sampleSR == FALSE) {
-    srParList <- generateSR(sampleSR)
+  # should SR pars be sampled from posterior estimates
+  draw_sr_samples <- ifelse(is.null(simPar$sampleSR), FALSE, simPar$sampleSR)
+  # pull stock recruit samples from posterior if available, otherwise use values
+  # from cuPars.csv (deprecated for now if added back in simply format to equal
+  # par_df)
+  # if (is.null(ricPars) == FALSE) {
+  par_df <- generateSR(draw_sr_samples)
+  # } else {
+  #
+  # }
+
+  # adjust sigma (Ricker only) following Holt and Folkes 2015 if a
+  # transformation term is present and TRUE
+  if (is.null(simPar$arSigTransform) == FALSE & simPar$arSigTransform == TRUE) {
+    par_df <- par_df %>%
+      mutate(
+        sigma =case_when(
+          model == "larkin" ~ sigma,
+          model == "ricker" ~ sigma^2 * (1 - rho^2)
+        ))
   }
+  #adjust sigma up or down with scalar
+  par_df$sigma <- par_df$sigma * adjSig
+
+  # save reference alpha values for use when calculating BMs, then adjust alpha
+  # based on productivity scenario
+  refAlpha <- par_df$alpha
+  if (prod == "low" | prod == "lowStudT") {
+    alpha <- 0.65 * refAlpha
+  } else if (prod == "high") {
+    alpha <- 1.35 * refAlpha
+  } else {
+    alpha <- refAlpha
+  }
+
+  #for stable trends use as placeholder for subsequent ifelse
+  prodScalars <- rep(1, nCU)
+  if (prod == "decline" ) {
+    prodScalars <- rep(0.65, nCU)
+  } else if (prod == "divergent") {
+    prodScalars <- sample(c(0.65, 1, 1.35), nCU, replace = TRUE)
+  } else if (prod == "divergentSmall") {
+    prodScalars <- ifelse(cuPar$medianRec < median(cuPar$medianRec), 0.65, 1)
+  } else if (prod == "scalar") {
+    prodScalars <- rep(simPar$prodScalar, nCU)
+  }
+  #replace alpha in parameter DF with adjusted version
+  par_df$alpha <- prodScalars * alpha
+  trendAlpha <- (par_df$alpha - alpha) / trendLength
+  cuProdTrends <- dplyr::case_when(
+    prodScalars == "0.65" ~ "decline",
+    prodScalars == "1" ~ "stable",
+    prodScalars == "1.35" ~ "increase"
+  )
+
+  if (is.null(simPar$adjustBeta) == FALSE) {
+    par_df$beta0 <- par_df$beta0 * simPar$adjustBeta
+  }
+
+  #Add correlations in rec deviations
+  if (simPar$corrMat == TRUE) { #replace uniform correlation w/ custom matrix
+    if (nrow(cuCustomCorrMat) != nCU) {
+      stop("Custom correlation matrix does not match number of CUs")
+    }
+    correlCU <- as.matrix(cuCustomCorrMat)
+  }
+  #calculate correlations among CUs
+  sigMat <- matrix(as.numeric(par_df$sigma), nrow = 1, ncol = nCU)
+  #calculate shared variance and correct based on correlation
+  covMat <- (t(sigMat) %*% sigMat) * correlCU
+  diag(covMat) <- as.numeric(par_df$sigma^2) #add variance
 
   # Add correlations in en route mortality as above (CHANGE TO FUNCTION)
   # if (simPar$corrMort == TRUE) {
@@ -336,7 +323,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   #   covMortMat <- as.matrix(erCorrMat) * correlMort
   #   diag(covMortMat) <- as.numeric(enRouteSig^2)
   # }
-
 
   ## Stock-recruitment data
   if (exists("srDat")) { #transform rec data if available
@@ -368,14 +354,15 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     maxYears <- recDat %>%
       dplyr::group_by(stk) %>%
       dplyr::filter(!is.na(totalRec)) %>%
-      dplyr::summarise(maxYr = max(yr))
+      dplyr::summarise(maxYr = max(yr), .groups = "drop")
     recDat <- recDat %>%
       dplyr::filter(!yr > min(maxYears$maxYr))
     recDat <- with(recDat, recDat[order(stk, yr),])
     summRec <- recDat %>%
       dplyr::group_by(stk) %>%
       dplyr::summarise(tsLength = length(ets),
-                       maxRec = max(totalRec, na.rm = TRUE))
+                       maxRec = max(totalRec, na.rm = TRUE),
+                       .groups = "drop")
     # define nPrime
     nPrime <- max(summRec[, "tsLength"])
     dumFull <- vector("list", nCU)
@@ -455,7 +442,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   ppn4 <- ageStruc[, 3]
   ppn5 <- ageStruc[, 4]
   ppn6 <- ageStruc[, 5]
-  drawTrial <- round(runif(1, min = 0.5, max = nTrials)) #randomly selects trial to draw and plot
+  #randomly select trial to draw and plot
+  drawTrial <- round(runif(1, min = 0.5, max = nTrials))
   #df used to store MU-specific observation errors; can't use matrix because
   #mix of numeric and characters; updated annually
   obsErrDat <- data.frame(mu = manUnit,
