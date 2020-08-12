@@ -187,13 +187,19 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   #default trend length (necessary even if prod is stable)
   trendLength <- 3 * gen
 
+
+  # save reference parameter values from cuPar input (i.e. medians) to calculate
+  # BMs
+  to_keep <- c("stk", "model", "alpha", "beta", "sigma")
+  refSRPars <- cuPar %>%
+    select(contains(to_keep))
+
   # Helper function to generate SR parameter outputs
   generateSR <- function(sampleSR = FALSE) {
     ## Following creates tibble, necessary because using a mix of Ricker and Larkin
     # models necessitates a different number of parameters
     # should stock recruit parameters be sampled from posterior (DEFAULT NO)
     #variables to retain from inputs
-    to_keep <- c("stk", "model", "alpha", "beta", "sigma")
     if (sampleSR == TRUE) {
       #calculate number of mcmc iters in post
       n_par_iter <- ricPars %>%
@@ -256,15 +262,13 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     #adjust sigma up or down with scalar
     parDF$sigma <- parDF$sigma * adjSig
 
-    # save reference alpha values for use when calculating BMs, then adjust alpha
-    # based on productivity scenario
-    refAlpha <- parDF$alpha
+    # adjust alpha
     if (prod == "low" | prod == "lowStudT") {
-      alpha <- 0.65 * refAlpha
+      parDF$preTrendAlpha <- 0.65 * parDF$alpha
     } else if (prod == "high") {
-      alpha <- 1.35 * refAlpha
+      parDF$preTrendAlpha <- 1.35 * parDF$alpha
     } else {
-      alpha <- refAlpha
+      parDF$preTrendAlpha <- parDF$alpha
     }
 
     #for stable trends use as placeholder for subsequent ifelse
@@ -279,14 +283,15 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       prodScalars <- rep(simPar$prodScalar, nCU)
     }
     #replace alpha in parameter DF with adjusted version
-    parDF$alpha <- prodScalars * alpha
-    trendAlpha <- (parDF$alpha - alpha) / trendLength
+    parDF$alpha <- prodScalars * parDF$preTrendAlpha
+    parDF$trendAlpha <- (parDF$alpha - parDF$preTrendAlpha) / trendLength
     cuProdTrends <- dplyr::case_when(
       prodScalars == "0.65" ~ "decline",
       prodScalars == "1" ~ "stable",
       prodScalars == "1.35" ~ "increase"
     )
 
+    #adjust beta
     if (is.null(simPar$adjustBeta) == FALSE) {
       parDF$beta0 <- parDF$beta0 * simPar$adjustBeta
     }
@@ -304,8 +309,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     covMat <- (t(sigMat) %*% sigMat) * correlCU
     diag(covMat) <- as.numeric(parDF$sigma^2) #add variance
 
-    outList <- list(parDF = parDF, refAlpha = refAlpha, trendAlpha = trendAlpha,
-                    covMat = covMat)
+    outList <- list(parDF = parDF, covMat = covMat)
     return(outList)
   }
 
@@ -637,10 +641,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       }
       # Save values
       parDF <- srParList[["parDF"]]
+      alpha <- parDF$alpha
       beta <- parDF$beta0
       sigma <- parDF$sigma
-      trendAlpha <- srParList[["trendAlpha"]]
-      refAlpha <- srParList[["refAlpha"]]
       covMat <- srParList[["covMat"]]
     }
 
@@ -764,7 +767,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     #observed abundances to "prime" the simulation
     for (y in 1:nPrime) {
       ## Population model: store SR pars, spawner, and recruit abundances
-      alphaMat[y, ] <- refAlpha
+      alphaMat[y, ] <- ifelse(model == "larkin",
+                              refSRPars$larkAlpha,
+                              refSRPars$alpha)
 
       for (k in 1:nCU) {
         S[y, k] <- recOut[[k]]$ets[y]
@@ -831,42 +836,46 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           sNoNA <- temp[!is.na(temp)]
           n25th <- round(length(sNoNA) * 0.25, 0)
           n50th <- round(length(sNoNA) * 0.50, 0)
-          # n75th <- round(length(sNoNA) * 0.75, 0)
           s25th[y, k, n] <- sort(sNoNA)[n25th]
           s50th[y, k, n] <- sort(sNoNA)[n50th]
-          # s75th[y, k, n] <- sort(sNoNA)[n75th]
+
           #calculate SR BMs
           if (model[k] == "ricker") {
-            sEqVar[y, k, n] <- refAlpha[k] / beta[k]
-            sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha[k]))) /
-              beta[k]
+            refAlpha <- refSRPars$alpha[k]
+            refBeta <- refSRPars$beta[k]
+            refSigma <- refSRPars$sigma[k]
+            sEqVar[y, k, n] <- refAlpha / refBeta
+            sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha))) /
+              refBeta
             sGen[y, k, n] <- as.numeric(sGenSolver(
-              theta = c(refAlpha[k], refAlpha[k] / sEqVar[y, k, n], sigma[k]),
+              theta = c(refAlpha, refAlpha / sEqVar[y, k, n], refSigma),
               sMSY = sMSY[y, k, n]
             ))
           }
           if (model[k] == "larkin") {
             #modified alpha used to estimate Larkin BMs
             #NOTE these are often negative when sampling SR pars from posterior
-            parDFTemp <- parDF %>% unnest(., cols = c(extra_beta))
-            larB1 <- parDFTemp$beta_1
-            larB2 <- parDFTemp$beta_2
-            larB3 <- parDFTemp$beta_3
-            alphaPrimeMat[y, k] <- refAlpha[k] - (larB1[k] * S[y - 1, k]) -
-              (larB2[k] * S[y-2, k]) - (larB3[k] * S[y - 3,  k])
+            refAlpha <- refSRPars$larkAlpha[k]
+            refBeta <- refSRPars$larkBeta0[k]
+            refBeta1 <- refSRPars$larkBeta1[k]
+            refBeta2 <- refSRPars$larkBeta2[k]
+            refBeta3 <- refSRPars$larkBeta3[k]
+            refSigma <- refSRPars$larkSigma[k]
+            alphaPrimeMat[y, k] <- refAlpha - (refBeta1 * S[y - 1, k]) -
+              (refBeta2 * S[y-2, k]) - (refBeta3 * S[y - 3,  k])
             sEqVar[y, k, n] <- ifelse(alphaPrimeMat[y, k] > 0,
-                                      alphaPrimeMat[y, k] / beta[k],
+                                      alphaPrimeMat[y, k] / refBeta,
                                       NA)
             cycleSMSY[y, k] <- ifelse(alphaPrimeMat[y, k] > 0,
                                       ((1 - gsl::lambert_W0(exp(
-                                        1 - alphaPrimeMat[y, k]))) / beta[k]),
+                                        1 - alphaPrimeMat[y, k]))) / refBeta),
                                       NA)
             cycleSGen[y, k] <- ifelse(alphaPrimeMat[y, k] > 0,
                                       as.numeric(sGenSolver(
                                         theta = c(alphaPrimeMat[y, k],
                                                   alphaPrimeMat[y, k] /
                                                     sEqVar[y, k, n],
-                                                  sigma[k]),
+                                                  refSigma),
                                         sMSY = cycleSMSY[y, k])),
                                       NA)
             #calculate annual benchmarks as medians within cycle line
