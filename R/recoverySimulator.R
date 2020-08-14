@@ -767,9 +767,11 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     #observed abundances to "prime" the simulation
     for (y in 1:nPrime) {
       ## Population model: store SR pars, spawner, and recruit abundances
-      alphaMat[y, ] <- ifelse(model == "larkin",
-                              refSRPars$larkAlpha,
-                              refSRPars$alpha)
+
+      # IMPORTANT - pre-sim period alpha uses experimental alpha from
+      # posterior NOT median value used for reference; unless trend is applied
+      # preTrendAlpha = alpha
+      alphaMat[y, ] <- parDF$preTrendAlpha
 
       for (k in 1:nCU) {
         S[y, k] <- recOut[[k]]$ets[y]
@@ -991,8 +993,10 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     } #end loop 2
 
     #prime AR error
-    laggedError[y, ] <- log(recBY[y, ] / S[y, ]) -
-      (alphaMat[y, ] - beta * S[y, ])
+    laggedError[y, ] <- ifelse(model == "ricker",
+                               log(recBY[y, ] / S[y, ]) -
+                                 (alphaMat[y, ] - beta * S[y, ]),
+                               NA)
 
     #_____________________________________________________________________
     ### LOOP 3
@@ -1002,12 +1006,12 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #alpha; add trend for 3 generations by default
       if (y > (nPrime + 1)) {
         if (stable == FALSE & y < (nPrime + trendLength + 1)) {
-          alphaMat[y, ] <- alphaMat[y - 1, ] + trendAlpha
+          alphaMat[y, ] <- alphaMat[y - 1, ] + parDF$trendAlpha
         } else {
-          alphaMat[y, ] <- finalAlpha
+          alphaMat[y, ] <- alpha
         } #end if stable == FALSE and inside trendPeriod
       } else {
-        alphaMat[y, ] <- alphaMat[y - 1, ]
+        alphaMat[y, ] <- alpha
       } #end if y > (nPrime + 1)
 
       #Only estimate BMs if normative period not being used, otherwise assume
@@ -1018,10 +1022,12 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             sMSY[y, k, n] <- sMSY[nPrime, k, n]
             sGen[y, k, n] <- sGen[nPrime, k, n]
           } else if (normPeriod == FALSE) {
-            sEqVar[y, k, n] <- refAlpha[k] / beta[k]
-            sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha[k]))) / beta[k]
+            sEqVar[y, k, n] <- alphaMat[y, k] / beta[k]
+            sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - alphaMat[y, k]))) /
+              beta[k]
             sGen[y, k, n] <- as.numeric(sGenSolver(
-              theta = c(refAlpha[k], refAlpha[k] / sEqVar[y, k, n], ricSig[k]),
+              theta = c(alphaMat[y, k], alphaMat[y, k] / sEqVar[y, k, n],
+                        sigma[k]),
               sMSY = sMSY[y, k, n]
             ))
           }
@@ -1034,9 +1040,14 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             sMSY[y, k, n] <- sMSY[larkinBMYear, k, n]
             sGen[y, k, n] <- sGen[larkinBMYear, k, n]
           } else if (normPeriod == FALSE) {
+            #pull beta_parameters
+            temp_par <- parDF %>% unnest(cols = c(extra_beta))
+            larB1 <- temp_par$beta_1[k]
+            larB2 <- temp_par$beta_2[k]
+            larB3 <- temp_par$beta_3[k]
             #modified alpha used to estimate Larkin BMs
-            alphaPrimeMat[y, k] <- refAlpha[k] - (larB1[k] * S[y - 1, k]) -
-              (larB2[k] * S[y-2, k]) - (larB3[k] * S[y - 3, k])
+            alphaPrimeMat[y, k] <- alphaMat[y, k] - (larB1 * S[y - 1, k]) -
+              (larB2 * S[y-2, k]) - (larB3 * S[y - 3, k])
             sEqVar[y, k, n] <- ifelse(alphaPrimeMat[y, k] > 0,
                                       alphaPrimeMat[y, k] / beta[k],
                                       NA)
@@ -1049,7 +1060,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                         theta = c(alphaPrimeMat[y, k],
                                                   alphaPrimeMat[y, k] /
                                                     sEqVar[y, k, n],
-                                                  larSig[k]),
+                                                  sigma[k]),
                                         sMSY = cycleSMSY[y, k])),
                                       NA)
             #calculate annual benchmarks as medians within cycle line
@@ -1551,7 +1562,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         estRicB[y, k, n] <- ifelse(extinct[y, k] == 1, NA, -estSlope[y, k, n])
         estRicA[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estYi[y, k, n])
       }
-      #If normative period is TRUE than do not estimate BMs (they will diverge
+      #If normative period is TRUE then do not estimate BMs (they will diverge
       #from true BMs for reasons other than obs error)
       if (normPeriod == TRUE) {
         s25th[y, , n] <- s25th[nPrime, , n]
@@ -1585,7 +1596,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             if (estRicB[y, k, n] > 0) {
               if ((1 / estRicB[y, k, n]) <= max(obsS[,k], na.rm = TRUE) * 4) {
                 estSGen[y, k, n] <- as.numeric(sGenSolver(
-                  theta = c(estRicA[y, k, n], estRicB[y, k, n], ricSig[k]),
+                  theta = c(estRicA[y, k, n], estRicB[y, k, n], sigma[k]),
                   sMSY = estSMSY[y, k, n]))
               } else {
                 #if a BM cannot be estimated set it to the last estimated value
@@ -1640,26 +1651,88 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                  Omega = covMat)
       }
 
+      ## OLD STOCK RECRUIT FITTING
+      # for (k in 1:nCU) {
+      #   if (S[y, k] > 0) {
+      #     if (model[k] == "ricker") {
+      #       dum <- rickerModel(S[y, k], alphaMat[y, k], beta[k],
+      #                          error = errorCU[y, k], rho = rho,
+      #                          prevErr = laggedError[y - 1, k])
+      #       laggedError[y, k] <- dum[[2]]
+      #     }
+      #     if (model[k] == "larkin") {
+      #       dum <- larkinModel(S[y, k], S[y - 1, k], S[y-2, k], S[y - 3, k],
+      #                          alphaMat[y, k], beta[k], larB1[k], larB2[k],
+      #                          larB3[k], error = errorCU[y, k])
+      #     }
+      #     #keep recruitment below CU-specific cap
+      #     recBY[y, k] <- min(dum[[1]], recCap[k])
+      #     logRS[y, k] <- log(recBY[y, k] / S[y, k])
+      #   } #end if(S[y, k]>0)
+      #   if (is.na(laggedError[y, k])) {
+      #     laggedError[y, k] <- 0
+      #   }
+      #   if (S[y, k] == 0) {
+      #     recBY[y, k] <- 0
+      #     logRS[y, k] <- 0
+      #   }
+      #   if (recBY[y, k] <= extinctThresh) {
+      #     recBY[y, k] <- 0
+      #   }
+      # } #end for(k in 1:nCU)
+
+      # NEW STOCK RECRUIT MODEL
       for (k in 1:nCU) {
         if (S[y, k] > 0) {
+          # take tibble and convert to matrix of parameters for model matrix
+          parMat <- parDF %>%
+            filter(stk == stkID[k]) %>%
+            select(alpha, beta0, extra_beta) %>%
+            unnest(cols = c(extra_beta)) %>%
+            as.matrix()
+
           if (model[k] == "ricker") {
-            dum <- rickerModel(S[y, k], alphaMat[y, k], beta[k],
-                               error = errorCU[y, k], rho = rho,
-                               prevErr = laggedError[y - 1, k])
-            laggedError[y, k] <- dum[[2]]
+            covDF <- data.frame(s0 = S[y, k])
+            ddLocation <- grep("beta0", colnames(parMat))
+            #adjustments for autocorrelated errors (if present; only Ricker)
+            rho <- ifelse(is.null(rho), 0, rho)
+            prevErr <- ifelse(is.na(laggedError[y - 1, k]),
+                              0,
+                              laggedError[y - 1, k])
+            err <- prevErr * rho + errorCU[y, k]
+          } else if (model[k] == "larkin") {
+            covDF <- data.frame(
+              s0 = S[y, k],
+              s1 = S[y - 1, k],
+              s2 = S[y - 2, k],
+              s3 = S[y - 3, k]
+            )
+            ddLocation <- grep(paste(c("beta0", "beta_1", "beta_2", "beta_3"),
+                                     collapse = "|"), colnames(parMat))
+            err <- errorCU[y, k]
           }
-          if (model[k] == "larkin") {
-            dum <- larkinModel(S[y, k], S[y - 1, k], S[y-2, k], S[y - 3, k],
-                               alphaMat[y, k], beta[k], larB1[k], larB2[k],
-                               larB3[k], error = errorCU[y, k])
+          #add non-spawner abundance-based covariates if they're present
+          if (!is.null(covInputs)) {
+            temp_name <- colnames(covDF)
+            covDF <- cbind(covDF, covInputs[[k]][y, ])
+            #name isn't automatically saved when pulling DF from list...
+            colnames(covDF) <- c(temp_name, colnames(covInputs[[k]]))
           }
-          #keep recruitment below CU-specific cap
-          recBY[y, k] <- min(dum[[1]], recCap[k])
-          logRS[y, k] <- log(recBY[y, k] / S[y, k])
-        } #end if(S[y, k]>0)
-        if (is.na(laggedError[y, k])) {
-          laggedError[y, k] <- 0
-        }
+          #stock recruit model formula
+          modFormula <- as.formula(
+            paste("~", paste(names(covDF), collapse=" + "))
+            )
+
+          #convert parameter matrix to vector and make dd parameters negative
+          parVec <- as.vector(parMat)
+          parVec[ddLocation] <- parVec[ddLocation] * -1
+
+          #generate estimates
+          recBY[y, k] <- S[y, k] *
+            exp(model.matrix(modFormula, data = covDF) %*% parVec) * exp(err)
+          errNext[k] <- log(recBY[y, k] / S[y, k]) -
+            (model.matrix(modFormula, data = covDF) %*% parVec)
+        } # end if S > 0
         if (S[y, k] == 0) {
           recBY[y, k] <- 0
           logRS[y, k] <- 0
@@ -1667,11 +1740,11 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         if (recBY[y, k] <= extinctThresh) {
           recBY[y, k] <- 0
         }
-        extinct[y, ] <- extinctionCheck(y = y, gen = gen,
-                                        extinctThresh = extinctThresh,
-                                        spwnMat = S)
-      } #end for(k in 1:nCU)
+      }
 
+      extinct[y, ] <- extinctionCheck(y = y, gen = gen,
+                                      extinctThresh = extinctThresh,
+                                      spwnMat = S)
       recBYAg[y, n] <- sum(recBY[y, ])
 
       for (k in 1:nCU) {
@@ -1784,14 +1857,17 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                          paste(nameOM, nameMP, "singleTrialFig.pdf", sep = "_"))
       pdf(file = paste(here("outputs/diagnostics", dirPath, fileName),
                        sep = "/"), height = 6, width = 7)
-      if (exists("larB")) { # if larkin terms are present they need to be passed
-        larBList <- list(larB, larB1, larB2, larB3)
+      # if larkin terms are present they need to be passed
+      if (any(model %in% "larkin")) {
+        parDFWide <- parDF %>% unnest(extra_beta)
+        larBList <- list(parDFWide$beta0, parDFWide$beta_1,
+                         parDFWide$beta_2, parDFWide$beta_3)
         names(larBList) <- c("lag0", "lag1", "lag2", "lag3")
-        plotDiagCU(plotTrialDat, varNames, stkName, model, ricB,
+        plotDiagCU(plotTrialDat, varNames, stkName, model, beta,
                    larBList = larBList, medAbundance, nPrime, extinct,
                    focalCU = NULL)
       } else {
-        plotDiagCU(plotTrialDat, varNames, stkName, model, ricB,
+        plotDiagCU(plotTrialDat, varNames, stkName, model, beta,
                    larBList = NULL, medAbundance, nPrime, extinct,
                    focalCU = NULL)
       }
