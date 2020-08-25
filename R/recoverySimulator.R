@@ -243,7 +243,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         nest(extra_beta = contains("beta_"))
     }
 
-    #combine ricker and larkin into single tbl
+    #combine ricker and larkin into single tbl based on each stocks specified
+    #model
     parDF <- cuPar %>%
       select(stk, model) %>%
       as_tibble() %>%
@@ -251,7 +252,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
     # adjust sigma (Ricker only) following Holt and Folkes 2015 if a
     # transformation term is present and TRUE
-    if (is.null(simPar$arSigTransform) == FALSE & simPar$arSigTransform == TRUE) {
+    if (is.null(simPar$arSigTransform) == FALSE &
+        simPar$arSigTransform == TRUE) {
       parDF <- parDF %>%
         mutate(
           sigma =case_when(
@@ -769,8 +771,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       ## Population model: store SR pars, spawner, and recruit abundances
 
       # IMPORTANT - pre-sim period alpha uses experimental alpha from
-      # posterior NOT median value used for reference; unless trend is applied
-      # preTrendAlpha = alpha
+      # posterior; unless trend is applied, preTrendAlpha = alpha
       alphaMat[y, ] <- parDF$preTrendAlpha
 
       for (k in 1:nCU) {
@@ -843,41 +844,37 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
           #calculate SR BMs
           if (model[k] == "ricker") {
-            refAlpha <- refSRPars$alpha[k]
-            refBeta <- refSRPars$beta[k]
-            refSigma <- refSRPars$sigma[k]
-            sEqVar[y, k, n] <- refAlpha / refBeta
-            sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha))) /
-              refBeta
+            sEqVar[y, k, n] <- alpha[k] / beta[k]
+            sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - alpha[k]))) /
+              beta[k]
             sGen[y, k, n] <- as.numeric(sGenSolver(
-              theta = c(refAlpha, refAlpha / sEqVar[y, k, n], refSigma),
+              theta = c(alpha[k], alpha[k] / sEqVar[y, k, n], sigma[k]),
               sMSY = sMSY[y, k, n]
             ))
           }
           if (model[k] == "larkin") {
             #modified alpha used to estimate Larkin BMs
             #NOTE these are often negative when sampling SR pars from posterior
-            refAlpha <- refSRPars$larkAlpha[k]
-            refBeta <- refSRPars$larkBeta0[k]
-            refBeta1 <- refSRPars$larkBeta1[k]
-            refBeta2 <- refSRPars$larkBeta2[k]
-            refBeta3 <- refSRPars$larkBeta3[k]
-            refSigma <- refSRPars$larkSigma[k]
-            alphaPrimeMat[y, k] <- refAlpha - (refBeta1 * S[y - 1, k]) -
-              (refBeta2 * S[y-2, k]) - (refBeta3 * S[y - 3,  k])
+            unnestDF <- parDF %>%
+              unnest(cols = c(extra_beta))
+            larkBeta1 <- unnestDF$beta_1[k]
+            larkBeta2 <- unnestDF$beta_2[k]
+            larkBeta3 <- unnestDF$beta_3[k]
+            alphaPrimeMat[y, k] <- alpha[k] - (larkBeta1 * S[y - 1, k]) -
+              (larkBeta2 * S[y-2, k]) - (larkBeta3 * S[y - 3,  k])
             sEqVar[y, k, n] <- ifelse(alphaPrimeMat[y, k] > 0,
-                                      alphaPrimeMat[y, k] / refBeta,
+                                      alphaPrimeMat[y, k] / beta[k],
                                       NA)
             cycleSMSY[y, k] <- ifelse(alphaPrimeMat[y, k] > 0,
                                       ((1 - gsl::lambert_W0(exp(
-                                        1 - alphaPrimeMat[y, k]))) / refBeta),
+                                        1 - alphaPrimeMat[y, k]))) / beta[k]),
                                       NA)
             cycleSGen[y, k] <- ifelse(alphaPrimeMat[y, k] > 0,
                                       as.numeric(sGenSolver(
                                         theta = c(alphaPrimeMat[y, k],
                                                   alphaPrimeMat[y, k] /
                                                     sEqVar[y, k, n],
-                                                  refSigma),
+                                                  sigma[k]),
                                         sMSY = cycleSMSY[y, k])),
                                       NA)
             #calculate annual benchmarks as medians within cycle line
