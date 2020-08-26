@@ -23,10 +23,16 @@ simParF <- read.csv(here("data", "manProcScenarios",
 cuPar <- read.csv(here("data/fraserDat/summOnlyCUPars.csv"), stringsAsFactors = F)
 srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors = F)
 catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors = F)
-ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors = F)
-larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"),
-                     stringsAsFactors = F)
+# ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors = F)
+# larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"),
+#                      stringsAsFactors = F)
 tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
+
+## TEMPORARY INPUTS TO TEST COVARIATE EFFECTS ##
+modPars <- readRDS(here::here("temp_r", "modPosteriors.rds"))
+ricPars <- modPars[["ricker"]]
+larkPars <- modPars[["larkin"]]
+covInputs <- readRDS(here::here("temp_r", "dummyCov.rds"))
 
 # cuCustomCorrMat <- read.csv(here("data/fraserDat/prodCorrMatrix.csv"), stringsAsFactors=F)
 # erCorrMat <- read.csv(here("data/fraserDat/erMortCorrMatrix.csv"), stringsAsFactors=F,
@@ -187,13 +193,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   #default trend length (necessary even if prod is stable)
   trendLength <- 3 * gen
 
-
-  # save reference parameter values from cuPar input (i.e. medians) to calculate
-  # BMs
-  to_keep <- c("stk", "model", "alpha", "beta", "sigma")
-  refSRPars <- cuPar %>%
-    select(contains(to_keep))
-
   # Helper function to generate SR parameter outputs
   generateSR <- function(sampleSR = FALSE) {
     ## Following creates tibble, necessary because using a mix of Ricker and Larkin
@@ -224,8 +223,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     }
     #subset and move extra betas to column list for merge with larkin pars
     parRicDF <- parRicDF1 %>%
+      select(contains(c("stk", "alpha", "beta", "sigma"))) %>%
       mutate(model = "ricker") %>%
-      select(contains(to_keep)) %>%
       nest(extra_beta = contains("beta_"))
 
     # do the same for larkin parameters if present
@@ -238,8 +237,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         parLarkDF1 <- dum$pMed
       }
       parLarkDF <- parLarkDF1 %>%
+        select(contains(c("stk", "alpha", "beta", "sigma"))) %>%
         mutate(model = "larkin") %>%
-        select(contains(to_keep)) %>%
         nest(extra_beta = contains("beta_"))
     }
 
@@ -285,6 +284,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       prodScalars <- rep(simPar$prodScalar, nCU)
     }
     #replace alpha in parameter DF with adjusted version
+    #(i.e. alpha = FINAL alpha if trend present)
     parDF$alpha <- prodScalars * parDF$preTrendAlpha
     parDF$trendAlpha <- (parDF$alpha - parDF$preTrendAlpha) / trendLength
     cuProdTrends <- dplyr::case_when(
@@ -317,10 +317,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
   # should SR pars be sampled from posterior estimates
   sampleSR <- ifelse(is.null(simPar$sampleSR), FALSE, simPar$sampleSR)
-  # pull stock recruit samples from posterior if available, otherwise use values
-  # from cuPars.csv (deprecated for now if added back in simply format to equal
-  # parDF)
-  # if (is.null(ricPars) == FALSE) {
+  # if sample is false pull medians now, otherwise sample within for loop to
+  # propagate uncertainty
   if (sampleSR == FALSE) {
     srParList <- generateSR(sampleSR)
   }
@@ -647,6 +645,12 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       beta <- parDF$beta0
       sigma <- parDF$sigma
       covMat <- srParList[["covMat"]]
+      # Unnested version to access extra beta parameters
+      unnestDF <- parDF %>% unnest(cols = c(extra_beta))
+      #pull beta_parameters
+      larB1 <- unnestDF$beta_1
+      larB2 <- unnestDF$beta_2
+      larB3 <- unnestDF$beta_3
     }
 
     #___________________________________________________________________________
@@ -855,13 +859,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           if (model[k] == "larkin") {
             #modified alpha used to estimate Larkin BMs
             #NOTE these are often negative when sampling SR pars from posterior
-            unnestDF <- parDF %>%
-              unnest(cols = c(extra_beta))
-            larkBeta1 <- unnestDF$beta_1[k]
-            larkBeta2 <- unnestDF$beta_2[k]
-            larkBeta3 <- unnestDF$beta_3[k]
-            alphaPrimeMat[y, k] <- alpha[k] - (larkBeta1 * S[y - 1, k]) -
-              (larkBeta2 * S[y-2, k]) - (larkBeta3 * S[y - 3,  k])
+            alphaPrimeMat[y, k] <- alpha[k] - (larB1[k] * S[y - 1, k]) -
+              (larB2[k] * S[y-2, k]) - (larB3[k] * S[y - 3,  k])
             sEqVar[y, k, n] <- ifelse(alphaPrimeMat[y, k] > 0,
                                       alphaPrimeMat[y, k] / beta[k],
                                       NA)
@@ -1037,14 +1036,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             sMSY[y, k, n] <- sMSY[larkinBMYear, k, n]
             sGen[y, k, n] <- sGen[larkinBMYear, k, n]
           } else if (normPeriod == FALSE) {
-            #pull beta_parameters
-            temp_par <- parDF %>% unnest(cols = c(extra_beta))
-            larB1 <- temp_par$beta_1[k]
-            larB2 <- temp_par$beta_2[k]
-            larB3 <- temp_par$beta_3[k]
             #modified alpha used to estimate Larkin BMs
-            alphaPrimeMat[y, k] <- alphaMat[y, k] - (larB1 * S[y - 1, k]) -
-              (larB2 * S[y-2, k]) - (larB3 * S[y - 3, k])
+            alphaPrimeMat[y, k] <- alphaMat[y, k] - (larB1[k] * S[y - 1, k]) -
+              (larB2[k] * S[y-2, k]) - (larB3[k] * S[y - 3, k])
             sEqVar[y, k, n] <- ifelse(alphaPrimeMat[y, k] > 0,
                                       alphaPrimeMat[y, k] / beta[k],
                                       NA)
@@ -1405,24 +1399,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               counterSingleBMHigh[y, k] <- 1
             }
           } #end if (model[k] == "larkin")
-          ## Apply secondary HCR as appropriate
-
-          ## DEPRECATED ##
-          # if (moveTAC == TRUE) {
-          #   #identify which CUs in the MU are above their upper OCP and in the
-          #   #same Mu
-          #   if (counterSingleBMLow[y, k] == 0) {
-          #     healthyCUs <- which(counterSingleBMHigh[y, ] > 0 &
-          #                           manUnit %in% manUnit[k])
-          #     movedTAC <- singTAC[y, k] * forecastPpn[healthyCUs]
-          #     singTAC[y, healthyCUs] <- singTAC[y, healthyCUs] + movedTAC
-          #     singTAC[y, k] <- 0
-          #   } #end if counterSingleBMLow[y, k] == 0
-          # } #end if moveTAC == TRUE
-
         } #end for k in 1:nCU
       } #end if singleHCR != FALSE
-
 
       # if there is no single stock HCR applied than all CUs assumed to be
       # "above" the lower BM so that TAC is taken
@@ -1727,7 +1705,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           #generate estimates
           recBY[y, k] <- S[y, k] *
             exp(model.matrix(modFormula, data = covDF) %*% parVec) * exp(err)
-          errNext[k] <- log(recBY[y, k] / S[y, k]) -
+          laggedError[y, k] <- log(recBY[y, k] / S[y, k]) -
             (model.matrix(modFormula, data = covDF) %*% parVec)
         } # end if S > 0
         if (S[y, k] == 0) {
