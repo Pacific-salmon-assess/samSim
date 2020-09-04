@@ -4,8 +4,7 @@
 \alias{getSRPars}
 \title{Summarize stock-recruit parameters}
 \usage{
-getSRPars(pars, alphaOnly = TRUE, highP = 0.9, lowP = 0.1,
-  stks = NULL)
+getSRPars(pars, alphaOnly = TRUE, highP = 0.9, lowP = 0.1, stks = NULL)
 }
 \arguments{
 \item{pars}{A dataframe containing stock-recruit parameters. Should be

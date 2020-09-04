@@ -4,8 +4,10 @@
 \name{recMatrix}
 \alias{recMatrix}
 \title{Fraser River recruitment matrix}
-\format{A matrix with 61 rows representing year-specific observations and
-11 columns representing CUs.}
+\format{
+A matrix with 61 rows representing year-specific observations and
+11 columns representing CUs.
+}
 \source{
 Fraser River Salmon Spawning Initiative (Ann-Marie Huang (DFO) personal
 communication; January 2018)

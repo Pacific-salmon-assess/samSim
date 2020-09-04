@@ -4,10 +4,20 @@
 \alias{calcTAC}
 \title{Calculate total allowable catch}
 \usage{
-calcTAC(rec, canER, harvContRule, amER, ppnMixVec, species = NULL,
-  manAdjustment = NULL, lowFRP = NULL, highFRP = NULL,
-  minER = NULL, maxER = NULL, overlapConstraint = NULL,
-  constrainMix = TRUE)
+calcTAC(
+  rec,
+  canER,
+  harvContRule,
+  amER,
+  ppnMixVec,
+  manAdjustment = NULL,
+  lowFRP = NULL,
+  highFRP = NULL,
+  minER = NULL,
+  maxER = NULL,
+  overlapConstraint = NULL,
+  constrainMix = TRUE
+)
 }
 \arguments{
 \item{rec}{A numeric representing MU-specific return abundance.}
@@ -22,10 +32,6 @@ exploitation rate (\code{fixedER}) or the simplified TAM rule (\code{TAM}).}
 **Note** that American catch is a function of TAC not escapement for Fraser
 sockeye and takes into account the Aboriginal Fishery Exclusion (400k fish).
 Thus their catch/harvest rate is generally below the input parameter.}
-
-\item{species}{A character that can currently take either \code{chum} or
-\code{sockeye} values. Determines how American TAC is partitioned relative
-to Canadian.}
 
 \item{manAdjustment}{A numeric  representing MU-specific management
 adjustments. These values are used to adjust forecasted spawner abundance
@@ -57,17 +63,15 @@ reference purposes only).
 }
 \description{
 This function calculates total allowable catch (TAC) for different MUs using
-either a) a fixed exploitation rate or b) a simplified version of the total
-allowable mortality rule currently used to manage the fishery. Total
-allowable catch is divided between one American and two Canadian fisheries
-(mixed stock and single stock) based on \code{ppnMix} variable.
+either a) a fixed exploitation rate, b) a simplified version of the total
+allowable mortality (TAM) rule currently used to manage the Fraser sockeye
+fishery, or c) a generic HCR that is consistent with the precautionary
+approach (genPA). TAC is divided between one American and two Canadian
+fisheries (mixed stock and single stock) based on \code{ppnMix} variable.
 }
 \details{
-All values should be passed as single values using apply family or for loops
-because if statements are common.
-
-In the case of the TAM rule TAC is based on  abundance relative to two
-fishery reference points. This determines whether exploitation is based
+In the case of the TAM rules TAC is based on abundance relative to two
+fishery reference points, which determines whether exploitation is based
 on a minimum exploitation rate, fixed escapement goal, or maximum
 exploitation rate. Note that abundance relative to reference points is
 adjusted downwards to account for anticipated en route mortality
@@ -75,6 +79,11 @@ adjusted downwards to account for anticipated en route mortality
 \code{overlapConstraint} which represents whether other MUs that co-migrate
 are at sufficiently low abundance to limit a given fishery (see
 \code{overlapConstraint} for additional details).
+
+In the case of the genPA rule TAC is also based on abundance relative to two
+fishery reference points, but there is no management adjustment or overlap
+constraint. When abundance is below the lower FRP min ER is applied, between
+the two it increases linearly, and above it is max (typically Umsy).
 }
 \examples{
 #Note that the function is intended to receive vectors rather than the DF
@@ -92,11 +101,10 @@ overlapConstraint <- constrain(rec, highFRP, manAdjustment,
                                manUnit)$muConstrained
 
 ## Fixed ER version
-calcTAC(rec, canER = 0.4, harvContRule = "fixedER", amER = 0.1, ppnMix = 1,
-        species = "sockeye")
+calcTAC(rec, canER = 0.4, harvContRule = "fixedER", amER = 0.1, ppnMix = 1)
 ## TAM version
 calcTAC(rec, canER, harvContRule = "TAM", amER = 0.1, ppnMix = 1,
-        species = "sockeye", manAdjustment = manAdjustment, lowFRP = lowFRP,
+        manAdjustment = manAdjustment, lowFRP = lowFRP,
         highFRP = highFRP,  minER = 0.1, maxER = 0.6,
         overlapConstraint = overlapConstraint)
 

@@ -4,7 +4,8 @@
 \name{rickerParameters}
 \alias{rickerParameters}
 \title{Posterior estimates of Ricker stock recruit parameters}
-\format{A data frame with 19000 rows and 5 variables:
+\format{
+A data frame with 19000 rows and 5 variables:
 \describe{
   \item{stk}{stock id, approximately equivalent to a conservation unit}
   \item{alpha}{productivity parameter (i.e. recruits per spawner at low
@@ -14,7 +15,8 @@
   mean = 0}
   \item{deviance}{estimate of model fit equivalent to residual sum of
   squares for linear models}
-}}
+}
+}
 \source{
 Fraser River Salmon Spawning Initiative (Ann-Marie Huang (DFO) personal
 communication; January 2018)

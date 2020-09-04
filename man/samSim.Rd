@@ -3,7 +3,6 @@
 \docType{package}
 \name{samSim}
 \alias{samSim}
-\alias{samSim-package}
 \title{samSim}
 \description{
 samSim is intended to evaluate management strategies for Pacific salmon

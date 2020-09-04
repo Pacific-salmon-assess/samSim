@@ -4,10 +4,22 @@
 \alias{recoverySim}
 \title{Recovery simulator}
 \usage{
-recoverySim(simPar, cuPar, catchDat = NULL, srDat = NULL,
-  variableCU = FALSE, makeSubDirs = TRUE, ricPars, larkPars = NULL,
-  tamFRP = NULL, cuCustomCorrMat = NULL, erCorrMat = NULL, dirName,
-  nTrials = 100, uniqueProd = TRUE, random = FALSE)
+recoverySim(
+  simPar,
+  cuPar,
+  catchDat = NULL,
+  srDat = NULL,
+  variableCU = FALSE,
+  makeSubDirs = TRUE,
+  ricPars,
+  larkPars = NULL,
+  tamFRP = NULL,
+  cuCustomCorrMat = NULL,
+  erCorrMat = NULL,
+  dirName,
+  nTrials = 100,
+  random = FALSE
+)
 }
 \arguments{
 \item{y}{TO BE DEFINED}

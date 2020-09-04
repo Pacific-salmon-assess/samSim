@@ -4,8 +4,15 @@
 \alias{calcObsCatch}
 \title{Calculate observed catch}
 \usage{
-calcObsCatch(catchVec, recVec, manUnit, tauCatch, stkID, catchObsErr,
-  extinctThresh)
+calcObsCatch(
+  catchVec,
+  recVec,
+  manUnit,
+  tauCatch,
+  stkID,
+  catchObsErr,
+  extinctThresh
+)
 }
 \arguments{
 \item{catchVec}{A numeric vector representing realized CU-specific catches

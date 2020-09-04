@@ -4,8 +4,14 @@
 \alias{theme_sleekX}
 \title{Minimalist ggplot theme}
 \usage{
-theme_sleekX(base_size = 11, base_family = "", position = "standard",
-  axisSize = 10, legendSize = 1, facetSize = 1.1)
+theme_sleekX(
+  base_size = 11,
+  base_family = "",
+  position = "standard",
+  axisSize = 10,
+  legendSize = 1,
+  facetSize = 1.1
+)
 }
 \arguments{
 \item{base_size}{Defaults to 11 (don't change).}

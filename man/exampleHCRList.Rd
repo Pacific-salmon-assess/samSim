@@ -4,7 +4,8 @@
 \name{exampleHCRList}
 \alias{exampleHCRList}
 \title{Example data for harvest control rule functions}
-\format{A list with eight elements.
+\format{
+A list with eight elements.
 \describe{
   \item{stock}{A character vector of stock names, which are approximately
   equivalent to conservation units.}
@@ -26,7 +27,8 @@
   reference points.}
   \item{mixCatch}{A numeric vector representing CU-specific true catches
   (incorporates outcome uncertainty).}
-}}
+}
+}
 \source{
 recoverySim model run with parameters provided by Pacific Salmon
 Commission and Fraser River Sockeye Spawning Initiative (DFO)

@@ -4,9 +4,18 @@
 \alias{plotDiagCU}
 \title{Diagnostic plot}
 \usage{
-plotDiagCU(varArray, varNames, stkName = NULL, model, ricB,
-  larBList = NULL, medAbundance = NULL, nPrime, extinct,
-  focalCU = NULL)
+plotDiagCU(
+  varArray,
+  varNames,
+  stkName = NULL,
+  model,
+  ricB,
+  larBList = NULL,
+  medAbundance = NULL,
+  nPrime,
+  extinct,
+  focalCU = NULL
+)
 }
 \arguments{
 \item{varArray}{A numeric array containing CU-specific data.}
