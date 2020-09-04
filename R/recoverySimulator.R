@@ -14,25 +14,28 @@
 #' @export
 
 #Temporary inputs
-here <- here::here
-require(samSim)
-require(tidyverse)
-simParF <- read.csv(here("data", "manProcScenarios",
-                        "fraserMPInputs_techReport.csv"),
-                   stringsAsFactors = F)
-cuPar <- read.csv(here("data/fraserDat/summOnlyCUPars.csv"), stringsAsFactors = F)
-srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors = F)
-catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors = F)
-# ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors = F)
-# larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"),
-#                      stringsAsFactors = F)
-tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
-
-## TEMPORARY INPUTS TO TEST COVARIATE EFFECTS ##
-modPars <- readRDS(here::here("temp_r", "modPosteriors.rds"))
-ricPars <- modPars[["ricker"]]
-larkPars <- modPars[["larkin"]]
-covInputs <- readRDS(here::here("temp_r", "dummyCov.rds"))
+# here <- here::here
+# require(samSim)
+# require(tidyverse)
+# simParF <- read.csv(here("data", "manProcScenarios",
+#                         "fraserMPInputs_techReport.csv"),
+#                    stringsAsFactors = F)
+# cuPar <- read.csv(here("data/fraserDat/summOnlyCUPars.csv"), stringsAsFactors = F)
+# srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors = F)
+# catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors = F)
+# # ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors = F)
+# # larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"),
+# #                      stringsAsFactors = F)
+# tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
+#
+# ## TEMPORARY INPUTS TO TEST COVARIATE EFFECTS ##
+# modPars <- readRDS(here::here("temp_r", "modPosteriors.rds"))
+# ricPars <- modPars[["ricker"]]
+# larkPars <- modPars[["larkin"]]
+# covInputs <- readRDS(here::here("temp_r", "dummyCov.rds")) %>%
+#   rbind(data.frame(sst = rep(NA, 60),
+#                    pink_abund = rep(NA, 60)),
+#         .)
 
 # cuCustomCorrMat <- read.csv(here("data/fraserDat/prodCorrMatrix.csv"), stringsAsFactors=F)
 # erCorrMat <- read.csv(here("data/fraserDat/erMortCorrMatrix.csv"), stringsAsFactors=F,
@@ -48,12 +51,12 @@ covInputs <- readRDS(here::here("temp_r", "dummyCov.rds"))
 #                     stringsAsFactors=F)
 
 ## Misc. objects to run single trial w/ "reference" OM
-variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
-dirName <- "TEST"
-nTrials <- 5
-simPar <- simParF[19, ]
-makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
-random <- FALSE
+# variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
+# dirName <- "TEST"
+# nTrials <- 5
+# simPar <- simParF[19, ]
+# makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
+# random <- FALSE
 
 recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                         variableCU=FALSE, makeSubDirs=TRUE, ricPars,
@@ -1682,6 +1685,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               s2 = S[y - 2, k],
               s3 = S[y - 3, k]
             )
+            #identify relative location of DD parameters so they can be made
+            #negative
             ddLocation <- grep(paste(c("beta0", "beta_1", "beta_2", "beta_3"),
                                      collapse = "|"), colnames(parMat))
             err <- errorCU[y, k]
@@ -1689,9 +1694,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           #add non-spawner abundance-based covariates if they're present
           if (!is.null(covInputs)) {
             temp_name <- colnames(covDF)
-            covDF <- cbind(covDF, covInputs[[k]][y, ])
-            #name isn't automatically saved when pulling DF from list...
-            colnames(covDF) <- c(temp_name, colnames(covInputs[[k]]))
+            covDF <- cbind(covDF, covInputs[y, ])
           }
           #stock recruit model formula
           modFormula <- as.formula(
@@ -1788,7 +1791,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       }
     } #End loop 3: for(y in (nPrime+1):nYears)
 
-    #__________________________________________________________________________
+    #___________________________________________________________________________
     ### Draw one trial for plotting
     if (n == drawTrial) {
       # Generate indices of observation error
