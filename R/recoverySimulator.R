@@ -19,19 +19,21 @@
 # require(tidyverse)
 # simParF <- read.csv(here("data", "manProcScenarios",
 #                         "fraserMPInputs_techReport.csv"),
-#                    stringsAsFactors = F)
-# cuPar <- read.csv(here("data/fraserDat/summOnlyCUPars.csv"), stringsAsFactors = F)
+#                    stringsAsFactors = F) %>%
+#   mutate(sampleSR = TRUE)
+# cuPar <- read.csv(here("data/fraserDat/summOnlyCUPars.csv"), stringsAsFactors = F) %>%
+#   mutate(model = "ricker")
 # srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors = F)
 # catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors = F)
 # # ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors = F)
 # # larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"),
 # #                      stringsAsFactors = F)
 # tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
-#
-# ## TEMPORARY INPUTS TO TEST COVARIATE EFFECTS ##
+
+## TEMPORARY INPUTS TO TEST COVARIATE EFFECTS ##
 # modPars <- readRDS(here::here("temp_r", "modPosteriors.rds"))
 # ricPars <- modPars[["ricker"]]
-# larkPars <- modPars[["larkin"]]
+# larkPars <- NULL#modPars[["larkin"]]
 # covInputs <- readRDS(here::here("temp_r", "dummyCov.rds")) %>%
 #   rbind(data.frame(sst = rep(NA, 60),
 #                    pink_abund = rep(NA, 60)),
@@ -54,14 +56,14 @@
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
 # dirName <- "TEST"
 # nTrials <- 5
-# simPar <- simParF[19, ]
+# simPar <- simParF[10, ]
 # makeSubDirs <- TRUE #only false when running scenarios with multiple OMs and only one MP
 # random <- FALSE
 
 recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                         variableCU=FALSE, makeSubDirs=TRUE, ricPars,
                         larkPars=NULL, tamFRP=NULL, cuCustomCorrMat=NULL,
-                        erCorrMat=NULL, dirName, nTrials=100,
+                        covInputs = NULL, erCorrMat=NULL, dirName, nTrials=100,
                         random=FALSE) {
   # If random = TRUE then each simulation will start at a different point
   # i.e. should ALWAYS be FALSE except for convenience when running independent
@@ -84,9 +86,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   species <- simPar$species #species (sockeye, chum, pink, coho)
   simYears <- simPar$simYears #total length of simulation period
   nTrials <- nTrials #number of trials to simulate
+  sampleSR <- simPar$sampleSR #should SR parameters be sampled from posterior each model run?
   canER <- simPar$canER #baseline exploitation rate divided among mixed and single CU fisheries
   ppnMix <- simPar$propMixHigh #ppn of Canadian harvest allocated to mixed stock fisheries when abundance is high (default)
-  constrainMix <- ifelse(is.null(simPar$constrain), TRUE, simPar$constrain) #if TRUE and HCR == TAM, then mixed stock fisheries are constrained
   singleHCR <- ifelse(is.null(simPar$singleHCR), FALSE, simPar$singleHCR) #if TRUE single stock TAC is only harvested when BMs met
   moveTAC <- ifelse(is.null(simPar$moveTAC), FALSE, simPar$moveTAC) #if TRUE single stock TAC for low abundance CUs is re-allocated
   rho <- simPar$rho #autocorrelation coefficient in recruitment residuals
@@ -171,6 +173,14 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   nAges <- ncol(ageStruc) #total number of ages at return in ageStruc matrix (does not mean that modeled populations actually contain 4 ages at maturity)
   tauAge <- cuPar$tauCycAge * simPar$adjustAge #CU-specific variation in age-at-maturity, adjusted by scenario
   medAbundance <- cbind(cuPar$medianRec, cuPar$lowQRec, cuPar$highQRec) #matrix of long term abundances (median, lower and upper quantile)
+  # should harvest be constrained?
+  if (is.null(simPar$constrain) & harvContRule == "TAM") {
+    constrainMix <- TRUE
+  } else if (nMU == 1) {
+    constrainMix <- FALSE
+  } else {
+    constrainMix <- simPar$constrain
+  }
 
   if (species == "pink") { ### PINK FUNCTIONALITY NEEDS TO BE TESTED
     gen <- 2
@@ -243,6 +253,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         select(contains(c("stk", "alpha", "beta", "sigma"))) %>%
         mutate(model = "larkin") %>%
         nest(extra_beta = contains("beta_"))
+    } else {
+      parLarkDF <- NULL
     }
 
     #combine ricker and larkin into single tbl based on each stocks specified
@@ -291,9 +303,9 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     parDF$alpha <- prodScalars * parDF$preTrendAlpha
     parDF$trendAlpha <- (parDF$alpha - parDF$preTrendAlpha) / trendLength
     cuProdTrends <- dplyr::case_when(
-      prodScalars == "0.65" ~ "decline",
+      prodScalars < 1 ~ "decline",
       prodScalars == "1" ~ "stable",
-      prodScalars == "1.35" ~ "increase"
+      prodScalars > 1 ~ "increase"
     )
 
     #adjust beta
@@ -314,7 +326,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     covMat <- (t(sigMat) %*% sigMat) * correlCU
     diag(covMat) <- as.numeric(parDF$sigma^2) #add variance
 
-    outList <- list(parDF = parDF, covMat = covMat)
+    outList <- list(parDF = parDF, covMat = covMat, cuProdTrends = cuProdTrends)
     return(outList)
   }
 
@@ -650,10 +662,12 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       covMat <- srParList[["covMat"]]
       # Unnested version to access extra beta parameters
       unnestDF <- parDF %>% unnest(cols = c(extra_beta))
-      #pull beta_parameters
-      larB1 <- unnestDF$beta_1
-      larB2 <- unnestDF$beta_2
-      larB3 <- unnestDF$beta_3
+      #pull beta_parameters if larkin present
+      if (!is.null(larkPars)) {
+        larB1 <- unnestDF$beta_1
+        larB2 <- unnestDF$beta_2
+        larB3 <- unnestDF$beta_3
+      }
     }
 
     #___________________________________________________________________________
@@ -2021,8 +2035,8 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   meanSMSY <- arrayMean(sMSY) # CU's average BMs through time and trials
   meanSGen <- arrayMean(sGen)
   cuList <- list(nameOM, keyVar, plotOrder, nameMP, harvContRule, stkName,
-                 stkID, manUnit, targetER, cuProdTrends, meanSMSY, meanSGen,
-                 medS, varS,
+                 stkID, manUnit, targetER, srParList$cuProdTrends, meanSMSY,
+                 meanSGen, medS, varS,
                  medObsS, varObsS, medRecRY, varRecRY, medRecBY, varRecBY,
                  medObsRecRY, varObsRecRY, medAlpha, varAlpha, medEstAlpha,
                  varEstAlpha, medBeta,
