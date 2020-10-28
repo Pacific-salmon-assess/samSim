@@ -25,15 +25,15 @@
 #   mutate(model = "ricker")
 # srDat <- read.csv(here("data/fraserDat/fraserRecDatTrim.csv"), stringsAsFactors = F)
 # catchDat <- read.csv(here("data/fraserDat/fraserCatchDatTrim.csv"), stringsAsFactors = F)
-# # ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors = F)
-# # larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"),
-# #                      stringsAsFactors = F)
+# ricPars <- read.csv(here("data/fraserDat/pooledRickerMCMCPars.csv"), stringsAsFactors = F)
+# larkPars <- read.csv(here("data/fraserDat/pooledLarkinMCMCPars.csv"),
+#                      stringsAsFactors = F)
 # tamFRP <- read.csv(here("data/fraserDat/tamRefPts.csv"), stringsAsFactors=F)
-
-## TEMPORARY INPUTS TO TEST COVARIATE EFFECTS ##
+#
+# ## TEMPORARY INPUTS TO TEST COVARIATE EFFECTS ##
 # modPars <- readRDS(here::here("temp_r", "modPosteriors.rds"))
 # ricPars <- modPars[["ricker"]]
-# larkPars <- NULL#modPars[["larkin"]]
+# larkPars <- modPars[["larkin"]]
 # covInputs <- readRDS(here::here("temp_r", "dummyCov.rds")) %>%
 #   rbind(data.frame(sst = rep(NA, 60),
 #                    pink_abund = rep(NA, 60)),
@@ -42,15 +42,6 @@
 # cuCustomCorrMat <- read.csv(here("data/fraserDat/prodCorrMatrix.csv"), stringsAsFactors=F)
 # erCorrMat <- read.csv(here("data/fraserDat/erMortCorrMatrix.csv"), stringsAsFactors=F,
 #                       row.names = NULL)
-
-## CHUM PARS
-# simParF <- read.csv(here("data/opModelScenarios/nassOMInputs_ref.csv"),
-#                     stringsAsFactors=F)
-# cuPar <- read.csv(here("data/nassDat/nassCUpars.csv"), stringsAsFactors=F)
-# srDat <- read.csv(here("data/nassDat/nassRecDatTrim.csv"), stringsAsFactors=F)
-# catchDat <- read.csv(here("data/nassDat/nassCatchDatTrim.csv"), stringsAsFactors=F)
-# ricPars <- read.csv(here("data/nassDat/nassChumMCMCPars_wAR.csv"),
-#                     stringsAsFactors=F)
 
 ## Misc. objects to run single trial w/ "reference" OM
 # variableCU <- FALSE #only true when OM/MPs vary AMONG CUs (still hasn't been rigorously tested)
@@ -422,43 +413,6 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     firstYr <- min(sapply(recOut, function(x) min(x$yr, na.rm = TRUE)))
   }
 
-  #### TO BE ADDED #####
-
-  # If recruitment data is not passed (or if it's ignored) prime simulation
-  # with predefined abundances and recruitment (without harvest)
-  # if (!is.na(simPar$initialS)) {
-  #   initialS <- rep(simPar$initialS, nCU)
-  #   recOut <- vector("list", nCU)
-  #   nPrime <- gen * 3
-  #   nYears <- nPrime + simYears #total model run length = TS priming period duration + specified simulation length
-  #   cycle <- rep(c(1, 2, 3, 4), length.out = nYears) #vector used to orient Larkin BM estimates and TAM rules
-  #   for (k in 1:nCU) {
-  #     recOut[[k]] <- data.frame(stk = seq(1:nCU)[k],
-  #                               yr = seq(1:(gen + 1)),
-  #                               ets = initialS[k],
-  #                               rec = NA,
-  #                               rec2 = NA,
-  #                               rec3 = NA,
-  #                               rec4 = NA,
-  #                               rec5 = NA,
-  #                               rec6 = NA)
-  #   }
-  #   for(y in 1:(gen + 1)) {
-  #     errorCU <- sn::rmst(n = 1, xi = rep(0, nCU),
-  #                         alpha = rep(0, nCU), nu = 10000,
-  #                         Omega = covMat)
-  #     dum <- rickerModel(initialS, refAlpha, beta, error = errorCU)[[1]]
-  #     for(k in 1:nCU) {
-  #       recOut[[k]]["rec"] <- dum[k]
-  #       ppnAges <- ppnAgeErr(ageStruc[k, ], tauAge[k],
-  #                            error = runif(nAges, 0.0001, 0.9999))
-  #       recOut[[k]][y, c("rec2", "rec3", "rec4", "rec5", "rec6")] <- dum[k] *
-  #         ppnAges
-  #     }
-  #   }
-  # }
-  #####
-
   ppn2 <- ageStruc[, 1] #proportion at age parameters
   ppn3 <- ageStruc[, 2]
   ppn4 <- ageStruc[, 3]
@@ -649,12 +603,12 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   ## Simulation model
   for (n in 1:nTrials) {
 
-    # Sample SR parameters if not using median values
-    if (is.null(ricPars) == FALSE) {
+    # Sample SR parameters from posterior samples if not using median values
+    if (!is.null(ricPars)) {
       if (sampleSR == TRUE) {
         srParList <- generateSR(sampleSR)
       }
-      # Save values
+      # Save values in formats that are used further down in function
       parDF <- srParList[["parDF"]]
       alpha <- parDF$alpha
       beta <- parDF$beta0
@@ -663,7 +617,7 @@ recoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       # Unnested version to access extra beta parameters
       unnestDF <- parDF %>% unnest(cols = c(extra_beta))
       #pull beta_parameters if larkin present
-      if (!is.null(larkPars)) {
+      if (!is.null(larkPars) & any(parDF$model == "larkin")) {
         larB1 <- unnestDF$beta_1
         larB2 <- unnestDF$beta_2
         larB3 <- unnestDF$beta_3
