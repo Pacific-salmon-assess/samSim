@@ -1,0 +1,4 @@
+scenario,nameOM,nameMP,keyVar,plotOrder,species,simYears,harvContRule,benchmark,canER,usER,propMixHigh,enRouteMort,constrain,singleHCR,moveTAC,prodRegime,startYear,endYear,rho,arSigTransform,correlCU,corrMat,tauCatch,obsSig,mixOUSig,singOUSig,obsMixCatchSig,obsSingCatchSig,obsAgeErr,lowCatchThresh,highCatchThresh,extinctThresh,adjustSig,adjustAge,adjustForecast,adjustEnRouteSig,preFMigMort
+refMedFixed,ref,medFixedER,expRate,1,sockeye,20,fixedER,stockRecruit,0.4,0,1,TRUE,TRUE,retro,FALSE,med,NA,NA,0.2,TRUE,0.4,FALSE,0.1,0.2,0.07,0.07,0.1,0.1,0.1,0.5,1,0.0001,1,1,1,1,0
+refLowFixed,ref,lowFixedER,expRate,2,sockeye,20,fixedER,stockRecruit,0.2,0,1,TRUE,TRUE,retro,FALSE,med,NA,NA,0.2,TRUE,0.4,FALSE,0.1,0.2,0.07,0.07,0.1,0.1,0.1,0.5,1,0.0001,1,1,1,1,0
+refHighFixed,ref,highFixedER,expRate,3,sockeye,20,fixedER,stockRecruit,0.6,0,1,TRUE,TRUE,retro,FALSE,med,NA,NA,0.2,TRUE,0.4,FALSE,0.1,0.2,0.07,0.07,0.1,0.1,0.1,0.5,1,0.0001,1,1,1,1,0
