@@ -1,12 +1,22 @@
-# samSim
+# samSim - LRP
 ## Closed-loop simulation package for salmon CUs
 
 -----  
 
-**Authors: Cameron Freshwater**  
-**Date: 2019-02-01 (ONGOING)**
+**Authors: Kendra Holt (adapted from original samSim by Cameron Freshwater)**  
+**Date: 2020-11-09 (ONGOING)**
 
 -----
+
+### Updates for the LRP branch (in progress)
+This "LRP" branch of samSim is still under development. Planned updates include:
+
+1) Removing all species-specific code references. Life history types will be specified through new fields in the CUPars.csv input file (e.g., firstAgeRec, maxAgeRec, obsBYlag)
+2) Removing performance measures specific to the TAM harvest control rule option used for Fraser sockeye
+3) Adding a new SR model option that includes a marine survival co-variate (needed in the short-term for Interior Fraser Coho)
+4) Adding performance measures needed to calculate LRPs
+
+* Note that the following documentation is from the original samSim package. It has not yet been updated for this LRP branch. Examples will not work at present.
 
 ### Summary
 This repository contains the necessary files to run stochastic closed-loop simulations parameterized with Pacific salmon stock-recruitment data. The principal function, `recoverySim()`, is intended to test the performance of different management procedures (broadly a mix of harvest control rules and assessment methods) across operating models representing distinct ecological hypotheses. A suite of performance metrics are generated that allow analysts to evaluate different management procedures ability to achieve multiple, interacting conservation- and catch-based objectives. In short, the model is intended to provide a framework for the quantitative component of a management strategy evaluation.
@@ -27,12 +37,7 @@ devtools::install_github("Pacific-salmon-assess/samSim")
 All files are stored in the following directories:
 
 #### data
-Includes a collection of loose .rda files that are necessary to run the examples associated with certain `samSim` functions. Also includes four subdirectories:
 
-  - *fraserDat* - includes .csv files necessary to run Fraser River sockeye salmon simulations. Currently also includes an "unused" directory that holds raw or deprecated files. 
-  - *area3Chum* - includes .csv files necessary to run Area 3 chum salmon simulations. *Note*: migrated directly from `salmon-sim` repo and has not been recently used. May be removed from package unless necessary for integrated examples.
-  - *manProcScenarios* - includes example .csv files to run simulations focused on evaluating the performance of different management procedures across a small range of operating models.
-  - *opModelScenarios* - includes example .csv files to run simulations focused on evaluating the performance of different oparing models across a small range of management procedures.
   
 #### man
 Includes the .rd files used to populate help files for each function. Created automatically via `roxygen`.
