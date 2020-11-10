@@ -21,11 +21,8 @@ Imports:
     Rcpp,
     RcppArmadillo,
     scales,
-    sensitivity,
-    sn,
     synchrony,
     tidyr,
-    viridis,
     zoo
 RoxygenNote: 6.1.1
 Suggests:

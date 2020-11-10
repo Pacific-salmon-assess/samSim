@@ -276,6 +276,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     if (!is.null(recDat$CU)) {
       recDat$CU <- abbreviate(recDat$CU, minlength = 4)
     }
+
     # Remove stocks from SR dataset that aren't in CU parameter inputs
     recDat <- recDat %>%
       dplyr::filter(stk %in% cuPar$stk) %>%
