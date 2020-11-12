@@ -92,13 +92,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   domCycle <- sapply(seq_along(stkName), function (x) {
     ifelse(is.null(cuPar$domCycle[x]), NA, cuPar$domCycle[x])
     }) #which cycle line is dominant? (for CUs with Larkin model only)
-  gen<-max(cuPar$aveGenTime)  # generation time
-  ageFirstRec <- max(cuPar$ageFirstRec) # age at first recruitment
-  ageMaxRec<-max(cuPar$ageMaxRec) # maximum age of recruits
 
-
-
-  # Minimum exploitation rate applied with TAM rule even at low abundance
+  # Minimum exploitation rate applied
   minER <- cuPar$minER
 
   # American ER
@@ -137,22 +132,25 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   nAges <- ncol(ageStruc) #total number of ages at return in ageStruc matrix (does not mean that modeled populations actually contain 4 ages at maturity)
   tauAge <- cuPar$tauCycAge * simPar$adjustAge #CU-specific variation in age-at-maturity, adjusted by scenario
   medAbundance <- cbind(cuPar$medianRec, cuPar$lowQRec, cuPar$highQRec) #matrix of long term abundances (median, lower and upper quantile)
+  gen<-max(cuPar$aveGenTime)  # generation time
+  ageFirstRec <- max(cuPar$ageFirstRec) # age at first recruitment
+  ageMaxRec<-max(cuPar$ageMaxRec) # maximum age of recruits
 
 
   ## Stock-recruitment parameters
   ricA <- cuPar$alpha
   ricB <- cuPar$beta0
   ricSig <- cuPar$sigma
-  if ("larkin" %in% model) {
-    larA <- cuPar$larkAlpha
-    larB <- cuPar$larkBeta0
-    larB1 <- cuPar$larkBeta1
-    larB2 <- cuPar$larkBeta2
-    larB3 <- cuPar$larkBeta3
-    larSig <- cuPar$larkSigma
-  }
+  larA <- cuPar$larkAlpha
+  larB <- cuPar$larkBeta0
+  larB1 <- cuPar$larkBeta1
+  larB2 <- cuPar$larkBeta2
+  larB3 <- cuPar$larkBeta3
+  larSig <- cuPar$larkSigma
 
-  # K.Holt note: not yet clear why this next bit is needed ...
+  coef1<-cuPar$coef1
+  coVarInit<-cuPar$covarInit
+
   # Coerce all stocks to have the same alpha parameter (regardless of model
   # structure), others will vary
   if (uniqueProd == FALSE) {
@@ -198,8 +196,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
   # Save reference alpha values for use when calculating BMs, then adjust alpha
   # based on productivity scenario
-  # K.Holt note: should change so values are not hard-wired
-  refAlpha <- ifelse(model == "ricker", ricA, larA)
+  refAlpha <- ifelse(model == "ricker" | model =="rickerSurv", ricA, larA)
+  # Then, adjust alpha based on productivity scenario
   if (prod == "low" | prod == "lowStudT") {
     alpha <- 0.65 * refAlpha
   } else if (prod == "high") {
@@ -242,12 +240,12 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     prodScalars == "1.35" ~ "increase"
   )
 
-  beta <- ifelse(model == "ricker", ricB, larB)
+  beta <- ifelse(model == "ricker" | model == "rickerSurv", ricB, larB)
   if (is.null(simPar$adjustBeta) == FALSE) {
     beta <- beta * simPar$adjustBeta
   }
   # Adjust sigma up or down
-  sig <- ifelse(model == "ricker", ricSig, larSig) * adjSig
+  sig <- ifelse(model == "ricker" | model=="rickerSurv", ricSig, larSig) * adjSig
 
   #Add correlations in rec deviations
   if (simPar$corrMat == TRUE) { #replace uniform correlation w/ custom matrix
@@ -754,6 +752,16 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             sMSY = sMSY[y, k, n]
           ))
         }
+        if (model[k] == "rickerSurv") {
+          refAlpha_prime<- refAlpha[k] + (coef1[k]*log(coVarInit[k]))
+          sEqVar[y, k, n] <- refAlpha_prime / beta[k]
+          sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha_prime))) /
+            beta[k]
+          sGen[y, k, n] <- as.numeric(sGenSolver(
+            theta = c(refAlpha_prime, refAlpha_prime / sEqVar[y, k, n], ricSig[k]),
+            sMSY = sMSY[y, k, n]
+          ))
+        }
         if (model[k] == "larkin") {
           #modified alpha used to estimate Larkin BMs
           alphaPrimeMat[y, k] <- refAlpha[k] - (larB1[k] * S[y - 1, k]) -
@@ -796,7 +804,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       }
 
       for (k in 1:nCU) {
-        if (model[k] == "ricker" |
+        if (model[k] == "ricker" | model[k] == "rickerSurv" |
             model[k] == "larkin" & cycle[y] == domCycle[k]) {
           if (bm == "stockRecruit") {
             upperBM[y, k] <- ifelse(!is.na(sMSY[y, k, n]),
@@ -848,8 +856,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     lowerObsBM[y, ] <- lowerBM[y, ]
 
    } # end of year loop 1 (y = 1:nPrime)
-
-
 
     #__________________________________________________________________________________________________
     ### Loop 2: Infilling of last 12 years
@@ -939,6 +945,20 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             ))
           }
         } #end if model == ricker
+        if (model[k] == "rickerSurv") {
+          if (normPeriod == TRUE) {
+            sMSY[y, k, n] <- sMSY[nPrime, k, n]
+            sGen[y, k, n] <- sGen[nPrime, k, n]
+          } else if (normPeriod == FALSE) {
+            refAlpha_prime<- refAlpha[k] + (coef1[k]*log(coVarInit[k]))
+            sEqVar[y, k, n] <- refAlpha_prime / beta[k]
+            sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha_prime))) / beta[k]
+            sGen[y, k, n] <- as.numeric(sGenSolver(
+              theta = c(refAlpha_prime, refAlpha_prime / sEqVar[y, k, n], ricSig[k]),
+              sMSY = sMSY[y, k, n]
+            ))
+          }
+        } #end if model == rickerSurv
         if (model[k] == "larkin") {
           if (normPeriod == TRUE) {
             #calculate last observed year on same cycle line as current so that
@@ -994,8 +1014,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       recRY6[y, ] <- recBY[y - 6, ] * ppnAges[y - 6, , 5]
       recRY[y, ] <- recRY2[y, ] + recRY3[y, ] + recRY4[y, ] + recRY5[y, ] + recRY6[y, ]
 
-      recRYAg[y, n] <- sum(recRY[y, ])
 
+      recRYAg[y, n] <- sum(recRY[y, ])
 
       #________________________________________________________________________
       ### Observation submodel 1 (previous years abundance)
@@ -1427,6 +1447,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         estSGen[y, , n] <- sGen[y, , n]
         estSMSY[y, , n] <- sMSY[y, , n]
       } else if (normPeriod == FALSE) {
+
+        if (model[k] == "larkin" | model[k]=="rickerSurv") {
+          warning("Normative period is TRUE for Larkin or RickerSurv. Assessment model will not equal true OM for this case. Default assessment model is Ricker")
+        }
+
         for (k in 1:nCU) {
           #Calculate true percentile BMs
           temp <- S[1:y, k]
@@ -1513,14 +1538,28 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                error = errorCU[y, k], rho = rho,
                                prevErr = laggedError[y - 1, k])
             laggedError[y, k] <- dum[[2]]
+            #keep recruitment below CU-specific cap
+            recBY[y, k] <- min(dum[[1]], recCap[k])
+          }
+          if (model[k] == "rickerSurv") {
+            # K.Holt - for now, keep mean survival at age at coVarInit for all ages
+            ### - will need to change / update at some point ...
+            mSurvAtAge<-rep(coVarInit[k],length(ppnAges[y,k,]))
+            dum <- rickerSurvModel(S=S[y, k], a=alphaMat[y, k], b=beta[k],
+                                   ppnAges = ppnAges[y,k,], gamma=coef1[k],
+                                   mSurvAtAge=mSurvAtAge,
+                               error = errorCU[y, k])
+            #keep recruitment below CU-specific cap
+            recBY[y, k] <- min(dum[[6]], recCap[k])
           }
           if (model[k] == "larkin") {
             dum <- larkinModel(S[y, k], S[y - 1, k], S[y-2, k], S[y - 3, k],
                                alphaMat[y, k], beta[k], larB1[k], larB2[k],
                                larB3[k], error = errorCU[y, k])
+            #keep recruitment below CU-specific cap
+            recBY[y, k] <- min(dum[[1]], recCap[k])
           }
-          #keep recruitment below CU-specific cap
-          recBY[y, k] <- min(dum[[1]], recCap[k])
+
           logRS[y, k] <- log(recBY[y, k] / S[y, k])
         } #end if(S[y, k]>0)
         if (is.na(laggedError[y, k])) {
@@ -1628,11 +1667,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       if (exists("larB")) { # if larkin terms are present they need to be passed
         larBList <- list(larB, larB1, larB2, larB3)
         names(larBList) <- c("lag0", "lag1", "lag2", "lag3")
-        plotDiagCU(plotTrialDat, varNames, stkName, model, ricB,
+        plotDiagCU_generic(plotTrialDat, varNames, stkName, model, ricB,
                    larBList = larBList, medAbundance, nPrime, extinct,
                    focalCU = NULL)
       } else {
-        plotDiagCU(plotTrialDat, varNames, stkName, model, ricB,
+        plotDiagCU_generic(plotTrialDat, varNames, stkName, model, ricB,
                    larBList = NULL, medAbundance, nPrime, extinct,
                    focalCU = NULL)
       }
