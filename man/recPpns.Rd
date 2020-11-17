@@ -4,8 +4,10 @@
 \name{recPpns}
 \alias{recPpns}
 \title{Proportion of recruits at age for Fraser River sockeye}
-\format{A DF with 1093 rows representing year-specific observations for each
-CU.}
+\format{
+A DF with 1093 rows representing year-specific observations for each
+CU.
+}
 \source{
 Fraser River Salmon Spawning Initiative (Ann-Marie Huang (DFO) personal
 communication; January 2018)

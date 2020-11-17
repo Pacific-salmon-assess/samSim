@@ -102,3 +102,46 @@ larkinModel <- function(S, Sm1, Sm2, Sm3, a, b, b1, b2, b3, error) {
   R <- (S * exp(a - b * S - b1 * Sm1 - b2 * Sm2 - b3 * Sm3)) * exp(error)
   return(R)
 }
+
+#------------------------------------------------------------------------------
+
+#' Generate recruit abundance with the Ricker Model with a marine survival co-variate
+#'
+#' This function calculates recruitment from Ricker curve with a marine survival covariate
+#' that is specific to brood year added in.  Note that internal \code{if}
+#' statements prevent it from being vectorized so must be passed single values,
+#' i.e. all vectors for inputs and outputs are length 1.
+#'
+#' @param S A numeric of spawner abundance.
+#' @param a A numeric of alpha value, i.e. productivity at low spawner
+#' abundance.
+#' @param b A numeric vector of beta value, i.e. density dependence para-
+#' meter.
+#' @param error A numeric recruitment deviation, typically generated
+#' using \code{rmvnorm()} and relevant process variance estimates (sigma).
+#' @param ppnAges A numeric vector of proportion of spawner abundance at age
+#' @param gamma A numeric value represting the marine survival coefficient
+#' @param mSurvAtAge A numeric vector representing marine survival covariates at age
+#'
+#' @return A list of recruitment at each age for the modelled brood year
+#' (e.g., R2 = recruitment to age 2 from broodyear, R3 = recruitment to age 3, etc),
+#' as well as recruitment for all return ages combined from the modelled brood year (RecBY)
+#' @export
+#'
+#' @examples
+#' rickerSurvModel(S = 1000, a = 2.1, b = 0.00001, error = 0.8, ppnAges = c(0,0.83,0.17,0,0), gamma=0.4, mSurvAtAge=c(0,0.013, 0.015,0,0))
+#'
+rickerSurvModel <- function(S, a, b, error, ppnAges, gamma, mSurvAtAge) {
+
+  R2 <- ppnAges[1] * S * exp(a-b*S + gamma * mSurvAtAge[1])  * exp(error)
+  R3 <- ppnAges[2] * S * exp(a-b*S + gamma * mSurvAtAge[2]) * exp(error)
+  R4 <- ppnAges[3] * S * exp(a-b*S + gamma * mSurvAtAge[3]) * exp(error)
+  R5 <- ppnAges[4] * S * exp(a-b*S + gamma * mSurvAtAge[4]) * exp(error)
+  R6 <- ppnAges[5] * S * exp(a-b*S + gamma * mSurvAtAge[5]) * exp(error)
+
+  RecBY<-sum(R2,R3,R4,R5,R6)
+
+  return(list(R2,R3,R4,R5,R6,RecBY))
+}
+
+

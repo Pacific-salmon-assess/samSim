@@ -4,8 +4,13 @@
 \alias{genOutputList}
 \title{Generate list of outputs}
 \usage{
-genOutputList(dirName, subDirName = NULL, selectedCUs = NULL,
-  agg = TRUE, aggTS = FALSE)
+genOutputList(
+  dirName,
+  subDirName = NULL,
+  selectedCUs = NULL,
+  agg = TRUE,
+  aggTS = FALSE
+)
 }
 \arguments{
 \item{dirName}{A character vector representing the directory to pull data

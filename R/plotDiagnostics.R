@@ -59,7 +59,7 @@ plotDiagCU <- function(varArray, varNames, stkName = NULL, model, ricB,
   trueA <- mean(varArray[ , p, "Productivity"])
   # note that although this is "true" alpha used to forward simulate, it was
   # drawn from a distribution and may not match historical observations well
-  if (model[p] == "ricker"){
+  if (model[p] == "ricker" | model[p]=="rickerSurv"){
     trueB <- ricB[p]
   }
   if (model[p] == "larkin"){

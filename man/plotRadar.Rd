@@ -4,8 +4,16 @@
 \alias{plotRadar}
 \title{Radar plot}
 \usage{
-plotRadar(dat, xLab, plotVars = NULL, groupingVar = NULL, cu = FALSE,
-  mainLab = NULL, legendLab = NULL, axisSize = 13)
+plotRadar(
+  dat,
+  xLab,
+  plotVars = NULL,
+  groupingVar = NULL,
+  cu = FALSE,
+  mainLab = NULL,
+  legendLab = NULL,
+  axisSize = 13
+)
 }
 \arguments{
 \item{xLab}{A character representing the x axis label.}
@@ -36,8 +44,8 @@ vice versa. Includes helper function coordRadar.
 trimDat <- agPlottingDF \%>\%
   dplyr::filter(var \%in\% c("ppnCULower", "ppnCUStable", "ppnFisheriesOpen")) \%>\%
   dplyr::mutate(var = factor(var))
-plotRadar(trimDat, xLab = c("CUs\\nLower BM", "CUs\\nStable", "Fisheries\\n Open"),
+plotRadar(trimDat, xLab = c("CUs\nLower BM", "CUs\nStable", "Fisheries\n Open"),
           plotVars = NULL, groupingVar = NULL, cu = FALSE,
-          legendLab = "Proportion\\nTAC in\\nMixed Catch", axisSize = 13)
+          legendLab = "Proportion\nTAC in\nMixed Catch", axisSize = 13)
 
 }
