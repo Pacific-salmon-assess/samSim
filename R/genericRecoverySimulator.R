@@ -1664,11 +1664,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       if (exists("larB")) { # if larkin terms are present they need to be passed
         larBList <- list(larB, larB1, larB2, larB3)
         names(larBList) <- c("lag0", "lag1", "lag2", "lag3")
-        plotDiagCU_generic(plotTrialDat, varNames, stkName, model, ricB,
+        plotDiagCU(plotTrialDat, varNames, stkName, model, ricB,
                            larBList = larBList, medAbundance, nPrime, extinct,
                            focalCU = NULL)
       } else {
-        plotDiagCU_generic(plotTrialDat, varNames, stkName, model, ricB,
+        plotDiagCU(plotTrialDat, varNames, stkName, model, ricB,
                            larBList = NULL, medAbundance, nPrime, extinct,
                            focalCU = NULL)
       }
