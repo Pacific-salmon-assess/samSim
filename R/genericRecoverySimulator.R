@@ -165,11 +165,12 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
   # If .csv of par dist is passed, change from median values to sample from par dist
   if (is.null(ricPars) == FALSE) {
-    dum <- getSRPars(pars = ricPars, alphaOnly = TRUE, highP = 0.95,
+    dum <- getSRPars(pars = ricPars, alphaOnly = FALSE, highP = 0.95,
                      lowP = 0.05, stks = stkID)
     ricA <- dum$pMed[["alpha"]]
-    ricB <- dum$pMed[["beta0"]]
+    ricB <- dum$pMed[["beta"]]
     ricSig <- dum$pMed[["sigma"]]
+    ricGamma <- dum$pMed[["gamma"]]
     if (is.null(larkPars) == FALSE) {
       #getSRPars provides quantiles as well which can be used for high/low prod
       #treatments but this is currently replaced by applying a simple scalar
@@ -236,7 +237,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     prodScalars == "1" ~ "stable",
     prodScalars == "1.35" ~ "increase"
   )
-
   beta <- ifelse(model == "ricker" | model == "rickerSurv", ricB, larB)
   if (is.null(simPar$adjustBeta) == FALSE) {
     beta <- beta * simPar$adjustBeta
