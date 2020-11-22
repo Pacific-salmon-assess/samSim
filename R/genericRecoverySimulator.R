@@ -27,7 +27,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                variableCU=FALSE, makeSubDirs=TRUE, ricPars,
                                larkPars=NULL, cuCustomCorrMat=NULL,
                                erCorrMat=NULL, dirName, nTrials=100, uniqueProd=TRUE,
-                               random=FALSE) {
+                               uniqueSurv=FALSE, random=FALSE) {
   # If random = TRUE then each simulation will start at a different point
   # i.e. should ALWAYS be FALSE except for convenience when running independent
   # chains to test convergence
@@ -147,6 +147,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
   coef1<-cuPar$coef1
   coVarInit<-cuPar$covarInit
+  mu_logCoVar<-cuPar$mu_logCovar
+  sig_logCoVar<-cuPar$sig_logCovar
+  min_logCoVar<-cuPar$min_logCovar
+  max_logCoVar<-cuPar$max_logCovar
 
   # Coerce all stocks to have the same alpha parameter (regardless of model
   # structure), others will vary
@@ -156,6 +160,16 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     ricSig <- rep(mean(cuPar$sigma), length.out = nCU)
     larSig <- rep(mean(cuPar$sigma), length.out = nCU)
   }
+
+  # Coerce all stocks to have the same alpha parameter (regardless of model
+  # structure), others will vary
+  if (is.na(mu_logCoVar[1]) == FALSE & uniqueSurv == FALSE) {
+    mu_logCoVar<-mean(mu_logCoVar)
+    sig_logCoVar<-mean(sig_logCoVar)
+    min_logCoVar<-mean(min_logCoVar)
+    max_logCoVar<-mean(max_logCoVar)
+  }
+
 
   # If .csv of par dist is not passed and productivity is something other than "med", give error warning
   if (prod != "med" & is.null(ricPars) == TRUE) {
@@ -243,6 +257,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   }
   # Adjust sigma up or down
   sig <- ifelse(model == "ricker" | model=="rickerSurv", ricSig, larSig) * adjSig
+
+  gamma<-ifelse(model == "rickerSurv", ricGamma, NA)
 
   #Add correlations in rec deviations
   if (simPar$corrMat == TRUE) { #replace uniform correlation w/ custom matrix
@@ -403,6 +419,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
   #Population dynamics
   sEqVar <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  mSurvAge4<- matrix(NA, nrow = nYears, ncol = nTrials)
 
   #Harvest and observation
   expFactor <- rep(1, length.out = nTrials)
@@ -750,7 +767,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             ))
           }
           if (model[k] == "rickerSurv") {
-            refAlpha_prime<- refAlpha[k] + (coef1[k]*log(coVarInit[k]))
+            refAlpha_prime<- refAlpha[k] + (gamma[k]*log(coVarInit[k]))
             sEqVar[y, k, n] <- refAlpha_prime / beta[k]
             sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha_prime))) /
               beta[k]
@@ -947,7 +964,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             sMSY[y, k, n] <- sMSY[nPrime, k, n]
             sGen[y, k, n] <- sGen[nPrime, k, n]
           } else if (normPeriod == FALSE) {
-            refAlpha_prime<- refAlpha[k] + (coef1[k]*log(coVarInit[k]))
+            refAlpha_prime<- refAlpha[k] + (gamma[k]*log(coVarInit[k]))
             sEqVar[y, k, n] <- refAlpha_prime / beta[k]
             sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha_prime))) / beta[k]
             sGen[y, k, n] <- as.numeric(sGenSolver(
@@ -1504,6 +1521,15 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
       #___________________________________________________________________
       ### Population dynamics submodel
+
+
+      # Get marine rvival covariate (only used for rickerSurv SR model)
+      ## - all CUs have the same marine survival (only option available at present)
+      if (y == nPrime+1) mSurvAge4[1:nPrime, n] <- rep(exp(mu_logCoVar),nPrime)
+      mSurvAge4[y, n]<-rnorm(1,mu_logCoVar,sig_logCoVar)
+      if (mSurvAge4[y, n] > max_logCoVar) mSurvAge4[y, n] <- max_logCoVar
+      if (mSurvAge4[y, n] < min_logCoVar) mSurvAge4[y, n] <- min_logCoVar
+
       for (k in 1:nrow(ageStruc)) {
         ppnAges[y, k, ] <- ppnAgeErr(ageStruc[k, ], tauAge[k],
                                      error = runif(nAges, 0.0001, 0.9999))
@@ -1528,6 +1554,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                  alpha = rep(0, nCU), nu = 10000,
                                  Omega = covMat)
       }
+
+
       for (k in 1:nCU) {
         if (S[y, k] > 0) {
           if (model[k] == "ricker") {
@@ -1539,11 +1567,12 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             recBY[y, k] <- min(dum[[1]], recCap[k])
           }
           if (model[k] == "rickerSurv") {
-            # K.Holt - for now, keep mean survival at age at coVarInit for all ages
-            ### - will need to change / update at some point ...
-            mSurvAtAge<-rep(coVarInit[k],length(ppnAges[y,k,]))
+            # K.Holt - current set-up assumes ageMaxRec == 4 (i.e., IF coho); will need to update for other stocks
+
+
+            mSurvAtAge<-c(mSurvAge4[y-2,n],mSurvAge4[y-1,n],mSurvAge4[y,n],0,0)
             dum <- rickerSurvModel(S=S[y, k], a=alphaMat[y, k], b=beta[k],
-                                   ppnAges = ppnAges[y,k,], gamma=coef1[k],
+                                   ppnAges = ppnAges[y,k,], gamma=gamma[k],
                                    mSurvAtAge=mSurvAtAge,
                                    error = errorCU[y, k])
             #keep recruitment below CU-specific cap
