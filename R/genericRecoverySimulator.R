@@ -2011,7 +2011,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
   LRP.dat <- sAg.dat %>% left_join(ppnCUs.dat)
 
-  fileName <- ifelse(variableCU == "TRUE", paste(cuNameOM, cuNameMP, "aggDat.csv", sep = "_"),
+  fileName <- ifelse(variableCU == "TRUE", paste(cuNameOM, cuNameMP, "lrpDat.csv", sep = "_"),
                      paste(nameOM, nameMP, "lrpDat.csv", sep = "_"))
 
   write.csv(LRP.dat, file = paste(here("outputs/simData"), dirPath, fileName, sep = "/"),
