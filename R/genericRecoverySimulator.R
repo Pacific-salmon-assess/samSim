@@ -1997,5 +1997,26 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   write.csv(aggDat, file = paste(here("outputs/simData"), dirPath, fileName, sep = "/"), row.names = FALSE)
 
 
+  # Create LRP data for output
+
+  colnames(sAg)<-as.character(1:nTrials)
+  sAg.dat<-as_tibble(sAg)
+  sAg.dat<-sAg.dat %>% add_column(year=1:nYears)
+  sAg.dat<-sAg.dat %>% pivot_longer(as.character(1:nTrials), names_to="iteration", values_to="sAg")
+
+  colnames(ppnCUsLowerBM)<-as.character(1:nTrials)
+  ppnCUs.dat<-as_tibble(ppnCUsLowerBM)
+  ppnCUs.dat<-ppnCUs.dat %>% add_column(year=1:nYears)
+  ppnCUs.dat<-ppnCUs.dat %>% pivot_longer(as.character(1:nTrials), names_to="iteration", values_to="ppnCUsLowerBM")
+
+  LRP.dat <- sAg.dat %>% left_join(ppnCUs.dat)
+
+  fileName <- ifelse(variableCU == "TRUE", paste(cuNameOM, cuNameMP, "aggDat.csv", sep = "_"),
+                     paste(nameOM, nameMP, "lrpDat.csv", sep = "_"))
+
+  write.csv(LRP.dat, file = paste(here("outputs/simData"), dirPath, fileName, sep = "/"),
+            row.names = FALSE)
+
+
 
   } # end of genericRecoverySim()
