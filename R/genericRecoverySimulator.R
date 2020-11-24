@@ -2029,8 +2029,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
 
     spnDat_long.i <- spnDat.i %>% select(starts_with("V"),iteration, year) %>% pivot_longer(starts_with("V"),names_to="CU", values_to="spawners")
-
-    spnDat_long.i$CU<-rep(1:ncol(spnDat.i),length=nrow(spnDat_long.i))
+    spnDat_long.i$CU<-rep(1:nCU,length=nrow(spnDat_long.i))
 
     if (i == 1) spnDat<-spnDat_long.i
     if (i > 1) {
