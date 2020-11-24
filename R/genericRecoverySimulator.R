@@ -1606,7 +1606,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       recBYAg[y, n] <- sum(recBY[y, ])
 
       for (k in 1:nCU) {
-        if (model[k] == "ricker" |
+        if (model[k] == "ricker" | model[k] == "rickerSurv"  |
             model[k] == "larkin" & cycle[y] == domCycle[k]) {
           if (bm == "stockRecruit") {
             #is spawner abundance greater than upper/lower BM
@@ -1632,6 +1632,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         if (!is.na(upperBM[y, k]) & S[y, k] > upperBM[y, k]) {
           counterUpperBM[y, k] <- 1 #is spawner abundance greater than upper BM
         }
+
         if (!is.na(lowerBM[y, k]) & S[y, k] > lowerBM[y, k]) {
           counterLowerBM[y, k] <- 1 #is spawner abundance greater than lower BM
         }
@@ -1998,7 +1999,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
 
   # Create LRP data for output
-
   colnames(sAg)<-as.character(1:nTrials)
   sAg.dat<-as_tibble(sAg)
   sAg.dat<-sAg.dat %>% add_column(year=1:nYears)
