@@ -2019,4 +2019,31 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
 
 
+  # Create CU spawner abundance data for output
+
+  for(i in 1:nTrials) {
+
+    spnDat.i<-as_tibble(spwnrArray[,,i])
+
+    spnDat.i<-spnDat.i %>% add_column(year=1:nrow(spwnrArray)) %>% add_column(iteration=rep(i,nrow(spwnrArray)))
+
+
+    spnDat_long.i <- spnDat.i %>% select(starts_with("V"),iteration, year) %>% pivot_longer(starts_with("V"),names_to="CU", values_to="spawners")
+
+    spnDat_long.i$CU<-rep(1:ncol(spnDat.i),length=nrow(spnDat_long.i))
+
+    if (i == 1) spnDat<-spnDat_long.i
+    if (i > 1) {
+      spnDat<-bind_rows(spnDat,spnDat_long.i)
+    }
+
+  }
+
+  fileName <- ifelse(variableCU == "TRUE", paste(cuNameOM, cuNameMP, "CUspwnDat.csv", sep = "_"),
+                     paste(nameOM, nameMP, "CUspwnDat.csv", sep = "_"))
+
+  write.csv(spnDat, file = paste(here("outputs/simData"), dirPath, fileName, sep = "/"),
+            row.names = FALSE)
+
+
   } # end of genericRecoverySim()
