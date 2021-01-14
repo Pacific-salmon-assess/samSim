@@ -9,8 +9,7 @@ if (length(newPackages)) {
 lapply(listOfPackages, require, character.only = TRUE)
 
 
-source("R/genericRecoverySimulator.r")
-source("R/plotDiagnostics.r")
+#source("R/genericRecoverySimulator.r")
 
 # Coho ====================================================================
 
@@ -47,17 +46,17 @@ dirNames <- sapply(scenNames, function(x) paste(x, unique(simPar$species),
 
 genericRecoverySim(simPar[1, ], cuPar=cuPar, srDat=srDat,
                  variableCU=FALSE, ricPars=ricPars, cuCustomCorrMat = corMatrix,
-                 dirName=dirNames[[1]], nTrials=100, makeSubDirs=FALSE, random=FALSE)
+                 dirName=dirNames[[1]], nTrials=100, makeSubDirs=FALSE, random=FALSE, outDir="outDir")
 
 
 
 genericRecoverySim(simPar[2, ], cuPar=cuPar, srDat=srDat,
                    variableCU=FALSE, ricPars=ricPars, cuCustomCorrMat = corMatrix,
-                   dirName="test.co", nTrials=100, makeSubDirs=FALSE, random=FALSE)
+                   dirName="test.co", nTrials=100, makeSubDirs=FALSE, random=FALSE,outDir="outDir")
 
 genericRecoverySim(simPar[3, ], cuPar=cuPar, srDat=srDat,
                    variableCU=FALSE, ricPars=ricPars, cuCustomCorrMat = corMatrix,
-                   dirName="test.co", nTrials=100, makeSubDirs=FALSE, random=FALSE)
+                   dirName="test.co", nTrials=100, makeSubDirs=FALSE, random=FALSE,outDir="outDir")
 
 
 
