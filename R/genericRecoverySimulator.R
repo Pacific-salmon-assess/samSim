@@ -371,18 +371,18 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
   #_____________________________________________________________________
   ## Create directories (based on all scenarios in a sim run)
-  dir.create(paste(here("outputs/diagnostics"), dirName, sep = "/"),
+  dir.create(paste(here("SamSimOutputs/diagnostics"), dirName, sep = "/"),
              recursive = TRUE, showWarnings = FALSE)
-  dir.create(paste(here("outputs/simData"), dirName, sep = "/"),
+  dir.create(paste(here("SamSimOutputs/simData"), dirName, sep = "/"),
              recursive = TRUE, showWarnings = FALSE)
 
   ## Create subdirectories if multiple OMs and MPs are being run
   if (makeSubDirs == TRUE) {
     subDirName <- simPar$nameOM
-    dir.create(paste(here("outputs/diagnostics"), dirName, subDirName,
+    dir.create(paste(here("SamSimOutputs/diagnostics"), dirName, subDirName,
                      sep = "/"),
                recursive = TRUE, showWarnings = FALSE)
-    dir.create(paste(here("outputs/simData"), dirName, subDirName,
+    dir.create(paste(here("SamSimOutputs/simData"), dirName, subDirName,
                      sep = "/"),
                recursive = TRUE, showWarnings = FALSE)
   }
@@ -1689,7 +1689,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                          paste(cuNameOM, cuNameMP, "singleTrialFig.pdf",
                                sep = "_"),
                          paste(nameOM, nameMP, "singleTrialFig.pdf", sep = "_"))
-      pdf(file = paste(here("outputs/diagnostics", dirPath, fileName),
+      pdf(file = paste(here("SamSimOutputs/diagnostics", dirPath, fileName),
                        sep = "/"), height = 6, width = 7)
       if (exists("larB")) { # if larkin terms are present they need to be passed
         larBList <- list(larB, larB1, larB2, larB3)
@@ -1908,7 +1908,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                      paste(cuNameOM, cuNameMP, "cuDat.RData", sep = "_"),
                      paste(nameOM, nameMP, "cuDat.RData", sep = "_"))
 
-  saveRDS(cuList, file = paste(here("outputs/simData"), dirPath, fileName,
+  saveRDS(cuList, file = paste(here("SamSimOutputs/simData"), dirPath, fileName,
                                sep = "/"), version=3)
 
   #_____________________________________________________________________
@@ -1937,7 +1937,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                      paste(cuNameOM, cuNameMP, "aggTimeSeries.RData",
                            sep = "_"),
                      paste(nameOM, nameMP, "aggTimeSeries.RData", sep = "_"))
-  saveRDS(agTSList, file = paste(here("outputs/simData"), dirPath, fileName,
+  saveRDS(agTSList, file = paste(here("SamSimOutputs/simData"), dirPath, fileName,
                                  sep = "/"), version=3)
 
   # Store aggregate data as data frame; each variable is a vector of single, trial-specific values
@@ -1995,7 +1995,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   )
   fileName <- ifelse(variableCU == "TRUE", paste(cuNameOM, cuNameMP, "aggDat.csv", sep = "_"),
                      paste(nameOM, nameMP, "aggDat.csv", sep = "_"))
-  write.csv(aggDat, file = paste(here("outputs/simData"), dirPath, fileName, sep = "/"), row.names = FALSE)
+  write.csv(aggDat, file = paste(here("SamSimOutputs/simData"), dirPath, fileName, sep = "/"), row.names = FALSE)
 
 
   # Create LRP data for output
@@ -2014,7 +2014,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   fileName <- ifelse(variableCU == "TRUE", paste(cuNameOM, cuNameMP, "lrpDat.csv", sep = "_"),
                      paste(nameOM, nameMP, "lrpDat.csv", sep = "_"))
 
-  write.csv(LRP.dat, file = paste(here("outputs/simData"), dirPath, fileName, sep = "/"),
+  write.csv(LRP.dat, file = paste(here("SamSimOutputs/simData"), dirPath, fileName, sep = "/"),
             row.names = FALSE)
 
 
@@ -2041,7 +2041,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   fileName <- ifelse(variableCU == "TRUE", paste(cuNameOM, cuNameMP, "CUspwnDat.csv", sep = "_"),
                      paste(nameOM, nameMP, "CUspwnDat.csv", sep = "_"))
 
-  write.csv(spnDat, file = paste(here("outputs/simData"), dirPath, fileName, sep = "/"),
+  write.csv(spnDat, file = paste(here("SamSimOutputs/simData"), dirPath, fileName, sep = "/"),
             row.names = FALSE)
 
 

@@ -1,5 +1,0 @@
-scenario,nameOM,nameMP,keyVar,plotOrder,species,simYears,harvContRule,benchmark,canER,usER,propMixHigh,singleHCR,moveTAC,prodRegime,startYear,endYear,rho,arSigTransform,correlCU,corrMat,tauCatch,obsSig,mixOUSig,singOUSig,obsMixCatchSig,obsSingCatchSig,obsAgeErr,lowCatchThresh,highCatchThresh,extinctThresh,adjustSig,adjustAge,adjustForecast
-refrefMedFixed,ref,medFixedER,expRate,1,coho,20,fixedER,stockRecruit,0.125,0,1,FALSE,FALSE,med,NA,NA,0,FALSE,0,TRUE,0,0,0,0,0,0,0,0,NA,0.0001,1,1,1
-refLowFixed,ref,lowFixedER,expRate,2,coho,20,fixedER,stockRecruit,0.05,0,1,FALSE,FALSE,med,NA,NA,0,FALSE,0,TRUE,0,0,0,0,0,0,0,0,NA,0.0001,1,1,1
-refHighFixed,ref,highFixedER,expRate,3,coho,20,fixedER,stockRecruit,0.225,0,1,FALSE,FALSE,med,NA,NA,0,FALSE,0,TRUE,0,0,0,0,0,0,0,0,NA,0.0001,1,1,1
-refVeryHighFixed,ref,veryHighFixedER,expRate,4,coho,20,fixedER,stockRecruit,0.75,0,1,FALSE,FALSE,med,NA,NA,0,FALSE,0,TRUE,0,0,0,0,0,0,0,0,NA,0.0001,1,1,1

@@ -1,6 +1,0 @@
-manUnit,stkName,stk,model,domCycle,usER,minER,tauCycAge,alpha,beta0,sigma,coef1,covarInit,mu_logCovar1,sig_logCovar1,min_logCovar,max_logCovar,aveGenTime,ageFirstRec,ageMaxRec,larkAlpha,larkBeta0,larkBeta1,larkBeta2,larkBeta3,larkSigma,meanRec2,meanRec3,meanRec4,meanRec5,meanRec6,medianRec,lowQRec,highQRec,meanDBE,sdDBE,medMA,meanForecast,sdForecast
-IFCoho,Middle_Fraser,1,rickerSurv,NA,0,0.05,0,2.51,0.00011,0.51,0.4,0.01475911,-4.58,0.447,-5.914504,-2.701571,3,2,4,NA,NA,NA,NA,NA,NA,0,0.84,0.16,0,0,5019,4349,5562,NA,NA,NA,NA,NA
-IFCoho,Fraser_Canyon,2,rickerSurv,NA,0,0.05,0,2.9,0.00035,0.64,0.4,0.01446636,-4.58,0.447,-5.914504,-2.701571,3,2,4,NA,NA,NA,NA,NA,NA,0,0.84,0.16,0,0,2940,1926,3281,NA,NA,NA,NA,NA
-IFCoho,Lower_Thompson,3,rickerSurv,NA,0,0.05,0,2.64,0.00012,0.63,0.4,0.01463774,-4.58,0.447,-5.914504,-2.701571,3,2,4,NA,NA,NA,NA,NA,NA,0,0.82,0.18,0,0,6912,3369,9229,NA,NA,NA,NA,NA
-IFCoho,North_Thompson,4,rickerSurv,NA,0,0.05,0,2.86,8.20E-05,0.46,0.4,0.01478372,-4.58,0.447,-5.914504,-2.701571,3,2,4,NA,NA,NA,NA,NA,NA,0,0.88,0.12,0,0,11119,7640,18107,NA,NA,NA,NA,NA
-IFCoho,South_Thompson,5,rickerSurv,NA,0,0.05,0,2.5,8.10E-05,0.61,0.4,0.01447127,-4.58,0.447,-5.914504,-2.701571,3,2,4,NA,NA,NA,NA,NA,NA,0,0.83,0.17,0,0,6619,4110,12420,NA,NA,NA,NA,NA

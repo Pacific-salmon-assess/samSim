@@ -10,6 +10,7 @@ lapply(listOfPackages, require, character.only = TRUE)
 
 
 source("R/genericRecoverySimulator.r")
+source("R/plotDiagnostics.r")
 
 # Coho ====================================================================
 
@@ -17,10 +18,10 @@ source("R/genericRecoverySimulator.r")
 
 # Simulation run parameters describing different scenarios
 simPar <- read.csv(here("data", "IFCohoPars",
-                        "cohoSimPar.csv"),
-                   stringsAsFactors = F)
+                        "cohoSimPars.csv"), stringsAsFactors = F)
+
 # CU-specific parameters
-cuPar <- read.csv(here("data", "IFCohoPars", "cohoCUPars_rickerSurv.csv"),
+cuPar <- read.csv(here("data", "IFCohoPars", "cohoCUPars.csv"),
                   stringsAsFactors=F)
 
 # Stock-recruit and catch data that are used to populate the simulation priming
@@ -46,7 +47,7 @@ dirNames <- sapply(scenNames, function(x) paste(x, unique(simPar$species),
 
 genericRecoverySim(simPar[1, ], cuPar=cuPar, srDat=srDat,
                  variableCU=FALSE, ricPars=ricPars, cuCustomCorrMat = corMatrix,
-                 dirName="test.co", nTrials=100, makeSubDirs=FALSE, random=FALSE)
+                 dirName=dirNames[[1]], nTrials=100, makeSubDirs=FALSE, random=FALSE)
 
 
 
