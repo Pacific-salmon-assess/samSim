@@ -5,6 +5,9 @@
 #' @param amER A numeric representing the target American exploitation rate
 #' @param ppnMixVec A numeric representing the proportion of the Canadian TAC
 #' allocated to mixed stock fisheries
+#' @param sigER A numeric representing annual variability in ER
+#' @param randomVar A TRUE/FALSE variable indicating whether the Canadian ER should have
+#' annual implementation error around the target
 #'
 #' @return Returns a four element list of numeric vectors with length equal to
 #' forecast:Total Canadian TAC, Canadian mixed fishery TAC, Canadian single fishery TAC, American TAC
@@ -13,13 +16,33 @@
 #' calcTAC_fixedER(rec=1000, canER=0.3, amER = 0.1, ppnMix = 0.5)
 #'
 #'
-calcTAC_fixedER <- function(rec, canER, amER, ppnMixVec) {
+calcTAC_fixedER <- function(rec, canER, amER, ppnMixVec, sigER, randomVar=T) {
 
-  canTAC <- canER * rec
-  canMixTAC <- canTAC * ppnMixVec
-  canSingTAC <- (canTAC * (1 -  ppnMixVec))
-  amTAC<- amER * rec
+  if (randomVar == F) {
+    canTAC <- canER * rec
+    canMixTAC <- canTAC * ppnMixVec
+    canSingTAC <- (canTAC * (1 -  ppnMixVec))
+    amTAC<- amER * rec
+  }
+  # At present, variable ERs are only applied to Canadian ER
+  if (randomVar == T) {
+  # calculate beta shape pars for can ER distribution
 
+    shape1<- canER^2 * (((1-canER)/sigER^2)-(1/canER))
+    shape2<-shape1 * (1/canER-1)
+
+    sampBeta<-function(stk) {
+      x<-rbeta(1,shape1[stk],shape2[stk])
+    }
+    # get realized ER
+    canER.real<-sapply(1:length(sigER),sampBeta)
+    # calculate TACs
+    canTAC <- canER.real * rec
+    canMixTAC <- canTAC * ppnMixVec
+    canSingTAC <- (canTAC * (1 -  ppnMixVec))
+    amTAC<- amER * rec
+
+  }
 
   tacList <- list(canTAC, canMixTAC, canSingTAC, amTAC)
   tacList <- lapply(tacList, function (x){ #replace NAs with 0s

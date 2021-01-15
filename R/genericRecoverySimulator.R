@@ -92,13 +92,15 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
   # Minimum exploitation rate applied
   minER <- cuPar$minER
+  # Annual variation in exploitation rate
+  sigER <- cuPar$sigER
+  # Scalar used to specify if any CUs should have ERs scaled above or below the MU-level average specified in simPars
+  canERScalar <- cuPar$canERScalar
+  usERScalar <- cuPar$usERScalar
 
   # American ER
-  if (is.numeric(simPar$usER) == TRUE) {
-    amER <- rep(simPar$usER, length.out = nCU)
-  } else {
-    amER <- cuPar$usER #American exploitation rate shared
-  }
+  amER <- rep(simPar$usER * usERScalar, length.out = nCU)
+
 
   # # En-route mortality
   # enRouteMort <- ifelse(is.null(simPar$enRouteMort), FALSE, simPar$enRouteMort)
@@ -1263,7 +1265,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
 
       if (harvContRule == "fixedER") {
-        tacs <- calcTAC_fixedER(rec = recRYManU[y, ], canER=canER, amER = amER, ppnMixVec)
+        tacs <- calcTAC_fixedER(rec = recRYManU[y, ], canER=canER, amER = amER, ppnMixVec, sigER = sigER,randomVar=T)
 
       }
 
