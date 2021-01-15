@@ -53,7 +53,6 @@ sGenOptimum <- function(S, theta, sMSY) {
 sGenSolver <- function(theta, sMSY) {
   #gives the min Ricker log-likelihood
   fnSGen <- function(S, theta, sMSY) -1.0 * sGenOptimum(S, theta, sMSY)$nLogLike
-
   fit <- optimize(f = fnSGen, interval = c(0, ((theta[1] / theta[2]) * (0.5 - 0.07 * theta[1]))),
                  theta = theta, sMSY = sMSY)
   return(list(fit = fit$minimum))

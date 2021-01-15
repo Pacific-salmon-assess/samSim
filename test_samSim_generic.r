@@ -10,6 +10,7 @@ lapply(listOfPackages, require, character.only = TRUE)
 
 
 #source("R/genericRecoverySimulator.r")
+#source("R/getSRPars_randomSamp.r")
 
 # Coho ====================================================================
 
