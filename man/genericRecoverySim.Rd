@@ -18,7 +18,9 @@ genericRecoverySim(
   dirName,
   nTrials = 100,
   uniqueProd = TRUE,
-  random = FALSE
+  uniqueSurv = FALSE,
+  random = FALSE,
+  outDir
 )
 }
 \arguments{
