@@ -1572,6 +1572,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       }
 
 
+
+
       for (k in 1:nCU) {
         if (S[y, k] > 0) {
           if (model[k] == "ricker") {
@@ -1749,7 +1751,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       }
     }
 
-
     # Calculate CU-specific trends across geometric means
     ## NOTE: even with quickLm these functions are a big bottleneck
     ## Make an optional output PM (rather than default) based on simPar
@@ -1884,6 +1885,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     #ppnConstrained[yrsSeq, n] <- apply(overlapConstraint[yrsSeq, ], 1, mean)
     ppnCUsOpenSingle[yrsSeq, n] <- apply(counterSingleBMLow[yrsSeq, ], 1,
                                          mean)
+
 
     } # end of nTrials loop
 
