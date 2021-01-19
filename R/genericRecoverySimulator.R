@@ -181,7 +181,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
   # If .csv of par dist is passed, change from median values to sample from par dist
   if (is.null(ricPars) == FALSE) {
-
      dum <- getSRPars_randomSamp(pars = ricPars, stks = stkID)
      ricA <- dum$alpha
      ricB <- dum$beta
@@ -779,10 +778,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           }
           if (model[k] == "rickerSurv") {
             refAlpha_prime<- refAlpha[k] + (gamma[k]*log(coVarInit[k]))
-
-            # K. Holt; temporary fix to refAlpha_prime being negative for some draws. Better fix would be to constain original MCMC estimation
-            refAlpha_prime<-max(refAlpha_prime,0.1)
-            #if (refAlpha_prime <= 0) refAlpha_prime<- refAlpha[k]
 
             sEqVar[y, k, n] <- refAlpha_prime / beta[k]
             sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha_prime))) /

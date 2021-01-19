@@ -40,6 +40,21 @@ getSRPars_randomSamp <- function(pars,
 
   stkKey <- unique(pars$stk)
 
+  muLSurv<-data.frame(stk=1:5, muLSurv=c(-4.21943, -3.859177, -4.215939, -4.220221, -4.229894))
+  muLSurv<-as_tibble(muLSurv)
+
+
+  out1<-pars %>% left_join(muLSurv)
+
+  logProd <- out1$alpha + out1$gamma * out1$muLSurv
+
+  out2<-out1 %>% add_column(logProd=logProd)
+
+  out3<-out2 %>% filter(logProd <= 0)
+
+  sMSY <- (1 - gsl::lambert_W0(exp(1 - out3$alpha))) /
+    out3$beta
+
   # Add column identifying mcmc replicate number
   dum<-pars %>% group_by(stk) %>% mutate(rep=row_number())
 
@@ -48,7 +63,7 @@ getSRPars_randomSamp <- function(pars,
 
   samp<-dum %>% filter(rep==sampID)
 
-  SRout <- data.frame(alpha=samp$alpha, beta=samp$beta, sigma=samp$sigma, gamma=samp$sigma)
+  SRout <- data.frame(alpha=samp$alpha, beta=samp$beta, sigma=samp$sigma, gamma=samp$gamma)
 
   return(SRout)
 
