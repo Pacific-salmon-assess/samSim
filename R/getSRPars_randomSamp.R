@@ -41,7 +41,7 @@ getSRPars_randomSamp <- function(pars,
   stkKey <- unique(pars$stk)
 
   # Add column identifying mcmc replicate number
-  dum<-pars %>% group_by(stk) %>% mutate(rep=row_number())
+  dum<-pars %>% dplyr::group_by(stk) %>% dplyr::mutate(rep=dplyr::row_number())
 
   #Select mcmc replicate to sample
   sampID<-round(runif(1,1,max(dum$rep)),0)
