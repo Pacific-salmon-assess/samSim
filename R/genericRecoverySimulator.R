@@ -2013,16 +2013,16 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
   # Create LRP data for output
   colnames(sAg)<-as.character(1:nTrials)
-  sAg.dat<-as_tibble(sAg)
-  sAg.dat<-sAg.dat %>% add_column(year=1:nYears)
-  sAg.dat<-sAg.dat %>% pivot_longer(as.character(1:nTrials), names_to="iteration", values_to="sAg")
+  sAg.dat<-as.data.frame(sAg)
+  sAg.dat<-sAg.dat %>% tibble::add_column(year=1:nYears)
+  sAg.dat<-sAg.dat %>% tidyr::pivot_longer(as.character(1:nTrials), names_to="iteration", values_to="sAg")
 
   colnames(ppnCUsLowerBM)<-as.character(1:nTrials)
-  ppnCUs.dat<-as_tibble(ppnCUsLowerBM)
-  ppnCUs.dat<-ppnCUs.dat %>% add_column(year=1:nYears)
-  ppnCUs.dat<-ppnCUs.dat %>% pivot_longer(as.character(1:nTrials), names_to="iteration", values_to="ppnCUsLowerBM")
+  ppnCUs.dat<-as.data.frame(ppnCUsLowerBM)
+  ppnCUs.dat<-ppnCUs.dat %>% tibble::add_column(year=1:nYears)
+  ppnCUs.dat<-ppnCUs.dat %>% tidyr::pivot_longer(as.character(1:nTrials), names_to="iteration", values_to="ppnCUsLowerBM")
 
-  LRP.dat <- sAg.dat %>% left_join(ppnCUs.dat)
+  LRP.dat <- sAg.dat %>% dplyr::left_join(ppnCUs.dat)
 
   fileName <- ifelse(variableCU == "TRUE", paste(cuNameOM, cuNameMP, "lrpDat.csv", sep = "_"),
                      paste(nameOM, nameMP, "lrpDat.csv", sep = "_"))
@@ -2032,29 +2032,41 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
 
 
-  # Create CU spawner abundance data for output
+  # Create CU spawner abundance and recruit data for output
 
   for(i in 1:nTrials) {
 
-    spnDat.i<-as_tibble(spwnrArray[,,i])
+    # spwnrArray = df of number of columns = number of Cus
+    spnDat.i<-as.data.frame(spwnrArray[,,i])
+    recDat.i<-as.data.frame(recArray[,,i])
 
-    spnDat.i<-spnDat.i %>% add_column(year=1:nrow(spwnrArray)) %>% add_column(iteration=rep(i,nrow(spwnrArray)))
+    if(nrow(spnDat.i) != nrow(recDat.i) )
+      print("warning, spawner and recruitment are not aligned in output csv file")
 
+    spnDat.i<-spnDat.i %>% tibble::add_column(year=1:nrow(spwnrArray)) %>%
+      tibble::add_column(iteration=rep(i,nrow(spwnrArray)))
 
-    spnDat_long.i <- spnDat.i %>% select(starts_with("V"),iteration, year) %>% pivot_longer(starts_with("V"),names_to="CU", values_to="spawners")
+    spnDat_long.i <- spnDat.i %>%
+      dplyr::select( tidyr::starts_with("V"), iteration, year) %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="spawners")
+
     spnDat_long.i$CU<-rep(1:nCU,length=nrow(spnDat_long.i))
 
-    if (i == 1) spnDat<-spnDat_long.i
-    if (i > 1) {
-      spnDat<-bind_rows(spnDat,spnDat_long.i)
-    }
+    recDat_long.i <- recDat.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="recruits")
 
+    srDat_long.i <- spnDat_long.i %>% tibble::add_column(recruits=recDat_long.i$recruits) #%>%
+
+    if (i == 1) srDatout<-srDat_long.i
+    if (i > 1) {
+      srDatout <- dplyr::bind_rows(srDatout,srDat_long.i)
+    }
   }
 
   fileName <- ifelse(variableCU == "TRUE", paste(cuNameOM, cuNameMP, "CUspwnDat.csv", sep = "_"),
-                     paste(nameOM, nameMP, "CUspwnDat.csv", sep = "_"))
+                     paste(nameOM, nameMP, "CU_SRDat.csv", sep = "_"))
 
-  write.csv(spnDat, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName, sep = "/"),
+  write.csv(srDatout, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName, sep = "/"),
             row.names = FALSE)
 
 

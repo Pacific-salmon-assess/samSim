@@ -21,9 +21,11 @@ Imports:
     Rcpp,
     RcppArmadillo,
     scales,
+    sn,
     synchrony,
     tidyr,
-    zoo
+    zoo,
+    tibble
 RoxygenNote: 7.1.1
 Suggests:
     knitr,
