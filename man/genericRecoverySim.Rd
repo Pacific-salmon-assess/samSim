@@ -15,7 +15,6 @@ genericRecoverySim(
   larkPars = NULL,
   cuCustomCorrMat = NULL,
   erCorrMat = NULL,
-  dirName,
   nTrials = 100,
   uniqueProd = TRUE,
   uniqueSurv = FALSE,

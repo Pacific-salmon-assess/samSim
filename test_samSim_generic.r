@@ -49,18 +49,13 @@ dirNames <- sapply(scenNames, function(x) paste(x, unique(simPar$species),
 
 genericRecoverySim(simPar[1, ], cuPar=cuPar, srDat=srDat,
                  variableCU=FALSE, ricPars=ricPars, cuCustomCorrMat = corMatrix,
-                 dirName=dirNames[[1]], nTrials=3, makeSubDirs=FALSE, random=FALSE, outDir="outDir")
+                 nTrials=3, makeSubDirs=FALSE, random=FALSE, outDir="outDir")
+
+genericRecoverySim(simPar[2, ], cuPar=cuPar, srDat=srDat,
+                   variableCU=FALSE, ricPars=ricPars, cuCustomCorrMat = corMatrix,
+                   nTrials=3, makeSubDirs=FALSE, random=FALSE, outDir="outDir")
 
 
-
-# genericRecoverySim(simPar[2, ], cuPar=cuPar, srDat=srDat,
-#                    variableCU=FALSE, ricPars=ricPars, cuCustomCorrMat = corMatrix,
-#                    dirName="test.co", nTrials=100, makeSubDirs=FALSE, random=FALSE,outDir="outDir")
-#
-# genericRecoverySim(simPar[3, ], cuPar=cuPar, srDat=srDat,
-#                    variableCU=FALSE, ricPars=ricPars, cuCustomCorrMat = corMatrix,
-#                    dirName="test.co", nTrials=100, makeSubDirs=FALSE, random=FALSE,outDir="outDir")
-#
 
 ## Now run in paralell ============================================
 
@@ -79,7 +74,7 @@ parLapply(cl, simsToRun, function(x) {
 
   genericRecoverySim(x, cuPar=cuPar, srDat=srDat,
                      variableCU=FALSE, ricPars=ricPars, cuCustomCorrMat = corMatrix,
-                     dirName="test.co", nTrials=100, makeSubDirs=FALSE, random=FALSE, outDir="outDir")
+                     nTrials=100, makeSubDirs=FALSE, random=FALSE, outDir="outDir")
 })
 stopCluster(cl) #end cluster
 toc()

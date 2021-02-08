@@ -26,7 +26,7 @@
 genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                variableCU=FALSE, makeSubDirs=TRUE, ricPars,
                                larkPars=NULL, cuCustomCorrMat=NULL,
-                               erCorrMat=NULL, dirName, nTrials=100, uniqueProd=TRUE,
+                               erCorrMat=NULL, nTrials=100, uniqueProd=TRUE,
                                uniqueSurv=FALSE, random=FALSE, outDir) {
   # If random = TRUE then each simulation will start at a different point
   # i.e. should ALWAYS be FALSE except for convenience when running independent
@@ -378,9 +378,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   earlyPeriod <- (nPrime + 1):(nPrime + (gen * 3)) #defines years representing first three generations after sim starts; used for some PMs
   endEarly <- max(earlyPeriod)
 
-
   #_____________________________________________________________________
   ## Create directories (based on all scenarios in a sim run)
+
+  dirName<-simPar$scenario
+
   dir.create(paste(here(outDir,"SamSimOutputs/diagnostics"), dirName, sep = "/"),
              recursive = TRUE, showWarnings = FALSE)
   dir.create(paste(here(outDir,"SamSimOutputs/simData"), dirName, sep = "/"),
