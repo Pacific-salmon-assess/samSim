@@ -381,16 +381,18 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   #_____________________________________________________________________
   ## Create directories (based on all scenarios in a sim run)
 
-  dirName<-simPar$scenario
+  dirName<-simPar$nameOM
 
-  dir.create(paste(here(outDir,"SamSimOutputs/diagnostics"), dirName, sep = "/"),
+  if (makeSubDirs == FALSE) {
+    dir.create(paste(here(outDir,"SamSimOutputs/diagnostics"),dirName,sep = "/"),
              recursive = TRUE, showWarnings = FALSE)
-  dir.create(paste(here(outDir,"SamSimOutputs/simData"), dirName, sep = "/"),
+    dir.create(paste(here(outDir,"SamSimOutputs/simData"), dirName,sep = "/"),
              recursive = TRUE, showWarnings = FALSE)
+  }
 
   ## Create subdirectories if multiple OMs and MPs are being run
   if (makeSubDirs == TRUE) {
-    subDirName <- simPar$nameOM
+    subDirName <- simPar$scenario
     dir.create(paste(here(outDir,"SamSimOutputs/diagnostics"), dirName, subDirName,
                      sep = "/"),
                recursive = TRUE, showWarnings = FALSE)
@@ -1704,8 +1706,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                          paste(cuNameOM, cuNameMP, "singleTrialFig.pdf",
                                sep = "_"),
                          paste(nameOM, nameMP, "singleTrialFig.pdf", sep = "_"))
-      pdf(file = paste(here(outDir,"SamSimOutputs/diagnostics", dirPath, fileName),
-                       sep = "/"), height = 6, width = 7)
+
+       pdf(file = paste(here(outDir,"SamSimOutputs/diagnostics", dirPath, fileName),
+                        sep = "/"), height = 6, width = 7)
+
       if (exists("larB")) { # if larkin terms are present they need to be passed
         larBList <- list(larB, larB1, larB2, larB3)
         names(larBList) <- c("lag0", "lag1", "lag2", "lag3")
@@ -1923,8 +1927,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                      paste(cuNameOM, cuNameMP, "cuDat.RData", sep = "_"),
                      paste(nameOM, nameMP, "cuDat.RData", sep = "_"))
 
-  saveRDS(cuList, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName,
-                               sep = "/"), version=3)
+   saveRDS(cuList, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName,
+                                sep = "/"), version=3)
 
   #_____________________________________________________________________
   ## Aggregate outputs
@@ -1952,8 +1956,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                      paste(cuNameOM, cuNameMP, "aggTimeSeries.RData",
                            sep = "_"),
                      paste(nameOM, nameMP, "aggTimeSeries.RData", sep = "_"))
-  saveRDS(agTSList, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName,
-                                 sep = "/"), version=3)
+   saveRDS(agTSList, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName,
+                                  sep = "/"), version=3)
+
 
   # Store aggregate data as data frame; each variable is a vector of single, trial-specific values
   yrsSeq <- (nPrime + 1):nYears
@@ -2012,7 +2017,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                      paste(nameOM, nameMP, "aggDat.csv", sep = "_"))
   write.csv(aggDat, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName, sep = "/"), row.names = FALSE)
 
-
   # Create LRP data for output
   colnames(sAg)<-as.character(1:nTrials)
   sAg.dat<-as.data.frame(sAg)
@@ -2029,9 +2033,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   fileName <- ifelse(variableCU == "TRUE", paste(cuNameOM, cuNameMP, "lrpDat.csv", sep = "_"),
                      paste(nameOM, nameMP, "lrpDat.csv", sep = "_"))
 
-  write.csv(LRP.dat, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName, sep = "/"),
-            row.names = FALSE)
-
+   write.csv(LRP.dat, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName, sep = "/"),
+             row.names = FALSE)
 
 
   # Create CU spawner abundance and recruit data for output
@@ -2068,8 +2071,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   fileName <- ifelse(variableCU == "TRUE", paste(cuNameOM, cuNameMP, "CUspwnDat.csv", sep = "_"),
                      paste(nameOM, nameMP, "CU_SRDat.csv", sep = "_"))
 
-  write.csv(srDatout, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName, sep = "/"),
-            row.names = FALSE)
-
+   write.csv(srDatout, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName, sep = "/"),
+             row.names = FALSE)
 
   } # end of genericRecoverySim()
