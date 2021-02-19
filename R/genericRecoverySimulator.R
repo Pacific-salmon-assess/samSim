@@ -93,7 +93,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   # Minimum exploitation rate applied
   minER <- cuPar$minER
   # Annual variation in exploitation rate
-  sigER <- cuPar$sigER
+  cvER <- cuPar$cvER
   # Scalar used to specify if any CUs should have ERs scaled above or below the MU-level average specified in simPars
   canERScalar <- cuPar$canERScalar
   usERScalar <- cuPar$usERScalar
@@ -1264,7 +1264,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
 
       if (harvContRule == "fixedER") {
-        tacs <- calcTAC_fixedER(rec = recRYManU[y, ], canER=canER, amER = amER, ppnMixVec, sigER = sigER,randomVar=T)
+        tacs <- calcTAC_fixedER(rec = recRYManU[y, ], canER=canER, amER = amER, ppnMixVec, cvER = cvER,randomVar=T)
 
       }
 

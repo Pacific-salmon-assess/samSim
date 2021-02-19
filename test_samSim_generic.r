@@ -49,11 +49,11 @@ dirNames <- sapply(scenNames, function(x) paste(x, unique(simPar$species),
 
 genericRecoverySim(simPar[1, ], cuPar=cuPar, srDat=srDat,
                  variableCU=FALSE, ricPars=ricPars, cuCustomCorrMat = corMatrix,
-                 nTrials=3, makeSubDirs=FALSE, random=FALSE, outDir="outDir")
+                 nTrials=20, makeSubDirs=FALSE, random=FALSE, outDir="outDir")
 
 genericRecoverySim(simPar[2, ], cuPar=cuPar, srDat=srDat,
                    variableCU=FALSE, ricPars=ricPars, cuCustomCorrMat = corMatrix,
-                   nTrials=3, makeSubDirs=FALSE, random=FALSE, outDir="outDir")
+                   nTrials=20, makeSubDirs=FALSE, random=FALSE, outDir="outDir")
 
 
 

@@ -4,7 +4,7 @@
 \alias{calcTAC_fixedER}
 \title{Title}
 \usage{
-calcTAC_fixedER(rec, canER, amER, ppnMixVec, sigER, randomVar = T)
+calcTAC_fixedER(rec, canER, amER, ppnMixVec, cvER, randomVar = T)
 }
 \arguments{
 \item{rec}{A numeric representing MU-specific return abundance}
@@ -16,7 +16,7 @@ calcTAC_fixedER(rec, canER, amER, ppnMixVec, sigER, randomVar = T)
 \item{ppnMixVec}{A numeric representing the proportion of the Canadian TAC
 allocated to mixed stock fisheries}
 
-\item{sigER}{A numeric representing annual variability in ER}
+\item{cvER}{A numeric representing annual variability in ER}
 
 \item{randomVar}{A TRUE/FALSE variable indicating whether the Canadian ER should have
 annual implementation error around the target}
