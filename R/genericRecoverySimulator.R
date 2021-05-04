@@ -140,6 +140,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   ricA <- cuPar$alpha
   ricB <- cuPar$beta0
   ricSig <- cuPar$sigma
+  gamma <- cuPar$coef1
   larA <- cuPar$larkAlpha
   larB <- cuPar$larkBeta0
   larB1 <- cuPar$larkBeta1
@@ -268,7 +269,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   # Adjust sigma up or down
   sig <- ifelse(model == "ricker" | model=="rickerSurv", ricSig, larSig) * adjSig
 
-  gamma<-ifelse(model == "rickerSurv", ricGamma, NA)
+  if (is.null(ricPars) == FALSE) {
+    gamma<-ifelse(model == "rickerSurv", ricGamma, NA)}
 
   #Add correlations in rec deviations
   if (simPar$corrMat == TRUE) { #replace uniform correlation w/ custom matrix
