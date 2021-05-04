@@ -399,6 +399,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
     #Run if there are NO recruitment data, residMatrix=NA
     if(sum(is.na(recDat$totalRec))==length(recDat$totalRec)){
+      #placeholder cycles
+      cycle <- rep(c(1, 2, 3, 4), length.out = simLength)
+      #placeholder residual matrix
       residMatrix <- matrix(NA, ncol=nCU, nrow =nPrime)
       #  sapply(seq_along(recOut), function(h) {
       #    d <- recOut[[h]] %>%
