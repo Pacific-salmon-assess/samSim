@@ -298,32 +298,65 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       recDat$CU <- abbreviate(recDat$CU, minlength = 4)
     }
 
-    # Remove stocks from SR dataset that aren't in CU parameter inputs
-    recDat <- recDat %>%
-      dplyr::filter(stk %in% cuPar$stk) %>%
-      dplyr::rowwise() %>%
-      dplyr::mutate(totalRec = sum(rec2, rec3, rec4, rec5, rec6)) %>%
-      ungroupRowwiseDF()
+        # Remove stocks from SR data set that aren't in CU parameter inputs
+      recDat <- recDat %>%
+        dplyr::filter(stk %in% cuPar$stk) %>%
+        dplyr::rowwise() %>%
+        dplyr::mutate(totalRec = sum(rec2, rec3, rec4, rec5, rec6)) %>%
+        ungroupRowwiseDF()
 
-    if (length(unique(recDat$stk)) != length(unique(cuPar$stk))) {
-      stop("SR input dataset does not match parameter inputs")
+      if (length(unique(recDat$stk)) != length(unique(cuPar$stk))) {
+        stop("SR input dataset does not match parameter inputs")
+      }
+
+      #Only run if there are recruitment data
+      if(sum(is.na(recDat$totalRec)) < length(recDat$totalRec)){
+        # Trim SR data so that empty rows are excluded; otherwise gaps may be
+        # retained when catch data is more up to date
+        maxYears <- recDat %>%
+          dplyr::group_by(stk) %>%
+          dplyr::filter(!is.na(totalRec)) %>%
+          dplyr::summarise(maxYr = max(yr))
+        recDat <- recDat %>%
+          dplyr::filter(!yr > min(maxYears$maxYr))
+        recDat <- with(recDat, recDat[order(stk, yr),])
+
+        summRec <- recDat %>%
+          dplyr::group_by(stk) %>%
+          dplyr::summarise(tsLength = length(ets),
+                           maxRec = max(totalRec, na.rm = TRUE))
+        # Define nPrime
+        nPrime <- max(summRec[, "tsLength"])
+
+      }
+
+
+
+    #Run if there are no recruitment data
+    if(sum(is.na(recDat$totalRec)) == length(recDat$totalRec)){
+      # Trim SR data so that empty rows are excluded; otherwise gaps may be
+      # retained when catch data is more up to date
+
+      # Should I remove this??
+      # maxYears <- recDat %>%
+      #   dplyr::group_by(stk) %>%
+      #   dplyr::filter(!is.na(ets)) %>%
+      #   dplyr::summarise(maxYr = max(yr))
+      # recDat <- recDat %>%
+      #   dplyr::filter(!yr > min(maxYears$maxYr))
+      # recDat <- with(recDat, recDat[order(stk, yr),])
+      #
+      # summEts <- recDat %>%
+      #   dplyr::group_by(stk) %>%
+      #   dplyr::summarise(tsLength = length(ets),
+      #                    maxEts = max(ets, na.rm = TRUE))
+      # # Define nPrime
+      # nPrime <- max(summEts[, "tsLength"])
+      nPrime <- ageMaxRec * 10
+
     }
 
-    # Trim SR data so that empty rows are excluded; otherwise gaps may be
-    # retained when catch data is more up to date
-    maxYears <- recDat %>%
-      dplyr::group_by(stk) %>%
-      dplyr::filter(!is.na(totalRec)) %>%
-      dplyr::summarise(maxYr = max(yr))
-    recDat <- recDat %>%
-      dplyr::filter(!yr > min(maxYears$maxYr))
-    recDat <- with(recDat, recDat[order(stk, yr),])
-    summRec <- recDat %>%
-      dplyr::group_by(stk) %>%
-      dplyr::summarise(tsLength = length(ets),
-                       maxRec = max(totalRec, na.rm = TRUE))
-    # Define nPrime
-    nPrime <- max(summRec[, "tsLength"])
+
     dumFull <- vector("list", nCU)
     #list of stk numbers to pass to following for loop
     stkList <- unique(cuPar$stk)
@@ -351,10 +384,28 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     recOut <- dumFull
     #total model run length = TS priming period duration + sim length
     nYears <- nPrime + simYears
-    #vector used to orient Larkin BM estimates and TAM rules; note that by
-    #default cycle 1 = first year of input data
-    cycle <- genCycle(min(recOut[[1]]$yr), nYears)
-    residMatrix <- getResiduals(recOut, model) #pull residuals from observed data and save
+
+
+    #Run if there are recruitment data
+    if(sum(is.na(recDat$totalRec))!=length(recDat$totalRec)){
+      #vector used to orient Larkin BM estimates and TAM rules; note that by
+      #default cycle 1 = first year of input data
+      cycle <- genCycle(min(recOut[[1]]$yr), nYears)
+
+      residMatrix <- getResiduals(recOut, model) #pull residuals from observed data and save
+    }
+
+    #Run if there are NO recruitment data, residMatrix=NA
+    if(sum(is.na(recDat$totalRec))==length(recDat$totalRec)){
+      residMatrix <- matrix(NA, ncol=nCU, nrow =nPrime)
+      #  sapply(seq_along(recOut), function(h) {
+      #    d <- recOut[[h]] %>%
+      #      dplyr::mutate(resid = NA)
+      #    return(d$resid)})
+
+    }
+
+
     #calculate firstYr here because catch and rec data may differ in length
     firstYr <- min(sapply(recOut, function(x) min(x$yr, na.rm = TRUE)))
   } # end of (!is.null(srDat))
@@ -692,181 +743,317 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       ## Population model: store SR pars, spawner, and recruit abundances
       alphaMat[y, ] <- refAlpha
 
-      for (k in 1:nCU) {
-        S[y, k] <- recOut[[k]]$ets[y]
-        #calculate total recruitment as sum of all age classes
-        recBY[y, k] <- sum(recOut[[k]][y, c("rec2", "rec3", "rec4", "rec5",
-                                            "rec6")])
-        #each age is a matrix, columns CUs, rows years
-        ppnAges[y, k, ] <- as.matrix(recOut[[k]][y, c("rec2", "rec3", "rec4",
-                                                      "rec5", "rec6")] /
-                                       recBY[y, k])
-        #if ppns can't be estimated due to TS gaps replace with mean values
-        for (j in 1:nAges) {
-          ppnAges[y, k, j] <- ifelse(is.na(ppnAges[y, k, j]),
-                                     ageStruc[k, j],
-                                     ppnAges[y, k, j])
-        } # end of nAges loop
-
-        if (is.null(catchDat) == FALSE) {
-          amCatch[y, k] <- ifelse(is.null(recOut[[k]]$amCatch[y]),
-                                  0, #not available for Fraser
-                                  recOut[[k]]$amCatch[y])
-          mixCatch[y, k] <- ifelse(is.null(recOut[[k]]$mixCatch[y]),
-                                   0, #not available for Fraser
-                                   recOut[[k]]$mixCatch[y])
-          singCatch[y, k] <- ifelse(is.null(recOut[[k]]$singCatch[y]),
-                                    0,
-                                    recOut[[k]]$singCatch[y])
-        } else {
-          amCatch[y , k] <- 0
-          mixCatch[y, k] <- 0
-          singCatch[y, k] <- 0
-        }
-        expRate[y, k] <- ifelse(is.null(catchDat)==FALSE, recOut[[k]]$totalER[y], 0)
-        logRS[y, k] <- log(recBY[y, k] / S[y, k])
-
-      } # end of CU loop
-
-
-      totalCatch[y, ] <- amCatch[y, ] + mixCatch[y, ] + singCatch[y, ]
-
-      # Aggregated spawners(S), recruitment by BY (recBY), and catches over all CUs for year y of trial n
-      sAg[y, n] <- sum(S[y, ])
-      recBYAg[y, n] <- sum(recBY[y, ])
-      mixCatchAg[y, n] <- sum(mixCatch[y, ])
-      amCatchAg[y, n] <- sum(amCatch[y, ])
-      catchAg[y, n] <- sum(mixCatch[y, ], singCatch[y, ], amCatch[y, ])
-
-      # Aggregated recruitment by return year (recRY) over all CUs in year y of trial n
-      if (y > 6) { # note: 6 is used because max number of age classes is 6
-        recRY2[y, ] <- recBY[y - 2, ] * ppnAges[y - 2, , 1]
-        recRY3[y, ] <- recBY[y - 3, ] * ppnAges[y - 3, , 2]
-        recRY4[y, ] <- recBY[y - 4, ] * ppnAges[y - 4, , 3]
-        recRY5[y, ] <- recBY[y - 5, ] * ppnAges[y - 5, , 4]
-        recRY6[y, ] <- recBY[y - 6, ] * ppnAges[y - 6, , 5]
-        recRY[y, ]<- recRY2[y, ] + recRY3[y, ] + recRY4[y, ] + recRY5[y, ] + recRY6[y, ]
-      }
-      recRYAg[y, n] <- sum(recRY[y, ], na.rm = TRUE)
-
-      ## Calculate benchmark submodel: calculate BMs during last 2 gen
-      # necessary to estimate  to prime single CU fishery and Larkin BMs which
-      # depend on dom cycle line
-      # (note that DL CUs will still be at 0, realistic for precautionary app)
-
-
-      ## Management and assessment submodels: calculate BMs during last 2 gen
-      # necessary to estimate  to prime single CU fishery and Larkin BMs which
-      # depend on dom cycle line
-      # (note that DL CUs will still be at 0, realistic for precautionary app)
-      if (y > (nPrime - 2 * gen)) {
+      # If there are recruitment data, prime model with SR data:
+      if(sum(is.na(recDat$totalRec)) < length(recDat$totalRec)){
         for (k in 1:nCU) {
-          # calculate percentile BMs
-          temp <- S[1:y, k]
-          sNoNA <- temp[!is.na(temp)]
-          n25th <- round(length(sNoNA) * 0.25, 0)
-          n50th <- round(length(sNoNA) * 0.50, 0)
-          n75th <- round(length(sNoNA) * 0.75, 0)
-          s25th[y, k, n] <- sort(sNoNA)[n25th]
-          s50th[y, k, n] <- sort(sNoNA)[n50th]
-          #s75th[y, k, n] <- sort(sNoNA)[n75th]
-          #calculate SR BMs
-          if (model[k] == "ricker") {
-            sEqVar[y, k, n] <- refAlpha[k] / beta[k]
-            sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha[k]))) /
-              beta[k]
-            sGen[y, k, n] <- as.numeric(sGenSolver(
-              theta = c(refAlpha[k], refAlpha[k] / sEqVar[y, k, n], ricSig[k]),
-              sMSY = sMSY[y, k, n]
-            ))
-          }
-          if (model[k] == "rickerSurv") {
-            refAlpha_prime<- refAlpha[k] + (gamma[k]*log(coVarInit[k]))
+          S[y, k] <- recOut[[k]]$ets[y]
+          #calculate total recruitment as sum of all age classes
+          recBY[y, k] <- sum(recOut[[k]][y, c("rec2", "rec3", "rec4", "rec5",
+                                              "rec6")])
+          #each age is a matrix, columns CUs, rows years
+          ppnAges[y, k, ] <- as.matrix(recOut[[k]][y, c("rec2", "rec3", "rec4",
+                                                        "rec5", "rec6")] /
+                                         recBY[y, k])
+          #if ppns can't be estimated due to TS gaps replace with mean values
+          for (j in 1:nAges) {
+            ppnAges[y, k, j] <- ifelse(is.na(ppnAges[y, k, j]),
+                                       ageStruc[k, j],
+                                       ppnAges[y, k, j])
+          } # end of nAges loop
 
-            sEqVar[y, k, n] <- refAlpha_prime / beta[k]
-            sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha_prime))) /
-              beta[k]
-            sGen[y, k, n] <- as.numeric(sGenSolver(
-              theta = c(refAlpha_prime, refAlpha_prime / sEqVar[y, k, n], ricSig[k]),
-              sMSY = sMSY[y, k, n]
-            ))
-          }
-          if (model[k] == "larkin") {
-            #modified alpha used to estimate Larkin BMs
-            alphaPrimeMat[y, k] <- refAlpha[k] - (larB1[k] * S[y - 1, k]) -
-              (larB2[k] * S[y-2, k]) - (larB3[k] * S[y - 3,  k])
-            sEqVar[y, k, n] <- ifelse(alphaPrimeMat[y, k] > 0,
-                                      alphaPrimeMat[y, k] / beta[k],
-                                      NA)
-            cycleSMSY[y, k] <- ifelse(alphaPrimeMat[y, k] > 0,
-                                      ((1 - gsl::lambert_W0(exp(
-                                        1 - alphaPrimeMat[y, k]))) / beta[k]),
-                                      NA)
-            # if (is.na(log(cycleSMSY[y, k]))) {
-            #   stop("Benchmark calculation is NA")
-            # }
-            cycleSGen[y, k] <- ifelse(alphaPrimeMat[y, k] > 0,
-                                      as.numeric(sGenSolver(
-                                        theta = c(alphaPrimeMat[y, k],
-                                                  alphaPrimeMat[y, k] /
-                                                    sEqVar[y, k, n],
-                                                  larSig[k]),
-                                        sMSY = cycleSMSY[y, k])),
-                                      NA)
-            #calculate annual benchmarks as medians within cycle line
-            sMSY[y, k, n] <- median(cycleSMSY[seq(cycle[y], y, 4), k],
-                                    na.rm = TRUE)
-            sGen[y, k, n] <- median(cycleSGen[seq(cycle[y], y, 4), k],
-                                    na.rm = TRUE)
-          }
-          if (is.na(sGen[y, k, n] & sMSY[y, k, n]) == FALSE) {
-            if (sGen[y, k, n] > sMSY[y, k, n]) {
-              warning("True lower benchmark greater than upper benchmark; set
-                      to NA")
-              sMSY[y, k, n] <- NA
-              sGen[y, k, n] <- NA
-              fb5[y, k] <- 1
-            }
+          if (is.null(catchDat) == FALSE) {
+            amCatch[y, k] <- ifelse(is.null(recOut[[k]]$amCatch[y]),
+                                    0, #not available for Fraser
+                                    recOut[[k]]$amCatch[y])
+            mixCatch[y, k] <- ifelse(is.null(recOut[[k]]$mixCatch[y]),
+                                     0, #not available for Fraser
+                                     recOut[[k]]$mixCatch[y])
+            singCatch[y, k] <- ifelse(is.null(recOut[[k]]$singCatch[y]),
+                                      0,
+                                      recOut[[k]]$singCatch[y])
           } else {
-            fb6[y, k] <- 1
+            amCatch[y , k] <- 0
+            mixCatch[y, k] <- 0
+            singCatch[y, k] <- 0
           }
+          expRate[y, k] <- ifelse(is.null(catchDat)==FALSE, recOut[[k]]$totalER[y], 0)
+          logRS[y, k] <- log(recBY[y, k] / S[y, k])
+
+        } # end of CU loop
+
+        totalCatch[y, ] <- amCatch[y, ] + mixCatch[y, ] + singCatch[y, ]
+
+        # Aggregated spawners(S), recruitment by BY (recBY), and catches over all CUs for year y of trial n
+        sAg[y, n] <- sum(S[y, ])
+        recBYAg[y, n] <- sum(recBY[y, ])
+        mixCatchAg[y, n] <- sum(mixCatch[y, ])
+        amCatchAg[y, n] <- sum(amCatch[y, ])
+        catchAg[y, n] <- sum(mixCatch[y, ], singCatch[y, ], amCatch[y, ])
+
+      }# end if(sum(is.na(recDat$totalRec)) < length(recDat$totalRec)){
+
+
+        # Aggregated recruitment by return year (recRY) over all CUs in year y of trial n
+        if (y > 6) { # note: 6 is used because max number of age classes is 6
+          recRY2[y, ] <- recBY[y - 2, ] * ppnAges[y - 2, , 1]
+          recRY3[y, ] <- recBY[y - 3, ] * ppnAges[y - 3, , 2]
+          recRY4[y, ] <- recBY[y - 4, ] * ppnAges[y - 4, , 3]
+          recRY5[y, ] <- recBY[y - 5, ] * ppnAges[y - 5, , 4]
+          recRY6[y, ] <- recBY[y - 6, ] * ppnAges[y - 6, , 5]
+          recRY[y, ]<- recRY2[y, ] + recRY3[y, ] + recRY4[y, ] + recRY5[y, ] + recRY6[y, ]
         }
+      if(sum(is.na(recDat$totalRec)) < length(recDat$totalRec)){
+        recRYAg[y, n] <- sum(recRY[y, ], na.rm = TRUE)
+      }
 
-        for (k in 1:nCU) {
-          if (model[k] == "ricker" | model[k] == "rickerSurv" |
-              model[k] == "larkin" & cycle[y] == domCycle[k]) {
-            if (bm == "stockRecruit") {
-              upperBM[y, k] <- ifelse(!is.na(sMSY[y, k, n]),
-                                      0.8 * sMSY[y, k, n],
-                                      0)
-              lowerBM[y, k] <- ifelse(!is.na(sGen[y, k, n]),
-                                      sGen[y, k, n],
-                                      0)
+
+        # If there are no recruitment data, initialize at Seq and project 3 gens
+        if(sum(is.na(recDat$totalRec)) == length(recDat$totalRec)){
+            # # Specify alpha (constant over initialization period)
+            # alphaMat[y, ] <- refAlpha
+            #
+            #
+            # if (y >= 7){
+            #   # Calculate recruitment by return year
+            #   recRY2[y, ] <- recBY[y - 2, ] * ppnAges[y - 2, , 1]
+            #   recRY3[y, ] <- recBY[y - 3, ] * ppnAges[y - 3, , 2]
+            #   recRY4[y, ] <- recBY[y - 4, ] * ppnAges[y - 4, , 3]
+            #   recRY5[y, ] <- recBY[y - 5, ] * ppnAges[y - 5, , 4]
+            #   recRY6[y, ] <- recBY[y - 6, ] * ppnAges[y - 6, , 5]
+            #   recRY[y, ] <- recRY2[y, ] + recRY3[y, ] + recRY4[y, ] + recRY5[y, ] +
+            #     recRY6[y, ]
+            #
+            #   recRYAg[y, n] <- sum(recRY[y, ])
+            #
+            # }
+            #
+
+            if (y <= 6) S[y,] <- refAlpha/beta
+            #model <- rep("ricker",5)
+
+            expRate[y,] <- canER
+
+            if(y >= 7){
+              S[y, ] <- recRY[y, ] * (1 - expRate[y, ])
             }
-            if (bm == "percentile") {
-              upperBM[y, k] <- s50th[y, k, n]
-              lowerBM[y, k] <- s25th[y, k, n]
+
+            for (k in 1:nCU) {
+              if (S[y, k] < extinctThresh) {
+                S[y, k] <- 0
+              }
+            }
+            sAg[y, n] <- sum(S[y, ])
+
+
+
+            errorCU[y, ] <- sn::rmst(n = 1, xi = rep(0, nCU),
+                                     alpha = rep(0, nCU), nu = 10000,
+                                     Omega = covMat)
+
+            for (k in 1:nrow(ageStruc)) {
+              ppnAges[y, k, ] <- ppnAgeErr(ageStruc[k, ], tauAge[k],
+                                           error = runif(nAges, 0.0001, 0.9999))
+            }
+
+            for (k in 1:nCU) {
+              if (S[y, k] > 0) {
+                if (model[k] == "ricker") {
+
+                  if (y == 1) dum <- rickerModel(S[y, k], refAlpha[k], beta[k],
+                                                 error = errorCU[y, k], rho = rho,
+                                                 prevErr = 0)
+                  if (y > 1) dum <- rickerModel(S[y, k], refAlpha[k], beta[k],
+                                                error = errorCU[y, k], rho = rho,
+                                                prevErr = laggedError[y - 1, k])
+                  laggedError[y, k] <- dum[[2]]
+
+                  #Keep recruitment below CU-specific cap, here specified as Seq x 3
+                  recCap <- 3 * refAlpha / beta
+
+                  recBY[y, k] <- min(dum[[1]], recCap[k])
+                }
+
+                if (model[k] == "rickerSurv") {
+                  mSurvAge4[y, n] <- rnorm(1,mu_logCoVar,sig_logCoVar)
+                  if (mSurvAge4[y, n] > max_logCoVar) { mSurvAge4[y, n] <-
+                    max_logCoVar }
+                  if (mSurvAge4[y, n] < min_logCoVar) {mSurvAge4[y, n] <-
+                    min_logCoVar }
+
+                  if (y < 3) {dum <- rickerSurvModel(S = S[y, k],
+                                                     a = refAlpha[k],
+                                                     b = beta[k],
+                                                     ppnAges = ppnAges[y,k,],
+                                                     gamma = gamma[k],
+                                                     mSurvAtAge=c(mSurvAge4[y,n],
+                                                                  mSurvAge4[y,n],
+                                                                  mSurvAge4[y,n],
+                                                                  0,0),
+                                                     error = errorCU[y, k]) }
+
+                  if (y >= 3) {mSurvAtAge <- c(mSurvAge4[y-2,n],
+                                               mSurvAge4[y-1,n],
+                                               mSurvAge4[y,n], 0, 0)}
+
+                  if (y >= 3) {dum <- rickerSurvModel(S = S[y, k],
+                                                      a = refAlpha[k],
+                                                      b = beta[k],
+                                                      ppnAges = ppnAges[y,k,],
+                                                      gamma = gamma[k],
+                                                      mSurvAtAge = mSurvAtAge,
+                                                      error = errorCU[y, k]) }
+                  #Keep recruitment below CU-specific cap, here specified as Seq x 3
+                  recCap <- 3 * refAlpha / beta
+
+                  #keep recruitment below CU-specific cap
+                  recBY[y, k] <- min(dum[[6]], recCap[k])
+
+                } #end of rickerSurv
+
+                # Add Larkin here...
+
+                logRS[y, k] <- log(recBY[y, k] / S[y, k])
+              } #end if(S[y, k]>0)
+
+              if (is.na(laggedError[y, k])) {
+                laggedError[y, k] <- 0
+              }
+              if (S[y, k] == 0) {
+                recBY[y, k] <- 0
+                logRS[y, k] <- 0
+              }
+              if (recBY[y, k] <= extinctThresh) {
+                recBY[y, k] <- 0
+              }
+            } #end for(k in 1:nCU)
+
+            recBYAg[y, n] <- sum(recBY[y, ])
+
+
+
+
+        }# end if(sum(is.na(recDat$totalRec)) == length(recDat$totalRec)){
+
+
+
+        ## Calculate benchmark submodel: calculate BMs during last 2 gen
+        # necessary to estimate  to prime single CU fishery and Larkin BMs which
+        # depend on dom cycle line
+        # (note that DL CUs will still be at 0, realistic for precautionary app)
+
+
+        ## Management and assessment submodels: calculate BMs during last 2 gen
+        # necessary to estimate  to prime single CU fishery and Larkin BMs which
+        # depend on dom cycle line
+        # (note that DL CUs will still be at 0, realistic for precautionary app)
+        if (y > (nPrime - 2 * gen)) {
+          for (k in 1:nCU) {
+            # calculate percentile BMs
+            temp <- S[1:y, k]
+            sNoNA <- temp[!is.na(temp)]
+            n25th <- round(length(sNoNA) * 0.25, 0)
+            n50th <- round(length(sNoNA) * 0.50, 0)
+            n75th <- round(length(sNoNA) * 0.75, 0)
+            s25th[y, k, n] <- sort(sNoNA)[n25th]
+            s50th[y, k, n] <- sort(sNoNA)[n50th]
+            #s75th[y, k, n] <- sort(sNoNA)[n75th]
+            #calculate SR BMs
+            if (model[k] == "ricker") {
+              sEqVar[y, k, n] <- refAlpha[k] / beta[k]
+              sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha[k]))) /
+                beta[k]
+              sGen[y, k, n] <- as.numeric(sGenSolver(
+                theta = c(refAlpha[k], refAlpha[k] / sEqVar[y, k, n], ricSig[k]),
+                sMSY = sMSY[y, k, n]
+              ))
+            }
+            if (model[k] == "rickerSurv") {
+              refAlpha_prime<- refAlpha[k] + (gamma[k]*log(coVarInit[k]))
+
+              sEqVar[y, k, n] <- refAlpha_prime / beta[k]
+              sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha_prime))) /
+                beta[k]
+              sGen[y, k, n] <- as.numeric(sGenSolver(
+                theta = c(refAlpha_prime, refAlpha_prime / sEqVar[y, k, n], ricSig[k]),
+                sMSY = sMSY[y, k, n]
+              ))
+            }
+            if (model[k] == "larkin") {
+              #modified alpha used to estimate Larkin BMs
+              alphaPrimeMat[y, k] <- refAlpha[k] - (larB1[k] * S[y - 1, k]) -
+                (larB2[k] * S[y-2, k]) - (larB3[k] * S[y - 3,  k])
+              sEqVar[y, k, n] <- ifelse(alphaPrimeMat[y, k] > 0,
+                                        alphaPrimeMat[y, k] / beta[k],
+                                        NA)
+              cycleSMSY[y, k] <- ifelse(alphaPrimeMat[y, k] > 0,
+                                        ((1 - gsl::lambert_W0(exp(
+                                          1 - alphaPrimeMat[y, k]))) / beta[k]),
+                                        NA)
+              # if (is.na(log(cycleSMSY[y, k]))) {
+              #   stop("Benchmark calculation is NA")
+              # }
+              cycleSGen[y, k] <- ifelse(alphaPrimeMat[y, k] > 0,
+                                        as.numeric(sGenSolver(
+                                          theta = c(alphaPrimeMat[y, k],
+                                                    alphaPrimeMat[y, k] /
+                                                      sEqVar[y, k, n],
+                                                    larSig[k]),
+                                          sMSY = cycleSMSY[y, k])),
+                                        NA)
+              #calculate annual benchmarks as medians within cycle line
+              sMSY[y, k, n] <- median(cycleSMSY[seq(cycle[y], y, 4), k],
+                                      na.rm = TRUE)
+              sGen[y, k, n] <- median(cycleSGen[seq(cycle[y], y, 4), k],
+                                      na.rm = TRUE)
+            }
+            if (is.na(sGen[y, k, n] & sMSY[y, k, n]) == FALSE) {
+              if (sGen[y, k, n] > sMSY[y, k, n]) {
+                warning("True lower benchmark greater than upper benchmark; set
+                      to NA")
+                sMSY[y, k, n] <- NA
+                sGen[y, k, n] <- NA
+                fb5[y, k] <- 1
+              }
+            } else {
+              fb6[y, k] <- 1
             }
           }
-          # only save status for Larkin stocks when on dom cycle line otherwise
-          # use previous status
-          if (model[k] == "larkin" & cycle[y] != domCycle[k]) {
-            upperBM[y, k] <- upperBM[y - 1, k]
-            lowerBM[y, k] <- lowerBM[y - 1, k]
-          } #end if (model[k] == "larkin" & cycle[y] != domCycle[k])
-          if (!is.na(S[y, k])) {
-            if (!is.na(upperBM[y, k]) & S[y, k] > upperBM[y, k]) {
-              counterUpperBM[y, k] <- 1 #is spawner greater than upper BM
+
+          for (k in 1:nCU) {
+            if (model[k] == "ricker" | model[k] == "rickerSurv" |
+                model[k] == "larkin" & cycle[y] == domCycle[k]) {
+              if (bm == "stockRecruit") {
+                upperBM[y, k] <- ifelse(!is.na(sMSY[y, k, n]),
+                                        0.8 * sMSY[y, k, n],
+                                        0)
+                lowerBM[y, k] <- ifelse(!is.na(sGen[y, k, n]),
+                                        sGen[y, k, n],
+                                        0)
+              }
+              if (bm == "percentile") {
+                upperBM[y, k] <- s50th[y, k, n]
+                lowerBM[y, k] <- s25th[y, k, n]
+              }
             }
-            if (!is.na(lowerBM[y, k]) & S[y, k] > lowerBM[y, k]) {
-              counterLowerBM[y, k] <- 1 #is spawner greater than lower BM
-            }
-          }#end if(!is.na(S[y, k]))
-        }#end for (k in 1:nCU)
-      }#end if (y > (nPrime - 2 * gen))
+            # only save status for Larkin stocks when on dom cycle line otherwise
+            # use previous status
+            if (model[k] == "larkin" & cycle[y] != domCycle[k]) {
+              upperBM[y, k] <- upperBM[y - 1, k]
+              lowerBM[y, k] <- lowerBM[y - 1, k]
+            } #end if (model[k] == "larkin" & cycle[y] != domCycle[k])
+            if (!is.na(S[y, k])) {
+              if (!is.na(upperBM[y, k]) & S[y, k] > upperBM[y, k]) {
+                counterUpperBM[y, k] <- 1 #is spawner greater than upper BM
+              }
+              if (!is.na(lowerBM[y, k]) & S[y, k] > lowerBM[y, k]) {
+                counterLowerBM[y, k] <- 1 #is spawner greater than lower BM
+              }
+            }#end if(!is.na(S[y, k]))
+          }#end for (k in 1:nCU)
+        }#end if (y > (nPrime - 2 * gen))
 
 
-      ## Observation submodel: to prime simulation assume that observed are
+         ## Observation submodel: to prime simulation assume that observed are
       #equal to true
       obsS[y, ] <- S[y, ]
       obsRecBY[y, ] <- recBY[y, ]
@@ -900,8 +1087,12 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     infillRecBY <- infill(recBY[1:nPrime, ])
     infillS <- infill(S[1:nPrime, ])
 
-    #Default recruitment cap reflecting observed abundance (not quantiles)
-    recCap <- 2 * apply(recBY[1:nPrime, ], 2, function(x) max(x, na.rm = TRUE))
+    #Default recruitment cap reflecting observed abundance (not quantiles),
+    # if SR data exist (recCap defined above when there are no SR data)
+    if(sum(is.na(recDat$totalRec)) < length(recDat$totalRec)){
+      recCap <- 2 * apply(recBY[1:nPrime, ], 2, function(x)
+        max(x, na.rm = TRUE))
+    }
 
 
     for (y in (nPrime - 12):nPrime) {  # Note that BMs and aggregate PMs are not recalculated after interpolation
