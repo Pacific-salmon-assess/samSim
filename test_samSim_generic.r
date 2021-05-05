@@ -32,8 +32,15 @@ srDat <- read.csv(here("data", "IFCohoPars", "cohoRecDatTrim.csv"),
                   stringsAsFactors=F)
 
 
-ricPars<-read.csv(here("data", "IFCohoPars", "cohoRickerSurv_mcmc.csv"),
+#ricPars<-read.csv(here("data", "IFCohoPars", "cohoRickerSurv_mcmc.csv"),
+#                  stringsAsFactors=F)
+
+
+ricPars<-read.csv(here("data", "IFCohoPars", "SR_IndivRicker_Surv_mcmc.csv"),
                   stringsAsFactors=F)
+
+
+
 
 
 corMatrix <- read.csv(here("data", "IFCohoPars", "cohoCorrMat.csv"),
@@ -50,6 +57,7 @@ dirNames <- sapply(scenNames, function(x) paste(x, unique(simPar$species),
 genericRecoverySim(simPar[1, ], cuPar=cuPar, srDat=srDat,
                  variableCU=FALSE, ricPars=ricPars, cuCustomCorrMat = corMatrix,
                  nTrials=20, makeSubDirs=FALSE, random=FALSE, outDir="outDir")
+
 
 genericRecoverySim(simPar[2, ], cuPar=cuPar, srDat=srDat,
                    variableCU=FALSE, ricPars=ricPars, cuCustomCorrMat = corMatrix,

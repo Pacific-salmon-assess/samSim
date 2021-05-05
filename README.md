@@ -93,6 +93,10 @@ Simulations are run by installing the samSim package and using the `recoverySim(
   - `arSigTransform` - if `TRUE` estimates of sigma from input are transformed so that they account for temporal autocorrelation
   - `correlCU` - the correlation among CUs in recruitment deviations
   - `corrMat` - if `TRUE` a custom correlation matrix is required to be passed as an input and is used to specify the covariance matrix for recruitment deviations
+  - `mu_logCovar1` - mean of lognormal distribution for annual SR covariate (e.g., marine survival)
+  - `sig_logCovar1` - log-normal variation for annural SR covariate
+  - `sampCU_coef1` - TRUE/FALSE indicating whether CU-specific coefficients for the SR covariate should be sampled
+  - `sigCU_coef1` - among-CU variation in coefficients for the SR covariate (only applied if sampCU_coef1 == TRUE)
   - `tauCatch` - logistic variation in CU-specific catches
   - `obsSig` - log-normal variation in spawner observation error 
   - `mixOUSig` - beta-distributed variation in mixed-stock fishery outcome uncertainty; input parameter represents the standard deviation used to calculate the location parameter

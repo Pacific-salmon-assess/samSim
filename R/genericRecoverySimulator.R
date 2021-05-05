@@ -270,7 +270,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   sig <- ifelse(model == "ricker" | model=="rickerSurv", ricSig, larSig) * adjSig
 
   if (is.null(ricPars) == FALSE) {
-    gamma<-ifelse(model == "rickerSurv", ricGamma, NA)}
+    gamma<-ifelse(model == "rickerSurv", ricGamma, NA)
+  }
 
   #Add correlations in rec deviations
   if (simPar$corrMat == TRUE) { #replace uniform correlation w/ custom matrix
@@ -285,6 +286,12 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   covMat <- (t(sigMat) %*% sigMat) * correlCU
   diag(covMat) <- as.numeric(sig^2) #add variance
 
+
+  # Specify among-CU variability in gamma coefficient (if required for sim scenario)
+  if (simPar$sampCU_coef1 == TRUE) {
+    gammaSig<-simPar$sigCU_coef1
+    gamma<-rnorm(nCU,gamma[1],gammaSig)
+  }
 
   ## Priming period: get stock-recruitment data
   if (!is.null(srDat)) { #transform rec data if available
