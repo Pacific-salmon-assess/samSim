@@ -288,9 +288,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
 
   # Specify among-CU variability in gamma coefficient (if required for sim scenario)
-  if (simPar$sampCU_coef1 == TRUE) {
-    gammaSig<-simPar$sigCU_coef1
-    gamma<-rnorm(nCU,gamma[1],gammaSig)
+  if(!is.null(simPar$sampCU_coef1)){
+    if (simPar$sampCU_coef1 == TRUE) {
+      gammaSig<-simPar$sigCU_coef1
+      gamma<-rnorm(nCU,gamma[1],gammaSig)
+    }
   }
 
   ## Priming period: get stock-recruitment data
