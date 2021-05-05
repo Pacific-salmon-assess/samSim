@@ -309,16 +309,16 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       recDat$CU <- abbreviate(recDat$CU, minlength = 4)
     }
 
-        # Remove stocks from SR data set that aren't in CU parameter inputs
-      recDat <- recDat %>%
+    # Remove stocks from SR data set that aren't in CU parameter inputs
+    recDat <- recDat %>%
         dplyr::filter(stk %in% cuPar$stk) %>%
         dplyr::rowwise() %>%
         dplyr::mutate(totalRec = sum(rec2, rec3, rec4, rec5, rec6)) %>%
         ungroupRowwiseDF()
 
-      if (length(unique(recDat$stk)) != length(unique(cuPar$stk))) {
-        stop("SR input dataset does not match parameter inputs")
-      }
+    if (length(unique(recDat$stk)) != length(unique(cuPar$stk))) {
+      stop("SR input dataset does not match parameter inputs")
+    }
 
       #Only run if there are recruitment data
       if(sum(is.na(recDat$totalRec)) < length(recDat$totalRec)){
@@ -339,32 +339,13 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         # Define nPrime
         nPrime <- max(summRec[, "tsLength"])
 
-      }
+      }# End of if(sum(is.na(recDat$totalRec)) < length(recDat$totalRec)){
 
 
 
     #Run if there are no recruitment data
     if(sum(is.na(recDat$totalRec)) == length(recDat$totalRec)){
-      # Trim SR data so that empty rows are excluded; otherwise gaps may be
-      # retained when catch data is more up to date
-
-      # Should I remove this??
-      # maxYears <- recDat %>%
-      #   dplyr::group_by(stk) %>%
-      #   dplyr::filter(!is.na(ets)) %>%
-      #   dplyr::summarise(maxYr = max(yr))
-      # recDat <- recDat %>%
-      #   dplyr::filter(!yr > min(maxYears$maxYr))
-      # recDat <- with(recDat, recDat[order(stk, yr),])
-      #
-      # summEts <- recDat %>%
-      #   dplyr::group_by(stk) %>%
-      #   dplyr::summarise(tsLength = length(ets),
-      #                    maxEts = max(ets, na.rm = TRUE))
-      # # Define nPrime
-      # nPrime <- max(summEts[, "tsLength"])
-      nPrime <- ageMaxRec * 10
-
+        nPrime <- ageMaxRec * 10
     }
 
 
@@ -391,7 +372,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       }
       #convert from tbbl to dataframe to silence unknown column warnings
       dumFull[[k]] <- as.data.frame(dum)
-    }
+    }# End of  for (k in 1:nCU) {
     recOut <- dumFull
     #total model run length = TS priming period duration + sim length
     nYears <- nPrime + simYears
@@ -402,9 +383,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #vector used to orient Larkin BM estimates and TAM rules; note that by
       #default cycle 1 = first year of input data
       cycle <- genCycle(min(recOut[[1]]$yr), nYears)
-
-      residMatrix <- getResiduals(recOut, model) #pull residuals from observed data and save
-    }
+      #pull residuals from observed data and save
+      residMatrix <- getResiduals(recOut, model)
+    }#  End of if(sum(is.na(recDat$totalRec))!=length(recDat$totalRec)){
 
     #Run if there are NO recruitment data, residMatrix=NA
     if(sum(is.na(recDat$totalRec))==length(recDat$totalRec)){
@@ -412,17 +393,22 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       cycle <- rep(c(1, 2, 3, 4), nYears)
       #placeholder residual matrix
       residMatrix <- matrix(NA, ncol=nCU, nrow =nPrime)
-      #  sapply(seq_along(recOut), function(h) {
-      #    d <- recOut[[h]] %>%
-      #      dplyr::mutate(resid = NA)
-      #    return(d$resid)})
-
     }
 
 
     #calculate firstYr here because catch and rec data may differ in length
     firstYr <- min(sapply(recOut, function(x) min(x$yr, na.rm = TRUE)))
   } # end of (!is.null(srDat))
+
+  if(is.null(srDat)){
+    nPrime <- ageMaxRec * 10
+    nYears <- nPrime + simYears
+    firstYr <- 2020-nPrime
+    recOut <- NULL
+    # Placeholders:
+    cycle <- rep(c(1, 2, 3, 4), nYears)
+    residMatrix <- matrix(NA, ncol=nCU, nrow =nPrime)
+  }
 
   # Extract proportions at age a for each CU (where, a = 2,3,4,5,6)
   ppn2 <- ageStruc[, 1] #proportion at age parameters
@@ -758,7 +744,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       alphaMat[y, ] <- refAlpha
 
       # If there are recruitment data, prime model with SR data:
-      if(sum(is.na(recDat$totalRec)) < length(recDat$totalRec)){
+
+      if(!is.null(recOut)){
+        if(sum(is.na(recDat$totalRec)) < length(recDat$totalRec)){
+
         for (k in 1:nCU) {
           S[y, k] <- recOut[[k]]$ets[y]
           #calculate total recruitment as sum of all age classes
@@ -804,7 +793,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         amCatchAg[y, n] <- sum(amCatch[y, ])
         catchAg[y, n] <- sum(mixCatch[y, ], singCatch[y, ], amCatch[y, ])
 
-      }# end if(sum(is.na(recDat$totalRec)) < length(recDat$totalRec)){
+        }# End of if(sum(is.na(recDat$totalRec)) < length(recDat$totalRec)){
+      }# End of if(!is.null(recOut))
 
 
         # Aggregated recruitment by return year (recRY) over all CUs in year y of trial n
@@ -816,34 +806,19 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           recRY6[y, ] <- recBY[y - 6, ] * ppnAges[y - 6, , 5]
           recRY[y, ]<- recRY2[y, ] + recRY3[y, ] + recRY4[y, ] + recRY5[y, ] + recRY6[y, ]
         }
-      if(sum(is.na(recDat$totalRec)) < length(recDat$totalRec)){
-        recRYAg[y, n] <- sum(recRY[y, ], na.rm = TRUE)
+
+      if(!is.null(recOut)){
+        if(sum(is.na(recDat$totalRec)) < length(recDat$totalRec)) {
+          recRYAg[y, n] <- sum(recRY[y, ], na.rm = TRUE)
+        }
       }
 
 
-        # If there are no recruitment data, initialize at Seq and project 3 gens
-        if(sum(is.na(recDat$totalRec)) == length(recDat$totalRec)){
-            # # Specify alpha (constant over initialization period)
-            # alphaMat[y, ] <- refAlpha
-            #
-            #
-            # if (y >= 7){
-            #   # Calculate recruitment by return year
-            #   recRY2[y, ] <- recBY[y - 2, ] * ppnAges[y - 2, , 1]
-            #   recRY3[y, ] <- recBY[y - 3, ] * ppnAges[y - 3, , 2]
-            #   recRY4[y, ] <- recBY[y - 4, ] * ppnAges[y - 4, , 3]
-            #   recRY5[y, ] <- recBY[y - 5, ] * ppnAges[y - 5, , 4]
-            #   recRY6[y, ] <- recBY[y - 6, ] * ppnAges[y - 6, , 5]
-            #   recRY[y, ] <- recRY2[y, ] + recRY3[y, ] + recRY4[y, ] + recRY5[y, ] +
-            #     recRY6[y, ]
-            #
-            #   recRYAg[y, n] <- sum(recRY[y, ])
-            #
-            # }
-            #
+      # If there are no recruitment data, initialize at Seq and project 3 gens
+      if(is.null(recOut) ||
+         sum(is.na(recDat$totalRec)) == length(recDat$totalRec)){
 
             if (y <= 6) S[y,] <- refAlpha/beta
-            #model <- rep("ricker",5)
 
             expRate[y,] <- canER
 
@@ -857,7 +832,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               }
             }
             sAg[y, n] <- sum(S[y, ])
-
 
 
             errorCU[y, ] <- sn::rmst(n = 1, xi = rep(0, nCU),
@@ -874,10 +848,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                 if (model[k] == "ricker") {
 
                   if (y == 1) dum <- rickerModel(S[y, k], refAlpha[k], beta[k],
-                                                 error = errorCU[y, k], rho = rho,
-                                                 prevErr = 0)
+                                                 error = errorCU[y, k],
+                                                 rho = rho, prevErr = 0)
                   if (y > 1) dum <- rickerModel(S[y, k], refAlpha[k], beta[k],
-                                                error = errorCU[y, k], rho = rho,
+                                                error = errorCU[y, k],
+                                                rho = rho,
                                                 prevErr = laggedError[y - 1, k])
                   laggedError[y, k] <- dum[[2]]
 
@@ -944,9 +919,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             recBYAg[y, n] <- sum(recBY[y, ])
 
 
+        }# End if(is.null(recOut) || sum(is.na(recDat$totalRec)) == length(rec..
 
-
-        }# end if(sum(is.na(recDat$totalRec)) == length(recDat$totalRec)){
 
 
 
@@ -1103,9 +1077,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
     #Default recruitment cap reflecting observed abundance (not quantiles),
     # if SR data exist (recCap defined above when there are no SR data)
-    if(sum(is.na(recDat$totalRec)) < length(recDat$totalRec)){
-      recCap <- 2 * apply(recBY[1:nPrime, ], 2, function(x)
-        max(x, na.rm = TRUE))
+    if(!is.null(recOut)){
+      if(sum(is.na(recDat$totalRec)) < length(recDat$totalRec)){
+        recCap <- 2 * apply(recBY[1:nPrime, ], 2, function(x)
+          max(x, na.rm = TRUE))
+      }
     }
 
 
