@@ -512,6 +512,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   # True benchmark pars
   sMSY <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   sGen <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  sMSY_habitat <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  sGen_habitat <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   # Estimated ricker pars:
   estRicA <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   estRicB <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
@@ -1021,6 +1023,21 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               if (bm == "percentile") {
                 upperBM[y, k] <- s50th[y, k, n]
                 lowerBM[y, k] <- s25th[y, k, n]
+              }
+              if (bm == "habitat"){
+
+                sMSY_habitat[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha[k]))) /
+                  beta[k]
+                sGen_habitat[y, k, n] <- as.numeric(sGenSolver(
+                  theta = c(refAlpha[k], beta[k], ricSig[k]),
+                  sMSY = sMSY_habitat[y, k, n] ))
+
+                upperBM[y, k] <- ifelse(!is.na(sMSY_habitat[y, k, n]),
+                                        0.8 * sMSY_habitat[y, k, n],
+                                        0)
+                lowerBM[y, k] <- ifelse(!is.na(sGen_habitat[y, k, n]),
+                                        sGen_habitat[y, k, n],
+                                        0)
               }
             }
             # only save status for Larkin stocks when on dom cycle line otherwise
@@ -1818,6 +1835,20 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             lowerBM[y, k] <- s25th[y, k, n]
             upperObsBM[y, k] <- estS50th[y, k, n]
             lowerObsBM[y, k] <- estS25th[y, k, n]
+          }
+          if (bm == "habitat") {
+
+            sMSY_habitat[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha[k]))) /
+              beta[k]
+            sGen_habitat[y, k, n] <- as.numeric(sGenSolver(
+              theta = c(refAlpha[k], beta[k], ricSig[k]),
+              sMSY = sMSY_habitat[y, k, n] ))
+            upperBM[y, k] <- 0.8 * sMSY_habitat[y, k, n]
+            lowerBM[y, k] <- sGen_habitat[y, k, n]
+            # Assuming habitat benchmarks are known exactly
+            upperObsBM[y, k] <- upperBM[y, k]
+            lowerObsBM[y, k] <- lowerBM[y, k]
+
           }
         }
         #only save status for Larkin stocks on dom cycle otherwise use prev status
