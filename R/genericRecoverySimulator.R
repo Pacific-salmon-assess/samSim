@@ -920,6 +920,12 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
             recBYAg[y, n] <- sum(recBY[y, ])
 
+            if (is.na(laggedError[y, k])) {
+              laggedError[y, k] <- 0
+            }
+            if (is.infinite(laggedError[y, k])) {
+              laggedError[y, k] <- 0
+            }
 
         }# End if(is.null(recOut) || sum(is.na(recDat$totalRec)) == length(rec..
 
