@@ -1136,8 +1136,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     } #end loop 2
 
     #prime AR error
-    laggedError[y, ] <- log(recBY[y, ] / S[y, ]) -
+    if(!is.null(recOut)){
+      laggedError[y, ] <- log(recBY[y, ] / S[y, ]) -
       (alphaMat[y, ] - beta * S[y, ])
+    }
 
 
 
