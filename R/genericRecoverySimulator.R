@@ -186,7 +186,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
      ricA <- dum$alpha
      ricB <- dum$beta
      ricSig <- dum$sigma
-     ricGamma <- dum$gamma
+     if(!is.null(dum$gamma)) ricGamma <- dum$gamma
 
     # dum <- getSRPars(pars = ricPars, alphaOnly = TRUE, highP = 0.95,
     #                         lowP = 0.05, stks = stkID)
