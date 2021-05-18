@@ -11,7 +11,9 @@ lapply(listOfPackages, require, character.only = TRUE)
 
 
 #source("R/genericRecoverySimulator.r")
+#source("R/stockRecruitModels.r")
 #source("R/getSRPars_randomSamp.r")
+#source("R/calcTAC_fixedER.r")
 
 
 # Coho ====================================================================
@@ -25,6 +27,24 @@ simPar <- read.csv(here("data", "IFCohoPars",
 # CU-specific parameters
 cuPar <- read.csv(here("data", "IFCohoPars", "cohoCUPars.csv"),
                   stringsAsFactors=F)
+
+
+# Simulation run parameters describing different scenarios
+simPar_test1 <- read.csv(here("data", "IFCohoPars",
+                        "SimPars_ERCV0.1.csv"), stringsAsFactors = F)
+
+# CU-specific parameters
+cuPar_test1 <- read.csv(here("data", "IFCohoPars", "CUPars_ERCV0.1.csv"),
+                  stringsAsFactors=F)
+
+
+# Simulation run parameters describing different scenarios
+simPar_test2 <- read.csv(here("data", "IFCohoPars",
+                              "SimPars_noERCV.csv"), stringsAsFactors = F)
+
+# CU-specific parameters
+cuPar_test2 <- read.csv(here("data", "IFCohoPars", "CUPars_noERCV.csv"),
+                        stringsAsFactors=F)
 
 # Stock-recruit and catch data that are used to populate the simulation priming
 # period
@@ -54,9 +74,10 @@ dirNames <- sapply(scenNames, function(x) paste(x, unique(simPar$species),
 ## First check to ensure that a single scenario can be run (only a small number
 # of trials necessary)
 
-genericRecoverySim(simPar[1, ], cuPar=cuPar, srDat=srDat,
+genericRecoverySim(simPar_test2[1, ], cuPar=cuPar_test2, srDat=srDat,
                  variableCU=FALSE, ricPars=ricPars, cuCustomCorrMat = corMatrix,
                  nTrials=20, makeSubDirs=FALSE, random=FALSE, outDir="outDir")
+
 
 
 genericRecoverySim(simPar[2, ], cuPar=cuPar, srDat=srDat,

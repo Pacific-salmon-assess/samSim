@@ -1470,7 +1470,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
       if (harvContRule == "fixedER") {
         tacs <- calcTAC_fixedER(rec = recRYManU[y, ], canER=canER, amER = amER, ppnMixVec, cvER = cvER,randomVar=T)
-
       }
 
 
@@ -1745,7 +1744,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
       # Get marine rvival covariate (only used for rickerSurv SR model)
       ## - all CUs have the same marine survival (only option available at present)
-      if (y == nPrime+1) mSurvAge4[1:nPrime, n] <- rep(exp(mu_logCoVar),nPrime)
+      if (y == nPrime+1) mSurvAge4[1:nPrime, n] <- rep(mu_logCoVar,nPrime)
       mSurvAge4[y, n]<-rnorm(1,mu_logCoVar,sig_logCoVar)
       if (mSurvAge4[y, n] > max_logCoVar) mSurvAge4[y, n] <- max_logCoVar
       if (mSurvAge4[y, n] < min_logCoVar) mSurvAge4[y, n] <- min_logCoVar
@@ -1793,12 +1792,14 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
 
             mSurvAtAge<-c(mSurvAge4[y-2,n],mSurvAge4[y-1,n],mSurvAge4[y,n],0,0)
+
             dum <- rickerSurvModel(S=S[y, k], a=alphaMat[y, k], b=beta[k],
                                    ppnAges = ppnAges[y,k,], gamma=gamma[k],
                                    mSurvAtAge=mSurvAtAge,
                                    error = errorCU[y, k])
             #keep recruitment below CU-specific cap
             recBY[y, k] <- min(dum[[6]], recCap[k])
+
           }
           if (model[k] == "larkin") {
             dum <- larkinModel(S[y, k], S[y - 1, k], S[y-2, k], S[y - 3, k],

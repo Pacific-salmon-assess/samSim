@@ -38,6 +38,9 @@ calcTAC_fixedER <- function(rec, canER, amER, ppnMixVec, cvER, randomVar=T) {
     }
     # get realized ER
     canER.real<-sapply(1:length(sigCanER),sampBeta)
+    # if any CUs have a CV of 0, set to mean canER
+    canER.real[sigCanER ==0]<-canER
+
     # calculate TACs
     canTAC <- canER.real * rec
     canMixTAC <- canTAC * ppnMixVec
@@ -45,6 +48,8 @@ calcTAC_fixedER <- function(rec, canER, amER, ppnMixVec, cvER, randomVar=T) {
     amTAC<- amER * rec
 
   }
+
+  browser()
 
   tacList <- list(canTAC, canMixTAC, canSingTAC, amTAC)
   tacList <- lapply(tacList, function (x){ #replace NAs with 0s
