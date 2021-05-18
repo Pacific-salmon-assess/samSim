@@ -48,7 +48,11 @@ getSRPars_randomSamp <- function(pars,
 
   samp<-dum %>% filter(rep==sampID)
 
-  SRout <- data.frame(alpha=samp$alpha, beta=samp$beta, sigma=samp$sigma, gamma=samp$gamma)
+  if("gamma" %in% colnames(samp)) SRout <- data.frame(alpha=samp$alpha, beta=samp$beta, sigma=samp$sigma, gamma=samp$gamma)
+  else SRout <- data.frame(alpha=samp$alpha, beta=samp$beta, sigma=samp$sigma)
+  #if(is.null(samp$gamma)) SRout <- data.frame(alpha=samp$alpha, beta=samp$beta, sigma=samp$sigma)
+
+  #if(!is.null(samp$gamma)) SRout <- data.frame(alpha=samp$alpha, beta=samp$beta, sigma=samp$sigma, gamma=samp$gamma)
 
   return(SRout)
 
