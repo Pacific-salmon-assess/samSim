@@ -49,7 +49,7 @@ calcTAC_fixedER <- function(rec, canER, amER, ppnMixVec, cvER, randomVar=T) {
 
   }
 
-  browser()
+  #browser()
 
   tacList <- list(canTAC, canMixTAC, canSingTAC, amTAC)
   tacList <- lapply(tacList, function (x){ #replace NAs with 0s
