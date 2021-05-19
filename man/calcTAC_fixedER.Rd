@@ -4,7 +4,7 @@
 \alias{calcTAC_fixedER}
 \title{Title}
 \usage{
-calcTAC_fixedER(rec, canER, amER, ppnMixVec, cvER, randomVar = T)
+calcTAC_fixedER(rec, canER, amER, ppnMixVec, cvER, randomVar = T, runif = NULL)
 }
 \arguments{
 \item{rec}{A numeric representing MU-specific return abundance}
@@ -20,6 +20,9 @@ allocated to mixed stock fisheries}
 
 \item{randomVar}{A TRUE/FALSE variable indicating whether the Canadian ER should have
 annual implementation error around the target}
+
+\item{runif}{A vector of random numbers of length equal to the number of CUs
+which provides constant CU-specific deviations in ER from annual values}
 }
 \value{
 Returns a four element list of numeric vectors with length equal to

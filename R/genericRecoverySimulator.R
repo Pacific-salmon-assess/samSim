@@ -1481,6 +1481,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           canEROU <- calcCanEROU_fixedER(canER=canER, cvERSMU=cvERSMU)
           #In the first year, identify CU-specific ERs with variability
           if (y==nPrime) cuERnormDevs <- runif(nCU)
+          # In subsequent years, call a vector of random numbers to align random
+          # number call with is.null(cvERSMU) case
+          if (y>nPrime) runif(nCU)
           # tacs are calculated from an annual deviation in overall ER, canEROU
           # and a CU-specific deviation from that annul overall ER that is
           # constant over time, specified by cuERnormDevs
