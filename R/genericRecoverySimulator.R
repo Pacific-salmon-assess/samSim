@@ -1479,7 +1479,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                   randomVar=T) }
         if(!is.null(cvERSMU)) {
           canEROU <- calcCanEROU_fixedER(canER=canER, cvERSMU=cvERSMU)
-
+          }
         }
 
 
