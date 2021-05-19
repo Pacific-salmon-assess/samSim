@@ -1479,8 +1479,18 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                   randomVar=T) }
         if(!is.null(cvERSMU)) {
           canEROU <- calcCanEROU_fixedER(canER=canER, cvERSMU=cvERSMU)
-          }
-        }
+          #In the first year, identify CU-specific ERs with variability
+          if (y==nPrime) cuERnormDevs <- runif(nCU)
+          # tacs are calculated from an annual deviation in overall ER, canEROU
+          # and a CU-specific deviation from that annul overall ER that is
+          # constant over time, specified by cuERnormDevs
+            tacs <- calcTAC_fixedER(rec = recRYManU[y, ],  canER=canEROU,
+                                    amER = amER, ppnMixVec, cvER = cvER,
+                                    randomVar=T, runif=cuERnormDevs)
+
+            }#End of if(!is.null(cvERSMU))
+
+        }#End of if (harvContRule == "fixedER")
 
 
       # Proportion of MU-level RY recruitement that each CU accounts for

@@ -8,6 +8,8 @@
 #' @param cvER A numeric representing annual variability in ER
 #' @param randomVar A TRUE/FALSE variable indicating whether the Canadian ER should have
 #' annual implementation error around the target
+#' @param runif A vector of random numbers of length equal to the number of CUs
+#' which provides constant CU-specific deviations in ER from annual values
 #'
 #' @return Returns a four element list of numeric vectors with length equal to
 #' forecast:Total Canadian TAC, Canadian mixed fishery TAC, Canadian single fishery TAC, American TAC
@@ -16,7 +18,7 @@
 #' calcTAC_fixedER(rec=1000, canER=0.3, amER = 0.1, ppnMix = 0.5)
 #'
 #'
-calcTAC_fixedER <- function(rec, canER, amER, ppnMixVec, cvER, randomVar=T) {
+calcTAC_fixedER <- function(rec, canER, amER, ppnMixVec, cvER, randomVar=T, runif=NULL) {
 
   if (randomVar == F) {
     canTAC <- canER * rec
@@ -36,8 +38,21 @@ calcTAC_fixedER <- function(rec, canER, amER, ppnMixVec, cvER, randomVar=T) {
     sampBeta<-function(stk) {
       x<-rbeta(1,shape1[stk],shape2[stk])
     }
+    sampBetaRunif<-function(stk) {
+      x<-qbeta(runif[stk],shape1[stk],shape2[stk])
+    }
+
     # get realized ER
-    canER.real<-sapply(1:length(sigCanER),sampBeta)
+    if(is.null(runif)) canER.real<-sapply(1:length(sigCanER),sampBeta)
+
+    if(!is.null(runif)) {
+      canER.real <-  sapply(1:length(sigCanER),sampBetaRunif)
+      # Align the random number seeds with the scenario is.null(runif)==TRUE
+      # where rbeta is called. runif only uses 1 random seed/call, but rbeta
+      # uses 2, so need to call another set of random numbers = nCU
+      runif(length(cvER))
+    }
+
     # if any CUs have a CV of 0, set to mean canER
     canER.real[sigCanER ==0]<-canER
 
