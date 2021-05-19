@@ -51,12 +51,12 @@ calcTAC_fixedER <- function(rec, canER, amER, ppnMixVec, cvER, randomVar=T) {
 
   #browser()
 
-  tacList <- list(canTAC, canMixTAC, canSingTAC, amTAC)
+  tacList <- list(canTAC, canMixTAC, canSingTAC, amTAC, canER.real)
   tacList <- lapply(tacList, function (x){ #replace NAs with 0s
     x[is.na(x)] <- 0
     return(x)
   })
-  names(tacList) <- c("canTAC", "canMixTAC", "canSingTAC", "amTAC")
+  names(tacList) <- c("canTAC", "canMixTAC", "canSingTAC", "amTAC", "canER.real")
   return(tacList)
 
 }

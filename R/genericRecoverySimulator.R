@@ -93,7 +93,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   # Minimum exploitation rate applied
   minER <- cuPar$minER
   # Annual variation in exploitation rate
+  cvERSMU <- cuPar$cvERSMU
+  # Variation in exploitation rates among CUs.
   cvER <- cuPar$cvER
+
   # Scalar used to specify if any CUs should have ERs scaled above or below the MU-level average specified in simPars
   canERScalar <- cuPar$canERScalar
   usERScalar <- cuPar$usERScalar
@@ -1470,8 +1473,14 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
 
       if (harvContRule == "fixedER") {
-        tacs <- calcTAC_fixedER(rec = recRYManU[y, ], canER=canER, amER = amER, ppnMixVec, cvER = cvER,randomVar=T)
-      }
+        if(is.null(cvERSMU)) {
+          tacs <- calcTAC_fixedER(rec = recRYManU[y, ],  canER=canER,
+                                  amER = amER, ppnMixVec, cvER = cvER,
+                                  randomVar=T) }
+        if(!is.null(cvERSMU)) {
+          canEROU <- calcCanEROU_fixedER(canER=canER, cvERSMU=cvERSMU)
+
+        }
 
 
       # Proportion of MU-level RY recruitement that each CU accounts for
