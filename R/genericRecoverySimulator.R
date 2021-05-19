@@ -1476,10 +1476,14 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         if(is.null(cvERSMU)) {
           tacs <- calcTAC_fixedER(rec = recRYManU[y, ],  canER=canER,
                                   amER = amER, ppnMixVec, cvER = cvER,
-                                  randomVar=T) }
+                                  randomVar=T)
+          # calcTAAC_fixedER uses 2*nCUs random numbers/year when runif=NULL
+          }
         if(!is.null(cvERSMU)) {
+          #Calculate annual deviation of overall ER from canER (takes 2 rand#s)
           canEROU <- calcCanEROU_fixedER(canER=canER, cvERSMU=cvERSMU)
           #In the first year, identify CU-specific ERs with variability
+          # This uses nCU random numbers
           if (y==(nPrime+1)) cuERnormDevs <- runif(nCU)
           # In subsequent years, call a vector of random numbers to align random
           # number call with is.null(cvERSMU) case
@@ -1490,6 +1494,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             tacs <- calcTAC_fixedER(rec = recRYManU[y, ],  canER=canEROU,
                                     amER = amER, ppnMixVec, cvER = cvER,
                                     randomVar=T, runif=cuERnormDevs)
+            #Within  if(!is.null(cvERSMU)), there is a call to 2+nCU random
+            # numbers/yr, compared to 2*nCU random numbers within
+            # is.null(cvERSMU). Add 2*nCU-(nCU+2) random numbers/year to
+            # re-align random numbers
+            runif( 2*nCU - (nCU+2))
 
             }#End of if(!is.null(cvERSMU))
 
