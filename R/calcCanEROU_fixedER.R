@@ -30,7 +30,7 @@ calcCanEROU_fixedER <- function(canER,  cvERSMU, randomVar=T) {
       x<-rbeta(1,shape1[stk],shape2[stk])
     }
     # get realized ER
-    canEROUR<-sapply(1:length(sigCanER),sampBeta)
+    canEROU<-sapply(1:length(sigCanER),sampBeta)
     # if any CUs have a CV of 0, set to mean canER
     canEROU[sigCanER ==0]<-canER
   }
