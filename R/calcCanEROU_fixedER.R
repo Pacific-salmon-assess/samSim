@@ -1,3 +1,5 @@
+#' Title
+#'
 #' @param canER A numeric representing the target Canadian exploitation rate
 #' @param cvERSMU A numeric representing annual variability in ER
 #' @param randomVar A TRUE/FALSE variable indicating whether the Canadian ER should have
