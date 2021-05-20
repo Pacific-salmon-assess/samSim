@@ -96,6 +96,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   cvERSMU <- simPar$cvERSMU
   # Variation in exploitation rates among CUs.
   cvER <- cuPar$cvER
+  # Are age proportions same across CUs?
+  agePpnConst <- simPar$agePpnCons
 
   # Scalar used to specify if any CUs should have ERs scaled above or below the MU-level average specified in simPars
   canERScalar <- cuPar$canERScalar
@@ -844,9 +846,32 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                      Omega = covMat)
 
             for (k in 1:nrow(ageStruc)) {
-              ppnAges[y, k, ] <- ppnAgeErr(ageStruc[k, ], tauAge[k],
-                                           error = runif(nAges, 0.0001, 0.9999))
-            }
+              if(is.null(agePpnConst)){
+                ppnAges[y, k, ] <- ppnAgeErr(ageStruc[k, ], tauAge[k],
+                                             error = runif(nAges, 0.0001, 0.9999))
+               } # End of if(is.null(agePpnConst))
+              # If age proportions are constant among CUs
+              if(!is.null(agePpnConst)){
+                if(agePpnConst){
+                  if(k==1){
+                    #Draw random seed for that year and use for all k CUs
+                    runif_age <- runif(nAges, 0.0001, 0.9999)
+                  }
+                  #Use up random draws to align with scenario with variability among CUs
+                  if(k>1) {runif(nAges)}
+
+                  ppnAges[y, k, ] <- ppnAgeErr(ageStruc[k, ], tauAge[k],
+                                               error = runif_age)
+                }# End of if(agePpnConst){
+                #If agePpnConstant is FALSE, assume it's drawn randomly among CUs
+                if(!agePpnConst){
+                  ppnAges[y, k, ] <- ppnAgeErr(ageStruc[k, ], tauAge[k],
+                                               error = runif(nAges, 0.0001, 0.9999))
+                }
+              }# End of if(!is.null(agePpnConst)){
+
+
+            }# End of for (k in 1:nrow(ageStruc)) {
 
             for (k in 1:nCU) {
               if (S[y, k] > 0) {
@@ -1484,7 +1509,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           canEROU <- calcCanEROU_fixedER(canER=canER, cvERSMU=cvERSMU)
           #In the first year, identify CU-specific ERs with variability
           # This uses nCU random numbers
-          if (y==(nPrime+1)) cuERnormDevs <- runif(nCU)
+          if (y==(nPrime+1)) cuERnormDevs <- runif(nCU, 0.01,0.99)
           # In subsequent years, call a vector of random numbers to align random
           # number call with is.null(cvERSMU) case
           if (y> (nPrime+1)) runif(nCU)
@@ -1782,9 +1807,37 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       if (mSurvAge4[y, n] < min_logCoVar) mSurvAge4[y, n] <- min_logCoVar
 
       for (k in 1:nrow(ageStruc)) {
-        ppnAges[y, k, ] <- ppnAgeErr(ageStruc[k, ], tauAge[k],
-                                     error = runif(nAges, 0.0001, 0.9999))
-      }
+        # If age proportions are NOT constant among CUs, assume variable among CUs
+        if(is.null(agePpnConst)){
+          ppnAges[y, k, ] <- ppnAgeErr(ageStruc[k, ], tauAge[k],
+                                       error = runif(nAges, 0.0001, 0.9999))
+        }
+
+
+        # If age proportions are constant among CUs
+        if(!is.null(agePpnConst)){
+          if(agePpnConst){
+            if(k==1){
+              #Draw random seed for that year and use for all k CUs
+              runif_age <- runif(nAges, 0.0001, 0.9999)
+            }
+            #Use up random draws to align with scenario with variability among CUs
+            if(k>1) {runif(nAges)}
+
+            ppnAges[y, k, ] <- ppnAgeErr(ageStruc[k, ], tauAge[k],
+                                         error = runif_age)
+          }# End of if(agePpnConst){
+          #If agePpnConstant is FALSE, assume it's drawn randomly among CUs
+          if(!agePpnConst){
+            ppnAges[y, k, ] <- ppnAgeErr(ageStruc[k, ], tauAge[k],
+                                         error = runif(nAges, 0.0001, 0.9999))
+          }
+        }# End of if(!is.null(agePpnConst)){
+
+
+      }#End of  for (k in 1:nrow(ageStruc)) {
+
+
       if (prod == "skew") {
         #draw process variance from skewed normal distribution
         errorCU[y, ] <- sn::rmst(n = 1, xi = rep(0, nCU),

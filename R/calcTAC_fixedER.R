@@ -30,6 +30,9 @@ calcTAC_fixedER <- function(rec, canER, amER, ppnMixVec, cvER, randomVar=T, runi
   if (randomVar == T) {
   # calculate beta shape pars for can ER distribution
 
+    #Avoid implausible v high exploitation and NaN in qbeta
+    if(canER>=0.95) canER <- 0.95
+
     sigCanER<-cvER*canER
 
     shape1<- canER^2 * (((1-canER)/sigCanER^2)-(1/canER))
@@ -47,6 +50,7 @@ calcTAC_fixedER <- function(rec, canER, amER, ppnMixVec, cvER, randomVar=T, runi
 
     if(!is.null(runif)) {
       canER.real <-  sapply(1:length(sigCanER),sampBetaRunif)
+
       # Align the random number seeds with the scenario is.null(runif)==TRUE
       # where rbeta is called. runif only uses 1 random seed/call, but rbeta
       # uses 2, so need to call another set of random numbers = nCU
