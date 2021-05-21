@@ -96,6 +96,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   cvERSMU <- simPar$cvERSMU
   # Variation in exploitation rates among CUs.
   cvER <- cuPar$cvER
+  # Is there annual variability in among-CU deviations in exploitation rates
+  annualcvERCU <- simPar$annualcvERCU
   # Are age proportions same across CUs?
   agePpnConst <- simPar$agePpnCons
 
@@ -1512,7 +1514,16 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           if (y==(nPrime+1)) cuERnormDevs <- runif(nCU, 0.01,0.99)
           # In subsequent years, call a vector of random numbers to align random
           # number call with is.null(cvERSMU) case
-          if (y> (nPrime+1)) runif(nCU)
+          if (y> (nPrime+1)) {
+            if(is.null(annualcvERCU)) runif(nCU)
+            # If annual deviations in ER among CUs is speciied, then draw
+            # annual vectors of runif
+            if (!is.null(annualcvERCU)) {
+              if (annualcvERCU) cuERnormDevs <- runif(nCU, 0.01,0.99)
+              if (!annualcvERCU) runif(nCU, 0.01,0.99)
+             }# ENn of if (!is.null(annualcvERCU)) {
+            }# End of if(is.null(annualcvERCU)) runif(nCU)
+
           # tacs are calculated from an annual deviation in overall ER, canEROU
           # and a CU-specific deviation from that annul overall ER that is
           # constant over time, specified by cuERnormDevs
