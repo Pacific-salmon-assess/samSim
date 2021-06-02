@@ -19,6 +19,9 @@
 #' outside of model using multivariate normal (or equivalent) distribution.
 #' @param prevErr A numeric vector representing recruitment deviations from
 #' previous brood year.
+#' @param sig A numeric vector of Ricker sigma values
+#' @param biasCor A logical TRUE/FALSE indicating if log-normal bias
+#' correction should be applied. If NULL, then default is FALSE
 #' @return Returns a list of R, a numeric representing recruit abundance, and
 #' \code{errNext} which is used to generate subsequent process error (i.e. next
 #' year's prevErr.
@@ -36,7 +39,8 @@
 #'
 #' @export
 
-rickerModel <- function(S, a, b, error, rho = NULL, prevErr = NULL) {
+rickerModel <- function(S, a, b, error, rho = NULL, prevErr = NULL,
+                        sig = NULL, biasCor = NULL) {
   if (is.null(rho)) {
     rho <- 0
   }
@@ -46,8 +50,21 @@ rickerModel <- function(S, a, b, error, rho = NULL, prevErr = NULL) {
   err <- prevErr * rho + error
   # if (a >= 0) {
   #   if (b != 0 & S > 0) {
+  if(is.null(biasCor)) {
+    R <- S * exp(a - b * S) * exp(err)
+    errNext <- log(R / S) - (a - b * S)
+  }
+  if(!is.null(biasCor)) {
+    if(!biasCor)  {
       R <- S * exp(a - b * S) * exp(err)
       errNext <- log(R / S) - (a - b * S)
+    }
+    if(biasCor)  {
+      R <- S * exp(a - b * S) * exp(err - 0.5 * sig^2)
+      errNext <- log(R / S) - (a - b * S - 0.5 * sig^2)
+    }
+  }
+
   #   }
   #   if (b == 0 & S > 0) {
   #     R <- S * exp(err)
@@ -122,6 +139,9 @@ larkinModel <- function(S, Sm1, Sm2, Sm3, a, b, b1, b2, b3, error) {
 #' @param ppnAges A numeric vector of proportion of spawner abundance at age
 #' @param gamma A numeric value represting the marine survival coefficient
 #' @param mSurvAtAge A numeric vector representing marine survival covariates at age
+#' @param sig A numeric vector of Ricker sigma values
+#' @param biasCor A logical TRUE/FALSE vector indicating if log-normal bias
+#' correction should be applied. If NULL, then default is FALSE
 #'
 #' @return A list of recruitment at each age for the modelled brood year
 #' (e.g., R2 = recruitment to age 2 from broodyear, R3 = recruitment to age 3, etc),
@@ -131,14 +151,39 @@ larkinModel <- function(S, Sm1, Sm2, Sm3, a, b, b1, b2, b3, error) {
 #' @examples
 #' rickerSurvModel(S = 1000, a = 2.1, b = 0.00001, error = 0.8, ppnAges = c(0,0.83,0.17,0,0), gamma=0.4, mSurvAtAge=c(0,0.013, 0.015,0,0))
 #'
-rickerSurvModel <- function(S, a, b, error, ppnAges, gamma, mSurvAtAge) {
+rickerSurvModel <- function(S, a, b, error, ppnAges, gamma, mSurvAtAge,
+                            sig=NULL, biasCor=NULL) {
 
-  R2 <- ppnAges[1] * S * exp(a-b*S + gamma * mSurvAtAge[1])  * exp(error)
-  R3 <- ppnAges[2] * S * exp(a-b*S + gamma * mSurvAtAge[2]) * exp(error)
-  R4 <- ppnAges[3] * S * exp(a-b*S + gamma * mSurvAtAge[3]) * exp(error)
-  R5 <- ppnAges[4] * S * exp(a-b*S + gamma * mSurvAtAge[4]) * exp(error)
-  R6 <- ppnAges[5] * S * exp(a-b*S + gamma * mSurvAtAge[5]) * exp(error)
+  if(is.null(biasCor)){
+    R2 <- ppnAges[1] * S * exp(a-b*S + gamma * mSurvAtAge[1]) * exp(error)
+    R3 <- ppnAges[2] * S * exp(a-b*S + gamma * mSurvAtAge[2]) * exp(error)
+    R4 <- ppnAges[3] * S * exp(a-b*S + gamma * mSurvAtAge[3]) * exp(error)
+    R5 <- ppnAges[4] * S * exp(a-b*S + gamma * mSurvAtAge[4]) * exp(error)
+    R6 <- ppnAges[5] * S * exp(a-b*S + gamma * mSurvAtAge[5]) * exp(error)
+  }
 
+  if(!is.null(biasCor)){
+    if(!biasCor){
+      R2 <- ppnAges[1] * S * exp(a-b*S + gamma * mSurvAtAge[1]) * exp(error)
+      R3 <- ppnAges[2] * S * exp(a-b*S + gamma * mSurvAtAge[2]) * exp(error)
+      R4 <- ppnAges[3] * S * exp(a-b*S + gamma * mSurvAtAge[3]) * exp(error)
+      R5 <- ppnAges[4] * S * exp(a-b*S + gamma * mSurvAtAge[4]) * exp(error)
+      R6 <- ppnAges[5] * S * exp(a-b*S + gamma * mSurvAtAge[5]) * exp(error)
+    }
+    if(biasCor){
+      R2 <- ppnAges[1] * S * exp(a-b*S + gamma * mSurvAtAge[1]) *
+        exp(error - 0.5 * sig^2)
+      R3 <- ppnAges[2] * S * exp(a-b*S + gamma * mSurvAtAge[2]) *
+        exp(error - 0.5 * sig^2)
+      R4 <- ppnAges[3] * S * exp(a-b*S + gamma * mSurvAtAge[3]) *
+        exp(error - 0.5 * sig^2)
+      R5 <- ppnAges[4] * S * exp(a-b*S + gamma * mSurvAtAge[4]) *
+        exp(error - 0.5 * sig^2)
+      R6 <- ppnAges[5] * S * exp(a-b*S + gamma * mSurvAtAge[5]) *
+        exp(error - 0.5 * sig^2)
+    }
+
+  }
   RecBY<-sum(R2,R3,R4,R5,R6)
 
   return(list(R2,R3,R4,R5,R6,RecBY))

@@ -70,6 +70,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   extinctThresh <- simPar$extinctThresh #minimum number of spawners before set to 0
   preFMigMort <- ifelse(is.null(simPar$preFMigMort), 1,
                         as.numeric(simPar$preFMigMort)) #proportion of en route mortality occurring before single stock fisheries
+  biasCor <- simPar$biasCor # logical describing if log-normal bias correction
+  #is included in forward projections of stock-recruitment model
 
   # Should BMs be fixed at normative period?; if yes, then BMs aren't updated during sim period
   normPeriod <- ifelse(is.null(simPar$normPeriod), TRUE, simPar$normPeriod)
@@ -879,13 +881,18 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               if (S[y, k] > 0) {
                 if (model[k] == "ricker") {
 
-                  if (y == 1) dum <- rickerModel(S[y, k], refAlpha[k], beta[k],
-                                                 error = errorCU[y, k],
-                                                 rho = rho, prevErr = 0)
-                  if (y > 1) dum <- rickerModel(S[y, k], refAlpha[k], beta[k],
-                                                error = errorCU[y, k],
-                                                rho = rho,
-                                                prevErr = laggedError[y - 1, k])
+                    if (y == 1) dum <- rickerModel(S[y, k], refAlpha[k], beta[k],
+                                                   error = errorCU[y, k],
+                                                   rho = rho, prevErr = 0,
+                                                   sig = ricSig[k],
+                                                   biasCor = biasCor)
+                    if (y > 1) dum <- rickerModel(S[y, k], refAlpha[k], beta[k],
+                                                  error = errorCU[y, k],
+                                                  rho = rho,
+                                                  prevErr = laggedError[y - 1, k],
+                                                  sig = ricSig[k],
+                                                  biasCor = biasCor)
+
                   laggedError[y, k] <- dum[[2]]
 
                   #Keep recruitment below CU-specific cap, here specified as Seq x 3
@@ -910,7 +917,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                                                   mSurvAge4[y,n],
                                                                   mSurvAge4[y,n],
                                                                   0,0),
-                                                     error = errorCU[y, k]) }
+                                                     error = errorCU[y, k],
+                                                     sig = ricSig[k],
+                                                     biasCor = biasCor) }
 
                   if (y >= 3) {mSurvAtAge <- c(mSurvAge4[y-2,n],
                                                mSurvAge4[y-1,n],
@@ -922,7 +931,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                                       ppnAges = ppnAges[y,k,],
                                                       gamma = gamma[k],
                                                       mSurvAtAge = mSurvAtAge,
-                                                      error = errorCU[y, k]) }
+                                                      error = errorCU[y, k],
+                                                      sig = ricSig[k],
+                                                      biasCor = biasCor) }
                   #Keep recruitment below CU-specific cap, here specified as Seq x 3
                   recCap <- 3 * refAlpha / beta
 
@@ -1876,9 +1887,12 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       for (k in 1:nCU) {
         if (S[y, k] > 0) {
           if (model[k] == "ricker") {
-            dum <- rickerModel(S[y, k], alphaMat[y, k], beta[k],
-                               error = errorCU[y, k], rho = rho,
-                               prevErr = laggedError[y - 1, k])
+
+              dum <- rickerModel(S[y, k], alphaMat[y, k], beta[k],
+                                 error = errorCU[y, k], rho = rho,
+                                 prevErr = laggedError[y - 1, k],
+                                 sig = ricSig[k], biasCor = biasCor)
+
             laggedError[y, k] <- dum[[2]]
             #keep recruitment below CU-specific cap
             recBY[y, k] <- min(dum[[1]], recCap[k])
@@ -1892,7 +1906,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             dum <- rickerSurvModel(S=S[y, k], a=alphaMat[y, k], b=beta[k],
                                    ppnAges = ppnAges[y,k,], gamma=gamma[k],
                                    mSurvAtAge=mSurvAtAge,
-                                   error = errorCU[y, k])
+                                   error = errorCU[y, k], sig = ricSig[k],
+                                   biasCor = biasCor)
             #keep recruitment below CU-specific cap
             recBY[y, k] <- min(dum[[6]], recCap[k])
 

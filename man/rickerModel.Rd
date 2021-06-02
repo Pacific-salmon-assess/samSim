@@ -4,7 +4,16 @@
 \alias{rickerModel}
 \title{Generate recruit abundance with Ricker model}
 \usage{
-rickerModel(S, a, b, error, rho = NULL, prevErr = NULL)
+rickerModel(
+  S,
+  a,
+  b,
+  error,
+  rho = NULL,
+  prevErr = NULL,
+  sig = NULL,
+  biasCor = NULL
+)
 }
 \arguments{
 \item{S}{A numeric vector of spawner abundances.}
@@ -23,6 +32,11 @@ outside of model using multivariate normal (or equivalent) distribution.}
 
 \item{prevErr}{A numeric vector representing recruitment deviations from
 previous brood year.}
+
+\item{sig}{A numeric vector of Ricker sigma values}
+
+\item{biasCor}{A logical TRUE/FALSE indicating if log-normal bias
+correction should be applied. If NULL, then default is FALSE}
 }
 \value{
 Returns a list of R, a numeric representing recruit abundance, and

@@ -4,7 +4,17 @@
 \alias{rickerSurvModel}
 \title{Generate recruit abundance with the Ricker Model with a marine survival co-variate}
 \usage{
-rickerSurvModel(S, a, b, error, ppnAges, gamma, mSurvAtAge)
+rickerSurvModel(
+  S,
+  a,
+  b,
+  error,
+  ppnAges,
+  gamma,
+  mSurvAtAge,
+  sig = NULL,
+  biasCor = NULL
+)
 }
 \arguments{
 \item{S}{A numeric of spawner abundance.}
@@ -23,6 +33,11 @@ using \code{rmvnorm()} and relevant process variance estimates (sigma).}
 \item{gamma}{A numeric value represting the marine survival coefficient}
 
 \item{mSurvAtAge}{A numeric vector representing marine survival covariates at age}
+
+\item{sig}{A numeric vector of Ricker sigma values}
+
+\item{biasCor}{A logical TRUE/FALSE vector indicating if log-normal bias
+correction should be applied. If NULL, then default is FALSE}
 }
 \value{
 A list of recruitment at each age for the modelled brood year
