@@ -829,7 +829,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       if(is.null(recOut) ||
          sum(is.na(recDat$totalRec)) == length(recDat$totalRec)){
 
-            if (y <= 6) S[y,] <- refAlpha/beta
+            if (y <= 6) {
+              if(is.null(cuPar$Sinit)) S[y,] <- refAlpha/beta
+              if(!is.null(cuPar$Sinit)) S[y,] <- cuPar$Sinit
+              }
 
             expRate[y,] <- canER
 
@@ -896,7 +899,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                   laggedError[y, k] <- dum[[2]]
 
                   #Keep recruitment below CU-specific cap, here specified as Seq x 3
-                  recCap <- 3 * refAlpha / beta
+                  if(is.null(cuPar$Sinit)) recCap <- 3 * refAlpha / beta
+                  if(!is.null(cuPar$Sinit)) recCap <- 3 * cuPar$Sinit
 
                   recBY[y, k] <- min(dum[[1]], recCap[k])
                 }
@@ -935,7 +939,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                                       sig = ricSig[k],
                                                       biasCor = biasCor) }
                   #Keep recruitment below CU-specific cap, here specified as Seq x 3
-                  recCap <- 3 * refAlpha / beta
+                  if(is.null(cuPar$Sinit)) recCap <- 3 * refAlpha / beta
+                  if(!is.null(cuPar$Sinit)) recCap <- 3 * cuPar$Sinit
 
                   #keep recruitment below CU-specific cap
                   recBY[y, k] <- min(dum[[6]], recCap[k])
