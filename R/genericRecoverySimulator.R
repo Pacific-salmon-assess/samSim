@@ -72,6 +72,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                         as.numeric(simPar$preFMigMort)) #proportion of en route mortality occurring before single stock fisheries
   biasCor <- simPar$biasCor # logical describing if log-normal bias correction
   #is included in forward projections of stock-recruitment model
+  rCap <- simPar$rCap
 
   # Should BMs be fixed at normative period?; if yes, then BMs aren't updated during sim period
   normPeriod <- ifelse(is.null(simPar$normPeriod), TRUE, simPar$normPeriod)
@@ -898,9 +899,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
                   laggedError[y, k] <- dum[[2]]
 
-                  #Keep recruitment below CU-specific cap, here specified as Seq x 3
-                  if(is.null(cuPar$Sinit)) recCap <- 3 * refAlpha / beta
-                  if(!is.null(cuPar$Sinit)) recCap <- 3 * cuPar$Sinit
+                  #Keep recruitment below CU-specific cap, here specified as Seq x 5
+                  if (is.null(rCap)) CapScalar <- 3
+                  if (!is.null(rCap)) CapScalar <- rCap
+                  if(is.null(cuPar$Sinit)) recCap <- CapScalar * refAlpha / beta
+                  if(!is.null(cuPar$Sinit)) recCap <- CapScalar * cuPar$Sinit
 
                   recBY[y, k] <- min(dum[[1]], recCap[k])
                 }
@@ -939,8 +942,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                                       sig = ricSig[k],
                                                       biasCor = biasCor) }
                   #Keep recruitment below CU-specific cap, here specified as Seq x 3
-                  if(is.null(cuPar$Sinit)) recCap <- 3 * refAlpha / beta
-                  if(!is.null(cuPar$Sinit)) recCap <- 3 * cuPar$Sinit
+                  if (is.null(rCap)) CapScalar <- 3
+                  if (!is.null(rCap)) CapScalar <- rCap
+
+                  if(is.null(cuPar$Sinit)) recCap <- CapScalar * refAlpha / beta
+                  if(!is.null(cuPar$Sinit)) recCap <- CapScalar * cuPar$Sinit
 
                   #keep recruitment below CU-specific cap
                   recBY[y, k] <- min(dum[[6]], recCap[k])
