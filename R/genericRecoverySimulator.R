@@ -146,165 +146,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   ageMaxRec<-max(cuPar$ageMaxRec) # maximum age of recruits
 
 
-  ## Stock-recruitment parameters
-  ricA <- cuPar$alpha
-  ricB <- cuPar$beta0
-  ricSig <- cuPar$sigma
-  gamma <- cuPar$coef1
-  larA <- cuPar$larkAlpha
-  larB <- cuPar$larkBeta0
-  larB1 <- cuPar$larkBeta1
-  larB2 <- cuPar$larkBeta2
-  larB3 <- cuPar$larkBeta3
-  larSig <- cuPar$larkSigma
-
-  coef1<-cuPar$coef1
-  coVarInit<-cuPar$covarInit
-  mu_logCoVar<-cuPar$mu_logCovar
-  sig_logCoVar<-cuPar$sig_logCovar
-  min_logCoVar<-cuPar$min_logCovar
-  max_logCoVar<-cuPar$max_logCovar
-
-  # Coerce all stocks to have the same alpha parameter (regardless of model
-  # structure), others will vary
-  if (uniqueProd == FALSE) {
-    ricA <- rep(mean(cuPar$alpha), length.out = nCU)
-    larA <- rep(mean(cuPar$alpha), length.out = nCU)
-    ricSig <- rep(mean(cuPar$sigma), length.out = nCU)
-    larSig <- rep(mean(cuPar$sigma), length.out = nCU)
-  }
-
-  # Coerce all stocks to have the same alpha parameter (regardless of model
-  # structure), others will vary
-  if (is.na(mu_logCoVar[1]) == FALSE & uniqueSurv == FALSE) {
-    mu_logCoVar<-mean(mu_logCoVar)
-    sig_logCoVar<-mean(sig_logCoVar)
-    min_logCoVar<-mean(min_logCoVar)
-    max_logCoVar<-mean(max_logCoVar)
-  }
-
-
-  # If .csv of par dist is not passed and productivity is something other than "med", give error warning
-  if (prod != "med" & is.null(ricPars) == TRUE) {
-    stop("Full SR parameter dataset necessary to simulate alternative
-         productivity scenarios")
-  }
-
-  # If .csv of par dist is passed, change from median values to sample from par dist
-  if (is.null(ricPars) == FALSE) {
-     dum <- getSRPars_randomSamp(pars = ricPars, stks = stkID)
-     ricA <- dum$alpha
-     ricB <- dum$beta
-     ricSig <- dum$sigma
-     if(!is.null(dum$gamma)) ricGamma <- dum$gamma
-
-    # dum <- getSRPars(pars = ricPars, alphaOnly = TRUE, highP = 0.95,
-    #                         lowP = 0.05, stks = stkID)
-    # ricA <- dum$pMed[["alpha"]]
-    # ricB <- dum$pMed[["beta"]]
-    # ricSig <- dum$pMed[["sigma"]]
-    # ricGamma <- dum$pMed[["gamma"]]
-
-
-    if (is.null(larkPars) == FALSE) {
-      #getSRPars provides quantiles as well which can be used for high/low prod
-      #treatments but this is currently replaced by applying a simple scalar
-      #based on mean differences estimated from kalman filter
-      dumLark <- getSRPars(pars = larkPars, alphaOnly = TRUE, highP = 0.95,
-                           lowP = 0.05, stks = stkID)
-      larA <- (dumLark$pMed[["alpha"]])
-      larB <- (dumLark$pMed[["beta0"]])
-      larB1 <- (dumLark$pMed[["beta1"]])
-      larB2 <- (dumLark$pMed[["beta2"]])
-      larB3 <- (dumLark$pMed[["beta3"]])
-      larSig <- (dumLark$pMed[["sigma"]])
-    }
-  }
-
-  # Adjust sigma (Ricker only) following Holt and Folkes 2015 if a
-  # transformation term is present and TRUE
-  if (is.null(simPar$arSigTransform) == FALSE & simPar$arSigTransform == TRUE) {
-    ricSig <- ricSig^2 * (1 - rho^2)
-  }
-
-  # Save reference alpha values for use when calculating BMs, then adjust alpha
-  # based on productivity scenario
-  refAlpha <- ifelse(model == "ricker" | model =="rickerSurv", ricA, larA)
-  # Then, adjust alpha based on productivity scenario
-  if (prod == "low" | prod == "lowStudT") {
-    alpha <- 0.65 * refAlpha
-  } else if (prod == "high") {
-    alpha <- 1.35 * refAlpha
-  } else {
-    alpha <- refAlpha
-  }
-
-  # is the productivity scenario stable
-  stable <- ifelse(prod %in% c("decline", "divergent", "divergentSmall",
-                               "oneUp", "oneDown"),
-                   FALSE,
-                   TRUE)
-
-  # For stable trends use as placeholder for subsequent ifelse
-  finalAlpha <- alpha
-  prodScalars <- rep(1, nCU)
-  if (prod == "decline" ) {
-    prodScalars <- rep(0.65, nCU)
-  } else if (prod == "divergent") {
-    prodScalars <- sample(c(0.65, 1, 1.35), nCU, replace = TRUE)
-  } else if (prod == "divergentSmall") {
-    prodScalars <- ifelse(cuPar$medianRec < median(cuPar$medianRec), 0.65, 1)
-  } else if (prod == "oneDown") {
-    drawCU <- round(runif(1, min = 0.5, max = nCU))
-    prodScalars[drawCU] <- 0.65
-  } else if (prod == "oneUp") {
-    drawCU <- round(runif(1, min = 0.5, max = nCU))
-    prodScalars[drawCU] <- 1.35
-  } else if (prod == "scalar") {
-    prodScalars <- rep(simPar$prodScalar, nCU)
-  }
-
-  finalAlpha <- prodScalars * alpha
-  trendLength <- 3 * gen
-  trendAlpha <- (finalAlpha - alpha) / trendLength
-  cuProdTrends <- dplyr::case_when(
-    prodScalars == "0.65" ~ "decline",
-    prodScalars == "1" ~ "stable",
-    prodScalars == "1.35" ~ "increase"
-  )
-  beta <- ifelse(model == "ricker" | model == "rickerSurv", ricB, larB)
-  if (is.null(simPar$adjustBeta) == FALSE) {
-    beta <- beta * simPar$adjustBeta
-  }
-  # Adjust sigma up or down
-  sig <- ifelse(model == "ricker" | model=="rickerSurv", ricSig, larSig) * adjSig
-
-  if (is.null(ricPars) == FALSE) {
-    gamma<-ifelse(model == "rickerSurv", ricGamma, NA)
-  }
-
-  #Add correlations in rec deviations
-  if (simPar$corrMat == TRUE) { #replace uniform correlation w/ custom matrix
-    if (nrow(cuCustomCorrMat) != nCU) {
-      stop("Custom correlation matrix does not match number of CUs")
-    }
-    correlCU <- as.matrix(cuCustomCorrMat)
-  }
-  #calculate correlations among CUs
-  sigMat <- matrix(as.numeric(sig), nrow = 1, ncol = nCU)
-  #calculate shared variance and correct based on correlation
-  covMat <- (t(sigMat) %*% sigMat) * correlCU
-  diag(covMat) <- as.numeric(sig^2) #add variance
-
-
-  # Specify among-CU variability in gamma coefficient (if required for sim scenario)
-  if(!is.null(simPar$sampCU_coef1)){
-    if (simPar$sampCU_coef1 == TRUE) {
-      gammaSig<-simPar$sigCU_coef1
-      gamma<-rnorm(nCU,gamma[1],gammaSig)
-    }
-  }
-
   ## Priming period: get stock-recruitment data
   if (!is.null(srDat)) { #transform rec data if available
     if (!is.null(catchDat)) { #add catch data if available
@@ -625,8 +466,191 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
 
   #_______________________________________________________________________
+  # Set up Stock-Recruitment parameters from cuPars
+  # These are overwritten when MCMC input file used
+  # Note, prod scalars and covariance matrix are calculated within nTrials loop
+  ricA <- cuPar$alpha
+  ricB <- cuPar$beta0
+  ricSig <- cuPar$sigma
+  gamma <- cuPar$coef1
+  larA <- cuPar$larkAlpha
+  larB <- cuPar$larkBeta0
+  larB1 <- cuPar$larkBeta1
+  larB2 <- cuPar$larkBeta2
+  larB3 <- cuPar$larkBeta3
+  larSig <- cuPar$larkSigma
+
+  coef1<-cuPar$coef1
+  coVarInit<-cuPar$covarInit
+  mu_logCoVar<-cuPar$mu_logCovar
+  sig_logCoVar<-cuPar$sig_logCovar
+  min_logCoVar<-cuPar$min_logCovar
+  max_logCoVar<-cuPar$max_logCovar
+
+  # Coerce all stocks to have the same alpha parameter (regardless of model
+  # structure), others will vary
+  if (uniqueProd == FALSE) {
+    ricA <- rep(mean(cuPar$alpha), length.out = nCU)
+    larA <- rep(mean(cuPar$alpha), length.out = nCU)
+    ricSig <- rep(mean(cuPar$sigma), length.out = nCU)
+    larSig <- rep(mean(cuPar$sigma), length.out = nCU)
+  }
+
+  # Coerce all stocks to have the same alpha parameter (regardless of model
+  # structure), others will vary
+  if (is.na(mu_logCoVar[1]) == FALSE & uniqueSurv == FALSE) {
+    mu_logCoVar<-mean(mu_logCoVar)
+    sig_logCoVar<-mean(sig_logCoVar)
+    min_logCoVar<-mean(min_logCoVar)
+    max_logCoVar<-mean(max_logCoVar)
+  }
+
+
+  # If .csv of par dist is not passed and productivity is something other than "med", give error warning
+  if (prod != "med" & is.null(ricPars) == TRUE) {
+    stop("Full SR parameter dataset necessary to simulate alternative
+         productivity scenarios")
+  }
+
+
+  # Adjust sigma (Ricker only) following Holt and Folkes 2015 if a
+  # transformation term is present and TRUE
+  if (is.null(simPar$arSigTransform) == FALSE & simPar$arSigTransform == TRUE) {
+    ricSig <- ricSig^2 * (1 - rho^2)
+  }
+
+  beta <- ifelse(model == "ricker" | model == "rickerSurv", ricB, larB)
+  if (is.null(simPar$adjustBeta) == FALSE) {
+    beta <- beta * simPar$adjustBeta
+  }
+
+  #_______________________________________________________________________
   ## Simulation model
   for (n in 1:nTrials) {
+
+    #_______________________________________________________________________
+    # Set up Stock-Recruitment parameters
+    # When derived from MCMC input file, SR draws are done very trial
+
+    # If .csv of par dist is passed, change from median values to sample from par dist
+    if (is.null(ricPars) == FALSE) {
+      dum <- getSRPars_randomSamp(pars = ricPars, stks = stkID)
+      ricA <- dum$alpha
+      ricB <- dum$beta
+      ricSig <- dum$sigma
+      if(!is.null(dum$gamma)) ricGamma <- dum$gamma
+
+
+      # Adjust sigma (Ricker only) following Holt and Folkes 2015 if a
+      # transformation term is present and TRUE
+      if (is.null(simPar$arSigTransform) == FALSE & simPar$arSigTransform == TRUE) {
+        ricSig <- ricSig^2 * (1 - rho^2)
+      }
+
+      beta <- ifelse(model == "ricker" | model == "rickerSurv", ricB, larB)
+      if (is.null(simPar$adjustBeta) == FALSE) {
+        beta <- beta * simPar$adjustBeta
+      }
+
+      if (is.null(larkPars) == FALSE) {
+        #getSRPars provides quantiles as well which can be used for high/low prod
+        #treatments but this is currently replaced by applying a simple scalar
+        #based on mean differences estimated from kalman filter
+        dumLark <- getSRPars(pars = larkPars, alphaOnly = TRUE, highP = 0.95,
+                             lowP = 0.05, stks = stkID)
+        larA <- (dumLark$pMed[["alpha"]])
+        larB <- (dumLark$pMed[["beta0"]])
+        larB1 <- (dumLark$pMed[["beta1"]])
+        larB2 <- (dumLark$pMed[["beta2"]])
+        larB3 <- (dumLark$pMed[["beta3"]])
+        larSig <- (dumLark$pMed[["sigma"]])
+      }
+
+    }
+
+    #_______________________________________________________________________
+    # Set up Adj pars, Prod scalars, and covariance files
+    # When derived from MCMC input file, SR draws are done very trial so this
+    # must be done every trial. When derived from cuPars, then code for Scalars
+    # and Covariance matrix is redundant (though needed here for when derived
+    # from MCMC inputs)
+
+      # Save reference alpha values for use when calculating BMs, then adjust alpha
+    # based on productivity scenario
+    refAlpha <- ifelse(model == "ricker" | model =="rickerSurv", ricA, larA)
+    # Then, adjust alpha based on productivity scenario
+    if (prod == "low" | prod == "lowStudT") {
+      alpha <- 0.65 * refAlpha
+    } else if (prod == "high") {
+      alpha <- 1.35 * refAlpha
+    } else {
+      alpha <- refAlpha
+    }
+
+    # is the productivity scenario stable
+    stable <- ifelse(prod %in% c("decline", "divergent", "divergentSmall",
+                                 "oneUp", "oneDown"),
+                     FALSE,
+                     TRUE)
+
+    # For stable trends use as placeholder for subsequent ifelse
+    finalAlpha <- alpha
+    prodScalars <- rep(1, nCU)
+    if (prod == "decline" ) {
+      prodScalars <- rep(0.65, nCU)
+    } else if (prod == "divergent") {
+      prodScalars <- sample(c(0.65, 1, 1.35), nCU, replace = TRUE)
+    } else if (prod == "divergentSmall") {
+      prodScalars <- ifelse(cuPar$medianRec < median(cuPar$medianRec), 0.65, 1)
+    } else if (prod == "oneDown") {
+      drawCU <- round(runif(1, min = 0.5, max = nCU))
+      prodScalars[drawCU] <- 0.65
+    } else if (prod == "oneUp") {
+      drawCU <- round(runif(1, min = 0.5, max = nCU))
+      prodScalars[drawCU] <- 1.35
+    } else if (prod == "scalar") {
+      prodScalars <- rep(simPar$prodScalar, nCU)
+    }
+
+    finalAlpha <- prodScalars * alpha
+    trendLength <- 3 * gen
+    trendAlpha <- (finalAlpha - alpha) / trendLength
+    cuProdTrends <- dplyr::case_when(
+      prodScalars == "0.65" ~ "decline",
+      prodScalars == "1" ~ "stable",
+      prodScalars == "1.35" ~ "increase"
+    )
+
+    # Adjust sigma up or down
+    sig <- ifelse(model == "ricker" | model=="rickerSurv", ricSig, larSig) * adjSig
+
+    if (is.null(ricPars) == FALSE) {
+      gamma<-ifelse(model == "rickerSurv", ricGamma, NA)
+    }
+
+    #Add correlations in rec deviations
+    if (simPar$corrMat == TRUE) { #replace uniform correlation w/ custom matrix
+      if (nrow(cuCustomCorrMat) != nCU) {
+        stop("Custom correlation matrix does not match number of CUs")
+      }
+      correlCU <- as.matrix(cuCustomCorrMat)
+    }
+    #calculate correlations among CUs
+    sigMat <- matrix(as.numeric(sig), nrow = 1, ncol = nCU)
+    #calculate shared variance and correct based on correlation
+    covMat <- (t(sigMat) %*% sigMat) * correlCU
+    diag(covMat) <- as.numeric(sig^2) #add variance
+
+
+    # Specify among-CU variability in gamma coefficient (if required for sim scenario)
+    if(!is.null(simPar$sampCU_coef1)){
+      if (simPar$sampCU_coef1 == TRUE) {
+        gammaSig<-simPar$sigCU_coef1
+        gamma<-rnorm(nCU,gamma[1],gammaSig)
+      }
+    }
+
+
 
     #_____________________________________________________________________
     # Set up empty vectors and matrices for each MC trial
