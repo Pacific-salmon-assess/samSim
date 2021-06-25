@@ -32,7 +32,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   # i.e. should ALWAYS be FALSE except for convenience when running independent
   # chains to test convergence
   if (random != TRUE) {
-    set.seed(123)
+    if(is.null(simPar$seed)) set.seed(123)
+    if(!is.null(simPar$seed)) set.seed(simPar$seed)
   }
 
   # Silence warnings present in R 3.5.1
