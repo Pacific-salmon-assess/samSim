@@ -1666,20 +1666,22 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                              sum)
 
       # Calculate realized catches (if statement necessary because
-      # calcRealCatch has random number generator reset)
+      # calcRealCatch has random number generator reset in original samSim
+      # For samSim@LRP, that seed set has been removed.)
       if (random != TRUE) {
 
         amCatch[y, ] <- calcRealCatch(recRY[y, ], amTAC[y, ], sigma = mixOUSig,
-                                      setSeedInput = n * y)
+                                      setSeedInput = round(runif(1,1,10000),0))#n * y
         remRec1 <- pmax(recRY[y, ] - amCatch[y, ], 0)
         mixCatch[y, ] <- calcRealCatch(remRec1, mixTAC[y, ], sigma = mixOUSig,
-                                       setSeedInput = n * y)
+                                       setSeedInput = round(runif(1,1,10000),0))#n * y
         remRec2 <- pmax(remRec1 - mixCatch[y, ] - extinctThresh, 0)
         #  migMortRate[y, ] <- enRouteMR * migMortErr
         # migMort1 <- remRec2 * (preFMigMort * migMortRate[y, ])
         #  remRec3 <- pmax(remRec2 - migMort1 - extinctThresh, 0)
         singCatch[y, ] <- calcRealCatch(remRec2, singTAC[y, ],
-                                        sigma = singOUSig, setSeedInput = n * y)
+                                        sigma = singOUSig, setSeedInput =
+                                          round(runif(1,1,10000),0))#n * y
       } else {
         amCatch[y, ] <- calcRealCatch(recRY[y, ], amTAC[y, ], sigma = mixOUSig,
                                       random = TRUE)
@@ -1876,7 +1878,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         if(!is.null(agePpnConst)){
           if(agePpnConst){
             if(k==1){
-              #Draw random seed for that year and use for all k CUs
+              #Draw random numbers for that year and use for all k CUs
               runif_age <- runif(nAges, 0.0001, 0.9999)
             }
             #Use up random draws to align with scenario with variability among CUs
