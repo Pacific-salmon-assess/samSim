@@ -460,6 +460,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   medEarlyS <- matrix(NA, nrow = nTrials, ncol = nCU)
   medEarlyRecRY <- matrix(NA, nrow = nTrials, ncol = nCU)
   medEarlyTotalCatch <- matrix(NA, nrow = nTrials, ncol = nCU)
+  counterLowerBMArray <- array(NA, dim=c(nYears, nCU, nTrials), dimnames=NULL)
 
 
   # Randomly selects trial to draw and plot
@@ -2181,6 +2182,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     singCatchArray[ , , n] <- singCatch
     singTACArray[ , , n] <- singTAC
     totalCatchArray[ , , n] <- totalCatch
+    counterLowerBMArray[ , , n] <- counterLowerBM
 
 
     #Store trial and CU specific means, variances, and proportions to add to
@@ -2330,6 +2332,13 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                   sep = "/"), version=3)
 
 
+  # Save CU-specific performance above lower benchmarks
+   fileName <- ifelse(variableCU == "TRUE",
+                      paste(cuNameOM, cuNameMP, "CUaboveLB.RData",
+                            sep = "_"),
+                      paste(nameOM, nameMP, "CUaboveLB.RData", sep = "_"))
+   saveRDS(counterLowerBMArray , file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName,
+                                  sep = "/"), version=3)
   # Store aggregate data as data frame; each variable is a vector of single, trial-specific values
   yrsSeq <- (nPrime + 1):nYears
   aggDat <- data.frame(opMod = rep(nameOM, length.out = nTrials),
