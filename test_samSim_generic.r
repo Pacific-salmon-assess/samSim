@@ -9,7 +9,7 @@ if (length(newPackages)) {
 lapply(listOfPackages, require, character.only = TRUE)
 
 
-
+# When de-bugging, uncomment out file that you want to get into
 #source("R/genericRecoverySimulator.r")
 #source("R/stockRecruitModels.r")
 #source("R/getSRPars_randomSamp.r")
@@ -18,201 +18,72 @@ lapply(listOfPackages, require, character.only = TRUE)
 
 # Coho ====================================================================
 
-## Load relevant input data
+## (1) Load relevant input data
 
-# Simulation run parameters describing different scenarios
-simPar <- read.csv(here("data", "IFCohoPars",
+  # Simulation run parameters describing different scenarios
+  simPar <- read.csv(here("data", "IFCohoPars",
                         "cohoSimPars.csv"), stringsAsFactors = F)
 
-# CU-specific parameters
-cuPar <- read.csv(here("data", "IFCohoPars", "cohoCUPars.csv"),
+  # CU-specific parameters
+  cuPars <- read.csv(here("data", "IFCohoPars", "cohoCUPars.csv"),
                   stringsAsFactors=F)
 
-
-# Simulation run parameters describing different scenarios
-simPar_test1 <- read.csv(here("data", "IFCohoPars",
-                        "SimPars_ERCV0.1.csv"), stringsAsFactors = F)
-
-# CU-specific parameters
-cuPar_test1 <- read.csv(here("data", "IFCohoPars", "CUPars_ERCV0.1.csv"),
+  # Stock-recruit and catch data that are used to populate the simulation priming period
+  srDat <- read.csv(here("data", "IFCohoPars", "cohoRecDatTrim.csv"),
                   stringsAsFactors=F)
 
-
-# Simulation run parameters describing different scenarios
-simPar_test2 <- read.csv(here("data", "IFCohoPars",
-                              "SimPars_noERCV.csv"), stringsAsFactors = F)
-
-# CU-specific parameters
-cuPar_test2 <- read.csv(here("data", "IFCohoPars", "CUPars_noERCV.csv"),
-                        stringsAsFactors=F)
-
-# Stock-recruit and catch data that are used to populate the simulation priming
-# period
-srDat <- read.csv(here("data", "IFCohoPars", "cohoRecDatTrim.csv"),
+  # Posterior MCMC samples for SR pars
+  ricPars<-read.csv(here("data", "IFCohoPars", "cohoRickerSurv_mcmc.csv"),
                   stringsAsFactors=F)
 
-
-#ricPars<-read.csv(here("data", "IFCohoPars", "cohoRickerSurv_mcmc.csv"),
-#                  stringsAsFactors=F)
-
-
-ricPars<-read.csv(here("data", "IFCohoPars", "SR_IndivRicker_Surv_mcmc.csv"),
-                  stringsAsFactors=F)
-
-
-
-
-
-corMatrix <- read.csv(here("data", "IFCohoPars", "cohoCorrMat.csv"),
+  # Correlation matrix for between-CU correlation in recruitment residuals
+  corMatrix <- read.csv(here("data", "IFCohoPars", "cohoCorrMat.csv"),
                       stringsAsFactors=F, header=F)
 
-## Store relevant object names to help run simulation
-scenNames <- unique(simPar$scenario)
-dirNames <- sapply(scenNames, function(x) paste(x, unique(simPar$species),
+  ## Store relevant object names to help run simulation
+  scenNames <- unique(simPar$scenario)
+  dirNames <- sapply(scenNames, function(x) paste(x, unique(simPar$species),
                                                 sep = "_"))
 
-## First check to ensure that a single scenario can be run (only a small number
-# of trials necessary)
-
-genericRecoverySim(simPar_test2[1, ], cuPar=cuPar_test2, srDat=srDat,
-                 variableCU=FALSE, ricPars=ricPars, cuCustomCorrMat = corMatrix,
-                 nTrials=20, makeSubDirs=FALSE, random=FALSE, outDir="outDir")
-
-
-
-genericRecoverySim(simPar[2, ], cuPar=cuPar, srDat=srDat,
-                   variableCU=FALSE, ricPars=ricPars, cuCustomCorrMat = corMatrix,
-                   nTrials=20, makeSubDirs=FALSE, random=FALSE, outDir="outDir")
+## (2) Check to ensure that package works with only a small number of scenarios ======
+genericRecoverySim(simPar[1, ], cuPar=cuPars, srDat=srDat,
+                   variableCU=FALSE, ricPars=ricPars,
+                   cuCustomCorrMat = corMatrix,
+                   nTrials=5, makeSubDirs=FALSE,
+                   random=TRUE, outDir="outDir")
 
 
-
-## Now run in paralell ============================================
-
-simsToRun <- split(simPar, seq(nrow(simPar)))
-Ncores <- detectCores()
-cl <- makeCluster(Ncores - 1) #save one core
-registerDoParallel(cl)
-clusterEvalQ(cl, c(library(samSim)))
-
-clusterExport(cl, c("simsToRun", "cuPar",
-                    "srDat", "corMatrix", "ricPars"), envir=environment())
+## (3) Run with more scenarios
+genericRecoverySim(simPar[1, ], cuPar=cuPars, srDat=srDat,
+                   variableCU=FALSE, ricPars=ricPars,
+                   cuCustomCorrMat = corMatrix,
+                   nTrials=5000, makeSubDirs=FALSE,
+                   random=TRUE, outDir="outDir")
 
 
-tic("run in parallel")
-parLapply(cl, simsToRun, function(x) {
-
-  genericRecoverySim(x, cuPar=cuPar, srDat=srDat,
-                     variableCU=FALSE, ricPars=ricPars, cuCustomCorrMat = corMatrix,
-                     nTrials=100, makeSubDirs=FALSE, random=FALSE, outDir="outDir")
-})
-stopCluster(cl) #end cluster
-toc()
 
 
-#################################################################################
-##Old code:
 
-# ## Define a larger number of simulations to be run (note still well below
-# ## suggested number for stability)
-# nTrials <- 100
-#
-# ## Divide each scenario into a list element to pass to parLapply()
+
+## Old code to run in parallel =============================================
 # simsToRun <- split(simPar, seq(nrow(simPar)))
-# dirName <- "test.co.cluster"
 # Ncores <- detectCores()
 # cl <- makeCluster(Ncores - 1) #save one core
 # registerDoParallel(cl)
 # clusterEvalQ(cl, c(library(samSim)))
 #
-# clusterExport(cl, c("simsToRun", "cuPar", "nTrials", "dirName",
-#                      "srDat", "ricPars", "corMatrix"), envir=environment())
+# clusterExport(cl, c("simsToRun", "cuPars",
+#                     "srDat", "corMatrix", "ricPars"), envir=environment())
+#
 #
 # tic("run in parallel")
-#
 # parLapply(cl, simsToRun, function(x) {
-#   genericRecoverySim(x, cuPar=cuPar, srDat=srDat, ricPars=ricPars, variableCU=FALSE,
-#                      cuCustomCorrMat = corMatrix, dirName=dirName, nTrials=nTrials, makeSubDirs=FALSE,
-#                       random=FALSE)
-# })
-# stopCluster(cl) #end cluster
-# toc()
 #
-#
-#
-# # Sockeye ===================
-#
-#
-#   # Read-in sockeye pars
-#
-#   # Simulation run parameters describing different scenarios
-#   simPar.sk <- read.csv(here("data", "sockeyeTestPars",
-#                              "fraserMPInputs_exampleSimPar.csv"),
-#                         stringsAsFactors = F)
-#   # CU-specific parameters
-#   cuPar.sk <- read.csv(here("data", "sockeyeTestPars", "fraserCUpars.csv"),
-#                        stringsAsFactors=F)
-#   # Stock-recruit and catch data that are used to populate the simulation priming
-#   # period
-#   srDat.sk <- read.csv(here("data", "sockeyeTestPars", "fraserRecDatTrim.csv"),
-#                        stringsAsFactors=F)
-#   catchDat.sk <- read.csv(here("data", "sockeyeTestPars", "fraserCatchDatTrim.csv"),
-#                           stringsAsFactors=F)
-#   # Posterior values of  CU-specific stock recruitment parameters for Ricker and
-#   # Larkin models; when available, passed and used to calculate alpha, beta and
-#   # sigma parameters rather than passing point values
-#   ricPars.sk <- read.csv(here("data", "sockeyeTestPars", "pooledRickerMCMCPars.csv"),
-#                          stringsAsFactors=F)
-#   larkPars.sk <- read.csv(here("data", "sockeyeTestPars", "pooledLarkinMCMCPars.csv"),
-#                           stringsAsFactors=F)
-#
-#
-#
-# ## Store relevant object names to help run simulation
-# scenNames.sk <- unique(simPar.sk$scenario)
-# dirNames.sk <- sapply(scenNames.sk, function(x) paste(x, unique(simPar.sk$species),
-#                                                       sep = "_"))
-#
-# simpleRecoverySim(simPar.sk[1, ], cuPar=cuPar.sk, catchDat=catchDat.sk, srDat=srDat.sk,
-#                   variableCU=FALSE, ricPars=ricPars.sk,larkPars=larkPars.sk,
-#                   dirName="test.sk", nTrials=2, makeSubDirs=FALSE, random=FALSE)
-#
-#
-#
-#
-#
-#
-#
-# #### Rest of example ============================
-#
-# ## Define a larger number of simulations to be run (note still well below
-# ## suggested number for stability)
-# nTrials <- 50
-#
-# ## Divide each scenario into a list element to pass to parLapply()
-# simsToRun <- split(simPar, seq(nrow(simPar)))
-# dirName <- "example"
-# Ncores <- detectCores()
-# cl <- makeCluster(Ncores - 1) #save one core
-# registerDoParallel(cl)
-# clusterEvalQ(cl, c(library(samSim)))
-# # clusterExport(cl, c("simsToRun", "cuPar", "nTrials", "dirName",
-# #                     "catchDat", "srDat", "ricPars", "larkPars",
-# #                     "tamFRP"), envir=environment())
-# clusterExport(cl, c("simsToRun", "cuPar", "nTrials", "dirName",
-#                     "catchDat", "srDat", "ricPars",
-#                     "tamFRP"), envir=environment())
-#
-# tic("run in parallel")
-# # parLapply(cl, simsToRun, function(x) {
-# #   recoverySim(x, cuPar=cuPar, catchDat=catchDat, srDat=srDat, variableCU=FALSE,
-# #               ricPars=ricPars, larkPars=larkPars, tamFRP=tamFRP,
-# #               dirName=dirName, nTrials=nTrials, makeSubDirs=FALSE,
-# #               random=FALSE)
-# parLapply(cl, simsToRun, function(x) {
-#   recoverySim(x, cuPar=cuPar, catchDat=catchDat, srDat=srDat, variableCU=FALSE,
-#               ricPars=ricPars, tamFRP=tamFRP,
-#               dirName=dirName, nTrials=nTrials, makeSubDirs=FALSE,
-#               random=FALSE)
+#   genericRecoverySim(x, cuPar=cuPars, srDat=srDat,
+#                      variableCU=FALSE, ricPars=ricPars,
+#                      cuCustomCorrMat = corMatrix,
+#                      nTrials=100, makeSubDirs=FALSE,
+#                      random=TRUE, outDir="outDir")
 # })
 # stopCluster(cl) #end cluster
 # toc()
