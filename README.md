@@ -148,7 +148,7 @@ Optional contents include:
   - Necessary if American exploitation differs among CUs
     - `usER` - American exploitation rate
   - Necessary if modeling en route mortality
-    - `meanDBE` - mean difference between estimates (a proxy for en route mrotality)
+    - `meanDBE` - mean difference between estimates (a proxy for en route mortality)
     - `sdDBE` - interannual standard deviation of difference between estimates
   - Necessary if modeling TAM harvest control rule
     - `medMA` - median mortality adjustment used in TAM harvest control rule
