@@ -255,7 +255,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   if(is.null(srDat)){
     nPrime <- ageMaxRec * 10
     nYears <- nPrime + simYears
-    firstYr <- 2020-nPrime
+    firstYr <- as.numeric(format(Sys.Date(), "%Y"))-nPrime
     recOut <- NULL
     # Placeholders:
     cycle <- rep(c(1, 2, 3, 4), nYears)
