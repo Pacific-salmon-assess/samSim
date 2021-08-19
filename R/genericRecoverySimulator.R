@@ -954,9 +954,22 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                                      sig = ricSig[k],
                                                      biasCor = biasCor) }
 
-                  if (y >= 3) {mSurvAtAge <- c(mSurvAge4[y-2,n],
-                                               mSurvAge4[y-1,n],
-                                               mSurvAge4[y,n], 0, 0)}
+                  # mSurvAtAge is a vector of marine survival rates that will be experienced by fish recruiting from brood year y.
+                  #  It contains marine survival rates for recruits at ages 2:6.
+                  #  mSurvAtAge is currently filled based on the dominant life history types from Interior Fraser Coho.
+                  #  Fish with a 3-year life cycle differ from those with a 4-year life cycle in the number of years spent in
+                  #  freshwater as juveniles; both life cycles spend 18 months at sea before returning to spawn.
+                  #  Fish with a 2-year life cycle spend only 6 months at sea before returning as jacks.
+                  # -> Therefore:
+                  # --- Age 3 recruits from brood year y will enter the ocean at the same time as age 4 recruits from
+                  #     brood year y-1, and will this have the same marine survival rate as age 4 recruits from year y - 1
+                  # --- Age 2 recruits from brood year y will enter the ocean at the same
+                  #     time as age 3 recruits from brood year y, which is the same as age 4 recruits from brood year y - 1
+
+                  if (y >= 3) {mSurvAtAge <- c(mSurvAge4[y-1,n], # msurv for recruits returning at age 2
+                                               mSurvAge4[y-1,n], # msurv for recruits returning at age 3
+                                               mSurvAge4[y,n],  # msurv for recruits returning at age 4
+                                               mSurvAge4[y,n], mSurvAge4[y,n])} # msurv for recruits returning at ages 5 and 6 (placeholder values; this does no occur)
 
                   if (y >= 3) {dum <- rickerSurvModel(S = S[y, k],
                                                       a = refAlpha[k],
