@@ -110,6 +110,7 @@ Simulations are run by installing the samSim package and using the `recoverySim(
   - `extinctThresh` - quasi-extinction threshold
   - `adjustSig` - scalar on CU-specific sigmas (recruitment deviations)
   - `adjustAge` - scalar on `tauCatch`
+  - `adjustForecast` - scalar applied to the parameter describing forecast error.  It is used to generate Management Procedures that have the same forecast model, but differ in forecast performance
   - `adjustEnRouteSig` - scalar on en route mortality rates
 
 
