@@ -91,6 +91,7 @@ Simulations are run by installing the samSim package and using the `recoverySim(
   - `endYear` - indicates when a productivity decline (if specified by `prodRegime == "decline"`) should end
   - `rho` - temporal autocorrelation coefficient in recruitment deviations
   - `arSigTransform` - if `TRUE` estimates of sigma from input are transformed so that they account for temporal autocorrelation
+  - `biasCor` Logical variable indicating whether or not to apply the sig^2/2 bias correction to Recruitment projections. 
   - `correlCU` - the correlation among CUs in recruitment deviations
   - `corrMat` - if `TRUE` a custom correlation matrix is required to be passed as an input and is used to specify the covariance matrix for recruitment deviations
   - `mu_logCovar1` - mean of lognormal distribution for annual SR covariate (e.g., marine survival)
