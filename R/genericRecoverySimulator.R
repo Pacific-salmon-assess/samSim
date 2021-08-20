@@ -1123,11 +1123,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               }
               if (bm == "habitat"){
                 # this gives same result as stockRecruit for nPrime period
-                sMSY_habitat[y, k, n] <-
-                  (1 - gsl::lambert_W0(exp(1 - refAlpha[k]))) / beta[k]
-                sGen_habitat[y, k, n] <- as.numeric(sGenSolver(
-                  theta = c(refAlpha[k], beta[k], ricSig[k]),
-                  sMSY = sMSY_habitat[y, k, n] ))
+                sMSY_habitat[y, k, n] <- sMSY[y, k, n]      
+                sGen_habitat[y, k, n] <- sGen[y, k, n]
 
                 upperBM[y, k] <- ifelse(!is.na(sMSY_habitat[y, k, n]),
                                         0.8 * sMSY_habitat[y, k, n],
