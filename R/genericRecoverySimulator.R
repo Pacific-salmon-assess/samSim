@@ -935,7 +935,12 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                 }
 
                 if (model[k] == "rickerSurv") {
-                  mSurvAge4[y, n] <- rnorm(1,mu_logCoVar,sig_logCoVar) - 0.5 * sig_logCoVar^2
+                  if (biasCor == TRUE) {
+                    mSurvAge4[y, n] <- rnorm(1,mu_logCoVar,sig_logCoVar) - 0.5 * sig_logCoVar^2
+                  }else {
+                    mSurvAge4[y, n] <- rnorm(1,mu_logCoVar,sig_logCoVar)
+                  }
+
                   if (mSurvAge4[y, n] > max_logCoVar) { mSurvAge4[y, n] <-
                     max_logCoVar }
                   if (mSurvAge4[y, n] < min_logCoVar) {mSurvAge4[y, n] <-
@@ -1876,7 +1881,13 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       # Get marine survival covariate (only used for rickerSurv SR model)
       ## - all CUs have the same marine survival (only option available at present)
       if (y == nPrime+1) mSurvAge4[1:nPrime, n] <- rep(mu_logCoVar,nPrime)
-        mSurvAge4[y, n]<-rnorm(1,mu_logCoVar,sig_logCoVar) - 0.5 * sig_logCoVar^2
+
+      if (biasCor == TRUE) {
+        mSurvAge4[y, n] <- rnorm(1,mu_logCoVar,sig_logCoVar) - 0.5 * sig_logCoVar^2
+      } else {
+        mSurvAge4[y, n] <- rnorm(1,mu_logCoVar,sig_logCoVar)
+      }
+
         if (mSurvAge4[y, n] > max_logCoVar) mSurvAge4[y, n] <- max_logCoVar
         if (mSurvAge4[y, n] < min_logCoVar) mSurvAge4[y, n] <- min_logCoVar
 
