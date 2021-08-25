@@ -474,7 +474,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   ricA <- cuPar$alpha
   ricB <- cuPar$beta0
   ricSig <- cuPar$sigma
-  gamma <- cuPar$coef1
   larA <- cuPar$larkAlpha
   larB <- cuPar$larkBeta0
   larB1 <- cuPar$larkBeta1
@@ -482,8 +481,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   larB3 <- cuPar$larkBeta3
   larSig <- cuPar$larkSigma
 
-  coef1<-cuPar$coef1
-  coVarInit<-cuPar$covarInit
+  # Parameters specific to rickerSurv spawner recruit model
+  gamma <- cuPar$gamma
   mu_logCoVar<-cuPar$mu_logCovar
   sig_logCoVar<-cuPar$sig_logCovar
   min_logCoVar<-cuPar$min_logCovar
@@ -500,6 +499,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
   # Coerce all stocks to have the same alpha parameter (regardless of model
   # structure), others will vary
+
   if (is.na(mu_logCoVar[1]) == FALSE & uniqueSurv == FALSE) {
     mu_logCoVar<-mean(mu_logCoVar)
     sig_logCoVar<-mean(sig_logCoVar)
@@ -645,9 +645,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
 
     # Specify among-CU variability in gamma coefficient (if required for sim scenario)
-    if(!is.null(simPar$sampCU_coef1)){
-      if (simPar$sampCU_coef1 == TRUE) {
-        gammaSig<-simPar$sigCU_coef1
+    if(!is.null(simPar$sampCU_gamma)){
+      if (simPar$sampCU_gamma == TRUE) {
+        gammaSig<-simPar$sigCU_gamma
         gamma<-rnorm(nCU,gamma[1],gammaSig)
       }
     }
@@ -1055,7 +1055,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               ))
             }
             if (model[k] == "rickerSurv") {
-              refAlpha_prime<- refAlpha[k] + (gamma[k]*log(coVarInit[k]))
+
+              ## - all CUs have the same mu_logCoVar (only option available at present)
+              refAlpha_prime<- refAlpha[k] + (gamma[k]*mu_logCoVar)
 
               sEqVar[y, k, n] <- refAlpha_prime / beta[k]
               sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha_prime))) /
@@ -1123,7 +1125,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               }
               if (bm == "habitat"){
                 # this gives same result as stockRecruit for nPrime period
-                sMSY_habitat[y, k, n] <- sMSY[y, k, n]      
+                sMSY_habitat[y, k, n] <- sMSY[y, k, n]
                 sGen_habitat[y, k, n] <- sGen[y, k, n]
 
                 upperBM[y, k] <- ifelse(!is.na(sMSY_habitat[y, k, n]),
@@ -1273,7 +1275,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             sMSY[y, k, n] <- sMSY[nPrime, k, n]
             sGen[y, k, n] <- sGen[nPrime, k, n]
           } else if (normPeriod == FALSE) {
-            refAlpha_prime<- refAlpha[k] + (gamma[k]*log(coVarInit[k]))
+            refAlpha_prime<- refAlpha[k] + (gamma[k]*mu_logCoVar)
             sEqVar[y, k, n] <- refAlpha_prime / beta[k]
             sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha_prime))) / beta[k]
             sGen[y, k, n] <- as.numeric(sGenSolver(
@@ -1870,7 +1872,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       ### Population dynamics submodel
 
 
-      # Get marine rvival covariate (only used for rickerSurv SR model)
+      # Get marine survival covariate (only used for rickerSurv SR model)
       ## - all CUs have the same marine survival (only option available at present)
       if (y == nPrime+1) mSurvAge4[1:nPrime, n] <- rep(mu_logCoVar,nPrime)
       mSurvAge4[y, n]<-rnorm(1,mu_logCoVar,sig_logCoVar)
