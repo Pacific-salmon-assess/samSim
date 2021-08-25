@@ -28,6 +28,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                larkPars=NULL, cuCustomCorrMat=NULL,
                                erCorrMat=NULL, nTrials=100, uniqueProd=TRUE,
                                uniqueSurv=FALSE, random=FALSE, outDir) {
+
   # If random = TRUE then each simulation will start at a different point
   # i.e. should ALWAYS be FALSE except for convenience when running independent
   # chains to test convergence
@@ -540,8 +541,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       ricA <- dum$alpha
       ricB <- dum$beta
       ricSig <- dum$sigma
-      if(!is.null(dum$gamma)) ricGamma <- dum$gamma
-
+      if(!is.null(dum$gamma[1])) ricGamma <- dum$gamma
 
       # Adjust sigma (Ricker only) following Holt and Folkes 2015 if a
       # transformation term is present and TRUE
@@ -935,7 +935,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                 }
 
                 if (model[k] == "rickerSurv") {
-                  mSurvAge4[y, n] <- rnorm(1,mu_logCoVar,sig_logCoVar)
+                  mSurvAge4[y, n] <- rnorm(1,mu_logCoVar,sig_logCoVar) - 0.5 * sig_logCoVar^2
                   if (mSurvAge4[y, n] > max_logCoVar) { mSurvAge4[y, n] <-
                     max_logCoVar }
                   if (mSurvAge4[y, n] < min_logCoVar) {mSurvAge4[y, n] <-
@@ -1054,6 +1054,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                 sMSY = sMSY[y, k, n]
               ))
             }
+
             if (model[k] == "rickerSurv") {
 
               ## - all CUs have the same mu_logCoVar (only option available at present)
@@ -1875,14 +1876,14 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       # Get marine survival covariate (only used for rickerSurv SR model)
       ## - all CUs have the same marine survival (only option available at present)
       if (y == nPrime+1) mSurvAge4[1:nPrime, n] <- rep(mu_logCoVar,nPrime)
-      mSurvAge4[y, n]<-rnorm(1,mu_logCoVar,sig_logCoVar)
-      if (mSurvAge4[y, n] > max_logCoVar) mSurvAge4[y, n] <- max_logCoVar
-      if (mSurvAge4[y, n] < min_logCoVar) mSurvAge4[y, n] <- min_logCoVar
+        mSurvAge4[y, n]<-rnorm(1,mu_logCoVar,sig_logCoVar) - 0.5 * sig_logCoVar^2
+        if (mSurvAge4[y, n] > max_logCoVar) mSurvAge4[y, n] <- max_logCoVar
+        if (mSurvAge4[y, n] < min_logCoVar) mSurvAge4[y, n] <- min_logCoVar
 
-      for (k in 1:nrow(ageStruc)) {
-        # If age proportions are NOT constant among CUs, assume variable among CUs
-        if(is.null(agePpnConst)){
-          ppnAges[y, k, ] <- ppnAgeErr(ageStruc[k, ], tauAge[k],
+        for (k in 1:nrow(ageStruc)) {
+          # If age proportions are NOT constant among CUs, assume variable among CUs
+          if(is.null(agePpnConst)){
+            ppnAges[y, k, ] <- ppnAgeErr(ageStruc[k, ], tauAge[k],
                                        error = runif(nAges, 0.0001, 0.9999))
         }
 
