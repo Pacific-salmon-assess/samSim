@@ -546,7 +546,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       # Adjust sigma (Ricker only) following Holt and Folkes 2015 if a
       # transformation term is present and TRUE
       if (is.null(simPar$arSigTransform) == FALSE & simPar$arSigTransform == TRUE) {
-        ricSig <- ricSig^2 * (1 - rho^2)
+        ricSig <- sqrt(ricSig^2 * (1 - rho^2))
       }
 
       beta <- ifelse(model == "ricker" | model == "rickerSurv", ricB, larB)
