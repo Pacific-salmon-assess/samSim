@@ -1566,6 +1566,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
 
       if (harvContRule == "fixedER") {
+        #add this to ensure that calcRealCatch does not generate additional uncertainty in catches
+        mixOUSig <- 0
+        singOUSig <- 0
         if(is.null(cvERSMU)) {
           tacs <- calcTAC_fixedER(rec = recRYManU[y, ],  canER=canER,
                                   amER = amER, ppnMixVec, cvER = cvER,
