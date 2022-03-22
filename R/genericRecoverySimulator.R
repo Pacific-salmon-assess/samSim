@@ -1406,12 +1406,16 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         # Use ifelse statements to test if obs RecYR from 5 years ago are equal
         # to true RecRY values
         #  -- If False, generate observed age composition data with error
+        
+        
         ppnObsSRet5[y - 5, k, ] <- ifelse(rep(obsRecRY[y - 5,  k] ==
                                                 recRY[y - 5,  k],
                                               length.out = nAges),
                                           ppnSRet5,
-                                          ppnAgeErr(ppnSRet5, ageErr,
-                                                    randAges[y - 5, ]))
+                                          ppnObsSRet4[y - 5, k, ])
+                                          #ppnAgeErr(ppnSRet5, ageErr,
+                                          #          randAges[y - 5, ]))
+
 
         # Repeat above for years y - 4, y-3, etc
         ppnSRet4 <- c(ppnAge2Ret4[y - 4, k], ppnAge3Ret4[y - 4, k],
@@ -1421,8 +1425,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                                 recRY[y - 4, k],
                                               length.out = nAges),
                                           ppnSRet4,
-                                          ppnAgeErr(ppnSRet4, ageErr,
-                                                    randAges[y - 4, ]))
+                                          ppnObsSRet3[y - 4, k, ])
+                                          #ppnAgeErr(ppnSRet4, ageErr,
+                                          #          randAges[y - 4, ]))
+      
+
         ppnSRet3 <- c(ppnAge2Ret3[y - 3, k], ppnAge3Ret3[y - 3, k],
                       ppnAge4Ret3[y - 3, k], ppnAge5Ret3[y - 3, k],
                       ppnAge6Ret3[y - 3, k])
@@ -1430,8 +1437,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                                 recRY[y - 3, k],
                                               length.out = nAges),
                                           ppnSRet3,
-                                          ppnAgeErr(ppnSRet3, ageErr,
-                                                    randAges[y - 3, ]))
+                                          ppnObsSRet2[y - 3, k, ])
+                                          #ppnAgeErr(ppnSRet3, ageErr,
+                                          #          randAges[y - 3, ]))
+
+
         ppnSRet2 <- c(ppnAge2Ret2[y - 2, k], ppnAge3Ret2[y - 2, k],
                       ppnAge4Ret2[y - 2, k], ppnAge5Ret2[y - 2, k],
                       ppnAge6Ret2[y - 2, k])
@@ -1439,8 +1449,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                                 recRY[y - 2, k],
                                               length.out = nAges),
                                           ppnSRet2,
-                                          ppnAgeErr(ppnSRet2, ageErr,
-                                                    randAges[y - 2, ]))
+                                          ppnObsSRet1[y - 2, k, ])
+                                          #ppnAgeErr(ppnSRet2, ageErr,
+                                          #          randAges[y - 2, ]))
+      
+
         ppnSRet1 <- c(ppnAge2Ret1[y - 1, k], ppnAge3Ret1[y - 1, k],
                       ppnAge4Ret1[y - 1, k], ppnAge5Ret1[y - 1, k],
                       ppnAge6Ret1[y - 1, k])
@@ -1450,6 +1463,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                           ppnSRet1,
                                           ppnAgeErr(ppnSRet1, ageErr,
                                                     randAges[y - 1, ]))
+        
       }
 
       #Sum returns by age class ppn structured by yr to get recruits by brood yr
@@ -2047,7 +2061,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       } # end of k loop over CUs
 
       } # end of loop 3
-
     #__________________________________________________________________________
     ### Draw one trial for plotting
     if (n == drawTrial) {
