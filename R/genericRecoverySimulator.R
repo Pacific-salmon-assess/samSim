@@ -262,6 +262,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     residMatrix <- matrix(NA, ncol=nCU, nrow =nPrime)
   }
 
+
+
   # Extract proportions at age a for each CU (where, a = 2,3,4,5,6)
   ppn2 <- ageStruc[, 1] #proportion at age parameters
   ppn3 <- ageStruc[, 2]
@@ -311,6 +313,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
 
   ## Specify key variable used for outputs
+  #TODO add beta and sigma to this list
   keyVar <- switch(simPar$keyVar,
                    "prodRegime" = prod,
                    "synch" = correlCU,
@@ -410,6 +413,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   obsRecArray <- array(NA, dim = c(nYears, nCU, nTrials))
   alphaArray <- array(NA, dim = c(nYears, nCU, nTrials))
   betaArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  sigmaArray <- array(NA, dim = c(nYears, nCU, nTrials))
   returnArray <- array(NA, dim = c(nYears, nCU, nTrials))
   logRSArray <- array(NA, dim = c(nYears, nCU, nTrials))
   recDevArray <- array(NA, dim = c(nYears, nCU, nTrials))
@@ -672,6 +676,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     regimeCap <- mapply(runRegime, capacity, capacity*simPar$capPpnChange,
                         rep(simYears,length(capacity)))
 
+   regimeAlpha <- rbind(matrix(NA, nrow=nPrime, ncol=length(alpha)), regimeAlpha)
+   regimeCap <- rbind(matrix(NA, nrow=nPrime, ncol=length(capacity)), regimeCap)
+
 
     # Adjust sigma up or down
 
@@ -703,14 +710,13 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       }
     }
 
-
-
     #_____________________________________________________________________
     # Set up empty vectors and matrices for each MC trial
     ## Population dynamics
     S <- matrix(NA, nrow = nYears, ncol = nCU)
     alphaMat <- matrix(NA, nrow = nYears, ncol = nCU)
     betaMat <- matrix(NA, nrow = nYears, ncol = nCU)
+    sigmaMat <- matrix(NA, nrow = nYears, ncol = nCU)
     capMat <- matrix(NA, nrow = nYears, ncol = nCU)
     alphaPrimeMat <- matrix(NA, nrow = nYears, ncol = nCU) # variable used to estimate sEq, sGen and sMsy when spawners generated w/ larkin
     ppnAges <- array(NA, dim=c(nYears, nCU, nAges), dimnames=NULL)
@@ -835,6 +841,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       alphaMat[y, ] <- refAlpha
       betaMat[y, ] <- beta
       capMat[y, ] <- 1/beta
+      sigmaMat[y, ] <- sig
 
       # If there are recruitment data, prime model with SR data:
 
@@ -1349,7 +1356,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         betaMat[y, ] <- 1/capMat[y,]#betaMat[y - 1, ]
       } #end if y > (nPrime + 1)
 
-
+      sigmaMat[y, ] <- sig
 
       #Estimate BMs if normative period not being used, otherwise assume they are equal to last year of observation
       for (k in 1:nCU) {
@@ -2300,6 +2307,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     obsRecArray[ , , n] <- obsRecBY
     alphaArray[ , , n] <- alphaMat
     betaArray[ , , n] <- betaMat
+    sigmaArray[ , , n] <- sigmaMat
     returnArray[ , , n] <- recRY
     logRSArray[ , , n] <- logRS
     obsTotalCatch <- obsAmCatch + obsMixCatch + obsSingCatch
@@ -2554,6 +2562,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     obsRecDat.i<-as.data.frame(obsRecArray[,,i])
     alphaDat.i<-as.data.frame(alphaArray[,,i])
     betaDat.i<-as.data.frame(betaArray[,,i])
+    sigmaDat.i<-as.data.frame(sigmaArray[,,i])
 
     if(nrow(spnDat.i) != nrow(recDat.i) )
       print("warning, spawner and recruitment are not aligned in output csv file")
@@ -2578,12 +2587,15 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="alpha")
     betaDat_long.i <- betaDat.i %>%
         tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="beta")
+    sigmaDat_long.i <- sigmaDat.i %>%
+        tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="sigma")
 
     srDat_long.i <- spnDat_long.i %>% tibble::add_column(recruits=recDat_long.i$recruits) %>%
         tibble::add_column(obsSpawners=obsSpnDat_long.i$obsSpawners) %>%
         tibble::add_column(obsRecruits=obsRecDat_long.i$obsRecruits) %>%
         tibble::add_column(alpha=alphaDat_long.i$alpha) %>%
-        tibble::add_column(beta=betaDat_long.i$beta)
+        tibble::add_column(beta=betaDat_long.i$beta) %>%
+        tibble::add_column(sigma=sigmaDat_long.i$sigma) 
 
     if (i == 1) srDatout<-srDat_long.i
     if (i > 1) {
