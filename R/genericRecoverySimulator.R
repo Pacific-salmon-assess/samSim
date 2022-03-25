@@ -406,7 +406,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   obsExpRateAg <- matrix(NA, nrow = nYears, ncol = nTrials)
   spwnrArray <- array(NA, dim = c(nYears, nCU, nTrials))
   recArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  obsSpwnrArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  obsRecArray <- array(NA, dim = c(nYears, nCU, nTrials))
   alphaArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  betaArray <- array(NA, dim = c(nYears, nCU, nTrials))
   returnArray <- array(NA, dim = c(nYears, nCU, nTrials))
   logRSArray <- array(NA, dim = c(nYears, nCU, nTrials))
   recDevArray <- array(NA, dim = c(nYears, nCU, nTrials))
@@ -435,6 +438,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   medEstAlpha <- matrix(NA, nrow = nTrials, ncol = nCU)
   varEstAlpha <- matrix(NA, nrow = nTrials, ncol = nCU)
   medBeta <- matrix(NA, nrow = nTrials, ncol = nCU)
+  varBeta <- matrix(NA, nrow = nTrials, ncol = nCU)
   medTotalCatchEarly <- matrix(NA, nrow = nTrials, ncol = nCU)
   medTotalCatch <- matrix(NA, nrow = nTrials, ncol = nCU)
   varTotalCatch <- matrix(NA, nrow = nTrials, ncol = nCU)
@@ -577,7 +581,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     # and Covariance matrix is redundant (though needed here for when derived
     # from MCMC inputs)
 
-      # Save reference alpha values for use when calculating BMs, then adjust alpha
+    # Save reference alpha values for use when calculating BMs, then adjust alpha
     # based on productivity scenario
     refAlpha <- ifelse(model == "ricker" | model =="rickerSurv", ricA, larA)
     # Then, adjust alpha based on productivity scenario
@@ -590,16 +594,21 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     }
 
     # is the productivity scenario stable
-    stable <- ifelse(prod %in% c("decline", "divergent", "divergentSmall",
-                                 "oneUp", "oneDown"),
+    prodStable <- ifelse(prod %in% c("linear", "decline", "increase", "divergent",
+                                     "divergentSmall", "oneUp", "oneDown",
+                                     "scalar", "regime"),
                      FALSE,
                      TRUE)
 
     # For stable trends use as placeholder for subsequent ifelse
     finalAlpha <- alpha
     prodScalars <- rep(1, nCU)
-    if (prod == "decline" ) {
+    if(prod == "linear"){
+      prodScalars <- rep(simPar$prodPpnChange, nCU)
+    } else if (prod == "decline"){
       prodScalars <- rep(0.65, nCU)
+    } else if (prod == "increase") {
+       prodScalars <- rep(1.35, nCU)
     } else if (prod == "divergent") {
       prodScalars <- sample(c(0.65, 1, 1.35), nCU, replace = TRUE)
     } else if (prod == "divergentSmall") {
@@ -615,15 +624,57 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     }
 
     finalAlpha <- prodScalars * alpha
-    trendLength <- 3 * gen
+    trendLength <- simPar$trendLength #3 * gen
     trendAlpha <- (finalAlpha - alpha) / trendLength
+    
+    # Create matrix of alphas that correspond to 10-year regimes that iterate between
+    # initial alpha and final alpha
+    runRegime <- function(a1,a2,y)( rep( c(rep(a1,10),rep(a2,10)),
+                                       ceiling(y/20) )[1:y] )
+    regimeAlpha <- mapply(runRegime, alpha, alpha*simPar$prodPpnChange,
+                        rep(simYears,length(alpha)))
+
+
     cuProdTrends <- dplyr::case_when(
-      prodScalars == "0.65" ~ "decline",
+      prodScalars < 1 ~ "decline",
       prodScalars == "1" ~ "stable",
-      prodScalars == "1.35" ~ "increase"
+      prodScalars > 1 ~ "increase"
     )
 
+    # Include time-varying trends in beta (To Be Included)
+    cap <- simPar$capRegime
+    capStable <- ifelse(cap %in% c("linear", "decline", "increase",
+                                   "divergent", "divergentSmall",
+                                   "oneUp", "oneDown", "scalar", "regime"),
+                         FALSE,
+                         TRUE)
+
+
+    beta <- ifelse(model == "ricker" | model == "rickerSurv", ricB, larB)
+    capacity <- 1/beta
+
+    # For stable capacity trends use as placeholder for subsequent ifelse
+    finalCapacity <- capacity
+    capacityScalars <- rep(1, nCU)
+    if (cap == "linear" ) {
+      capacityScalars <- rep(simPar$capPpnChange, nCU)
+    } else if (cap == "decline" ) {
+      capacityScalars <- rep(0.65, nCU)
+    } else if (cap == "increase" ) {
+      capacityScalars <- rep(1.35, nCU)
+    }
+
+    finalCapacity <- capacityScalars * capacity
+    trendCapacity <- (finalCapacity - capacity) / trendLength
+
+    # Create matrix of capacity that corresponds to 10-year regimes that iterate between
+    # initial cap and final cap
+    regimeCap <- mapply(runRegime, capacity, capacity*simPar$capPpnChange,
+                        rep(simYears,length(capacity)))
+
+
     # Adjust sigma up or down
+
     sig <- ifelse(model == "ricker" | model=="rickerSurv", ricSig, larSig) * adjSig
 
     if (is.null(ricPars) == FALSE) {
@@ -659,6 +710,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     ## Population dynamics
     S <- matrix(NA, nrow = nYears, ncol = nCU)
     alphaMat <- matrix(NA, nrow = nYears, ncol = nCU)
+    betaMat <- matrix(NA, nrow = nYears, ncol = nCU)
+    capMat <- matrix(NA, nrow = nYears, ncol = nCU)
     alphaPrimeMat <- matrix(NA, nrow = nYears, ncol = nCU) # variable used to estimate sEq, sGen and sMsy when spawners generated w/ larkin
     ppnAges <- array(NA, dim=c(nYears, nCU, nAges), dimnames=NULL)
     ppnCatches <- matrix(NA, nrow = nYears, ncol = nCU)
@@ -780,6 +833,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
       ## Population model: store SR pars, spawner, and recruit abundances
       alphaMat[y, ] <- refAlpha
+      betaMat[y, ] <- beta
+      capMat[y, ] <- 1/beta
 
       # If there are recruitment data, prime model with SR data:
 
@@ -1229,7 +1284,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     #prime AR error
     if(!is.null(recOut)){
       laggedError[y, ] <- log(recBY[y, ] / S[y, ]) -
-      (alphaMat[y, ] - beta * S[y, ])
+      (alphaMat[y, ] - betaMat[y, ] * S[y, ])
     }
 
 
@@ -1247,14 +1302,54 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       # Specify alpha
       #In first year, switch from reference alpha used in priming to testing alpha; add trend for 3 generations by default
       if (y > (nPrime + 1)) {
-        if (stable == FALSE & y < (nPrime + trendLength + 1)) {
+        if (prod == "linear" & y < (nPrime + trendLength + 1)) {
           alphaMat[y, ] <- alphaMat[y - 1, ] + trendAlpha
-        } else {
+        }
+        if (prod == "linear" & y >= (nPrime + trendLength + 1)) {
+            alphaMat[y, ] <- finalAlpha
+        } #end if prod == linear and inside trendPeriod
+        if (prod == "regime") {
+          alphaMat[y, ] <- regimeAlpha[y, ]
+        } #end if prod == "regime"
+        if (prodStable) {
+          alphaMat[y, ] <- alphaMat[y - 1, ]
+        }
+        if (!prodStable & prod!="linear" & prod!="regime"){
           alphaMat[y, ] <- finalAlpha
-        } #end if stable == FALSE and inside trendPeriod
+        }
       } else {
         alphaMat[y, ] <- alphaMat[y - 1, ]
+      }#end if y > (nPrime + 1)
+
+      # Specify beta
+      #In first year, switch from reference beta ; add trend for 3 generations by default
+      if (y > (nPrime + 1)) {
+        if (cap == "linear" & y < (nPrime + trendLength + 1)) {
+          capMat[y, ] <- capMat[y - 1, ] + trendCapacity
+          betaMat[y, ] <- 1/capMat[y,]#betaMat[y - 1, ] + trendBeta
+        }
+        if (cap == "linear" & y >= (nPrime + trendLength + 1)) {
+          capMat[y,] <- finalCapacity
+          betaMat[y, ] <- 1/capMat[y,]#finalBeta
+        }
+        if (cap == "regime"){
+          capMat[y, ] <- regimeCap[y, ]
+          betaMat[y,] <- 1/capMat[y, ]
+        }
+        if(capStable){
+          capMat[y, ] <- capMat[y - 1, ]
+          betaMat[y, ] <- 1/capMat[y,]#
+        }
+        if(!capStable & cap!="linear" & cap!="regime"){
+          capMat[y, ] <- capMat[y - 1, ]
+          betaMat[y, ] <- 1/capMat[y,]#
+        }
+      } else {
+        capMat[y, ] <- capMat[y - 1, ]
+        betaMat[y, ] <- 1/capMat[y,]#betaMat[y - 1, ]
       } #end if y > (nPrime + 1)
+
+
 
       #Estimate BMs if normative period not being used, otherwise assume they are equal to last year of observation
       for (k in 1:nCU) {
@@ -1263,10 +1358,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             sMSY[y, k, n] <- sMSY[nPrime, k, n]
             sGen[y, k, n] <- sGen[nPrime, k, n]
           } else if (normPeriod == FALSE) {
-            sEqVar[y, k, n] <- refAlpha[k] / beta[k]
-            sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha[k]))) / beta[k]
+            sEqVar[y, k, n] <- alphaMat[y,k]/betaMat[y,k] #refAlpha[k] / beta[k]
+            sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 -  alphaMat[y,k]))) / betaMat[y,k]
             sGen[y, k, n] <- as.numeric(sGenSolver(
-              theta = c(refAlpha[k], refAlpha[k] / sEqVar[y, k, n], ricSig[k]),
+              theta = c(alphaMat[y,k], alphaMat[y,k] / sEqVar[y, k, n], ricSig[k]),
               sMSY = sMSY[y, k, n]
             ))
           }
@@ -1954,7 +2049,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         if (S[y, k] > 0) {
           if (model[k] == "ricker") {
 
-              dum <- rickerModel(S[y, k], alphaMat[y, k], beta[k],
+              dum <- rickerModel(S[y, k], alphaMat[y, k], betaMat[y,k],
                                  error = errorCU[y, k], rho = rho,
                                  prevErr = laggedError[y - 1, k],
                                  sig = ricSig[k], biasCor = biasCor)
@@ -2075,7 +2170,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       forecastErr <- calcErr(foreRecRY, recRY)
 
       # Combine relevant data into array passed to plotting function
-      varNames <- c("Productivity", "Est Productivity", "Est Beta",
+      varNames <- c("Productivity", "Est Productivity", "Capacity", "Est Beta",
                     "Spawners", "Obs Spawners", "Recruits BY",
                     "Obs Recruits BY", "Recruits RY",
                     "Mix Catch", "Single Catch", "US Catch",
@@ -2087,7 +2182,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                     "Obs US Catch Err", "Obs Exp Rate Err", "Forecast Err"
       )
 
-      plotTrialDat <- array(c(alphaMat, estRicA[ , , n], estRicB[ , , n],
+      plotTrialDat <- array(c(alphaMat, estRicA[ , , n],  capMat,
+                              estRicB[ , , n],
                               S, obsS, recBY, obsRecBY, recRY,
                               mixCatch, singCatch, amCatch,
                               expRate, mixExpRate, singExpRate,
@@ -2199,8 +2295,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     ## Store trial specific outputs
     # Store diagnostic outputs
     spwnrArray[ , , n] <- S # these arrays generated to pass to synch list
+    obsSpwnrArray[ , , n] <- obsS # these arrays generated to pass to synch list
     recArray[ , , n] <- recBY
+    obsRecArray[ , , n] <- obsRecBY
     alphaArray[ , , n] <- alphaMat
+    betaArray[ , , n] <- betaMat
     returnArray[ , , n] <- recRY
     logRSArray[ , , n] <- logRS
     obsTotalCatch <- obsAmCatch + obsMixCatch + obsSingCatch
@@ -2239,11 +2338,13 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     varAlpha[n, ] <- apply(na.omit(alphaMat[yrsSeq, ]), 2, cv)
     medEstAlpha[n, ] <- apply(na.omit(estRicA[yrsSeq, , n]), 2, median)
     varEstAlpha[n, ] <- apply(na.omit(estRicA[yrsSeq, , n]), 2, cv)
-    medBeta[n, ] <- if (is.null(nrow(beta))) {
-      beta
-    } else {
-      apply(na.omit(beta), 2, median)
-    }#avg capacity through time per trial
+    medBeta[n, ] <- apply(na.omit(betaMat[yrsSeq, ]), 2, median)
+    varBeta[n, ] <- apply(na.omit(betaMat[yrsSeq, ]), 2, cv)
+    #medBeta[n, ] <- if (is.null(nrow(beta))) {
+    #  beta
+    #} else {
+    #  apply(na.omit(beta), 2, median)
+    #}#avg capacity through time per trial
     medTotalCatch[n, ] <- apply(totalCatch[yrsSeq, ], 2, median, na.rm = TRUE)
     varTotalCatch[n, ] <- apply(totalCatch[yrsSeq, ], 2, cv)
     #stability in catch
@@ -2298,7 +2399,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                  medS, varS,
                  medObsS, varObsS, medRecRY, varRecRY, medRecBY, varRecBY,
                  medObsRecRY, varObsRecRY, medAlpha, varAlpha, medEstAlpha,
-                 varEstAlpha, medBeta,
+                 varEstAlpha, medBeta, varBeta,
                  medTotalCatch, varTotalCatch, (1 / varTotalCatch),
                  medObsTotalCatch, varObsTotalCatch, (1 / varObsTotalCatch),
                  medTotalER, medTotalObsER,
@@ -2313,7 +2414,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                      "varObsSpawners", "medRecRY", "varRecRY", "medRecBY",
                      "varRecBY", "medObsRecRY", "varObsRecRY", "medAlpha",
                      "varAlpha", "medEstAlpha", "varEstAlpha", "medBeta",
-                     "medCatch",
+                     "varBeta","medCatch", 
                      "varCatch", "stblCatch", "medObsCatch", "varObsCatch",
                      "stblObsCatch", "medTotalER", "medObsTotalER",
                      "counterEarlyUpper",
@@ -2449,6 +2550,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     # spwnrArray = df of number of columns = number of Cus
     spnDat.i<-as.data.frame(spwnrArray[,,i])
     recDat.i<-as.data.frame(recArray[,,i])
+    obsSpnDat.i<-as.data.frame(obsSpwnrArray[,,i])
+    obsRecDat.i<-as.data.frame(obsRecArray[,,i])
+    alphaDat.i<-as.data.frame(alphaArray[,,i])
+    betaDat.i<-as.data.frame(betaArray[,,i])
 
     if(nrow(spnDat.i) != nrow(recDat.i) )
       print("warning, spawner and recruitment are not aligned in output csv file")
@@ -2465,7 +2570,20 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     recDat_long.i <- recDat.i %>%
       tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="recruits")
 
-    srDat_long.i <- spnDat_long.i %>% tibble::add_column(recruits=recDat_long.i$recruits) #%>%
+    obsSpnDat_long.i <- obsSpnDat.i %>%
+        tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="obsSpawners")
+    obsRecDat_long.i <- obsRecDat.i %>%
+        tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="obsRecruits")
+    alphaDat_long.i <- alphaDat.i %>%
+        tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="alpha")
+    betaDat_long.i <- betaDat.i %>%
+        tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="beta")
+
+    srDat_long.i <- spnDat_long.i %>% tibble::add_column(recruits=recDat_long.i$recruits) %>%
+        tibble::add_column(obsSpawners=obsSpnDat_long.i$obsSpawners) %>%
+        tibble::add_column(obsRecruits=obsRecDat_long.i$obsRecruits) %>%
+        tibble::add_column(alpha=alphaDat_long.i$alpha) %>%
+        tibble::add_column(beta=betaDat_long.i$beta)
 
     if (i == 1) srDatout<-srDat_long.i
     if (i > 1) {
@@ -2473,10 +2591,20 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     }
   }
 
-  fileName <- ifelse(variableCU == "TRUE", paste(cuNameOM, cuNameMP, "CUspwnDat.csv", sep = "_"),
-                     paste(nameOM, nameMP, "CU_SRDat.csv", sep = "_"))
+  #fileName <- ifelse(variableCU == "TRUE", paste(cuNameOM, cuNameMP, "CUspwnDat.csv", sep = "_"),
+  #                   paste(nameOM, nameMP, "CU_SRDat.csv", sep = "_"))
+  #
+  # write.csv(srDatout, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName, sep = "/"),
+  #           row.names = FALSE)
 
-   write.csv(srDatout, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName, sep = "/"),
-             row.names = FALSE)
+   srDatoutList <- list(srDatout, nameOM, simYears, nTrials, ricSig, rho, canER, obsSig,
+                         obsMixCatchSig, prod, prodScalars, cap, capacityScalars, trendLength)
+    names(srDatoutList) <- c("srDatout", "nameOM", "simYears", "nTrials", "ricSig", "rho",
+                             "canER", "obsSig", "obsMixCatchSig", "prod", "prodScalars",
+                             "cap", "capacityScalars", "trendLength")
+    fileName <- paste(simPar$scenario, "CUsrDat.RData", sep = "")
+
+    saveRDS(srDatoutList, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName,
+                                       sep = "/"), version=3)
 
   } # end of genericRecoverySim()
