@@ -413,6 +413,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   obsRecArray <- array(NA, dim = c(nYears, nCU, nTrials))
   alphaArray <- array(NA, dim = c(nYears, nCU, nTrials))
   betaArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  capArray <- array(NA, dim = c(nYears, nCU, nTrials))
   sigmaArray <- array(NA, dim = c(nYears, nCU, nTrials))
   returnArray <- array(NA, dim = c(nYears, nCU, nTrials))
   logRSArray <- array(NA, dim = c(nYears, nCU, nTrials))
@@ -2307,6 +2308,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     obsRecArray[ , , n] <- obsRecBY
     alphaArray[ , , n] <- alphaMat
     betaArray[ , , n] <- betaMat
+    capArray[ , , n] <- capMat
     sigmaArray[ , , n] <- sigmaMat
     returnArray[ , , n] <- recRY
     logRSArray[ , , n] <- logRS
@@ -2562,6 +2564,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     obsRecDat.i<-as.data.frame(obsRecArray[,,i])
     alphaDat.i<-as.data.frame(alphaArray[,,i])
     betaDat.i<-as.data.frame(betaArray[,,i])
+    capDat.i<-as.data.frame(capArray[,,i])
     sigmaDat.i<-as.data.frame(sigmaArray[,,i])
 
     if(nrow(spnDat.i) != nrow(recDat.i) )
@@ -2587,14 +2590,17 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="alpha")
     betaDat_long.i <- betaDat.i %>%
         tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="beta")
+    capDat_long.i <- capDat.i %>%
+        tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="capacity")
     sigmaDat_long.i <- sigmaDat.i %>%
         tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="sigma")
 
     srDat_long.i <- spnDat_long.i %>% tibble::add_column(recruits=recDat_long.i$recruits) %>%
         tibble::add_column(obsSpawners=obsSpnDat_long.i$obsSpawners) %>%
         tibble::add_column(obsRecruits=obsRecDat_long.i$obsRecruits) %>%
-        tibble::add_column(alpha=alphaDat_long.i$alpha) %>%
         tibble::add_column(beta=betaDat_long.i$beta) %>%
+        tibble::add_column(alpha=alphaDat_long.i$alpha) %>%
+        tibble::add_column(capacity=capDat_long.i$capacity) %>%
         tibble::add_column(sigma=sigmaDat_long.i$sigma) 
 
     if (i == 1) srDatout<-srDat_long.i
