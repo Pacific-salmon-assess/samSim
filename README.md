@@ -63,6 +63,7 @@ Simulations are run by installing the samSim package and using the `recoverySim(
 ### Input file details
 
 #### `simPar`
+ A detailed descrption of the contents of the `simPar` file can be found by accessing ?simParexample 
 `simPar` is a .csv file that contains the input parameters that characterize a specific simulation run, but which are *shared* among CUs. Each row represents a unique scenario (i.e. combination of operating model and management procedure). Generally it is easiest to create multiple `simPar` input files, each of which contain a coherent analysis (e.g. one input focusing on the effects of different harvest control rules across changing productivity regimes, a second input examining the effects of survey effort), but this is not strictly necessary. Contents include:
   
   - `scenario` - scenario name

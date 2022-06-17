@@ -6,7 +6,7 @@ Authors@R: person("Cameron", "Freshwater", email = "cameron.freshwater@dfo-mpo.g
 Description: samSim is intended to evaluate management strategies for Pacific salmon stocks while accounting for a range of uncertainties.
 License: GPL-3
 Depends:
-    R (>= 3.3.0)
+    R (>= 3.5.0)
 Encoding: UTF-8
 LazyData: true
 ByteCompile: true
@@ -26,7 +26,7 @@ Imports:
     tidyr,
     zoo,
     tibble
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 Suggests:
     knitr,
     rmarkdown,

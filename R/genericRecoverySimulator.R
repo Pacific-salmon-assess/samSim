@@ -530,6 +530,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     ricSig <- ricSig^2 * (1 - rho^2)
   }
 
+  #TODO expand this to time dependant beta
+  #not sure why this code repeates below
   beta <- ifelse(model == "ricker" | model == "rickerSurv", ricB, larB)
   if (is.null(simPar$adjustBeta) == FALSE) {
     beta <- beta * simPar$adjustBeta
@@ -630,6 +632,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
     finalAlpha <- prodScalars * alpha
     trendLength <- simPar$trendLength #3 * gen
+    #trendLength <- simPar$endYear-simPar$startYear+1 #3 * gen
     trendAlpha <- (finalAlpha - alpha) / trendLength
     
     # Create matrix of alphas that correspond to 10-year regimes that iterate between
@@ -1349,6 +1352,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           betaMat[y, ] <- 1/capMat[y,]#
         }
         if(!capStable & cap!="linear" & cap!="regime"){
+          warning(paste(cap,"is not a valid option, treating capacity as stable"))
           capMat[y, ] <- capMat[y - 1, ]
           betaMat[y, ] <- 1/capMat[y,]#
         }

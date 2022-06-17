@@ -23,3 +23,4 @@
 #' @source Fraser River Salmon Spawning Initiative (Ann-Marie Huang (DFO) personal
 #' communication; January 2018)
 "synchList"
+
