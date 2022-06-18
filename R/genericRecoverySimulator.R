@@ -18,7 +18,23 @@
 #' structure, survey design, and variable exploitation rules.
 #' @importFrom here here
 #' @importFrom dplyr group_by summarise
-#' @param y TO BE DEFINED
+#' @param simPar is a .csv file that contains the input parameters that 
+#' characterize a specific simulation run, but which are *shared* among CUs. 
+#' A detailed descrption of the contents of the `simPar` file can be found by accessing ?simParexample
+#' @param cuPar is a .csv file that contains CU-specific input parameters. Note that these parameters should *not* vary among simulation runs. Differences in operating models that involve CU-specific traits (e.g. population dynamics) can typically be introduced via options in the `simPar` file. Each row represents a specific CU.
+#' @param catchDat Default Null
+#' @param srDat
+#' @param variableCU
+#' @param makeSubDirs
+#' @param ricPars
+#' @param larkPars
+#' @param cuCustomCorrMat
+#' @param erCorrMat
+#' @param nTrials
+#' @param uniqueProd
+#' @param uniqueSurv
+#' @param random
+#' 
 #' @return TO BE DEFINED
 #' @export
 #'
@@ -172,26 +188,26 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       stop("SR input dataset does not match parameter inputs")
     }
 
-      #Only run if there are recruitment data
-      if(sum(is.na(recDat$totalRec)) < length(recDat$totalRec)){
-        # Trim SR data so that empty rows are excluded; otherwise gaps may be
-        # retained when catch data is more up to date
-        maxYears <- recDat %>%
-          dplyr::group_by(stk) %>%
-          dplyr::filter(!is.na(totalRec)) %>%
-          dplyr::summarise(maxYr = max(yr))
-        recDat <- recDat %>%
-          dplyr::filter(!yr > min(maxYears$maxYr))
-        recDat <- with(recDat, recDat[order(stk, yr),])
+    #Only run if there are recruitment data
+    if(sum(is.na(recDat$totalRec)) < length(recDat$totalRec)){
+      # Trim SR data so that empty rows are excluded; otherwise gaps may be
+      # retained when catch data is more up to date
+      maxYears <- recDat %>%
+        dplyr::group_by(stk) %>%
+        dplyr::filter(!is.na(totalRec)) %>%
+        dplyr::summarise(maxYr = max(yr))
+      recDat <- recDat %>%
+        dplyr::filter(!yr > min(maxYears$maxYr))
+      recDat <- with(recDat, recDat[order(stk, yr),])
+    
+      summRec <- recDat %>%
+        dplyr::group_by(stk) %>%
+        dplyr::summarise(tsLength = length(ets),
+                         maxRec = max(totalRec, na.rm = TRUE))
+      # Define nPrime
+      nPrime <- max(summRec[, "tsLength"])
 
-        summRec <- recDat %>%
-          dplyr::group_by(stk) %>%
-          dplyr::summarise(tsLength = length(ets),
-                           maxRec = max(totalRec, na.rm = TRUE))
-        # Define nPrime
-        nPrime <- max(summRec[, "tsLength"])
-
-      }# End of if(sum(is.na(recDat$totalRec)) < length(recDat$totalRec)){
+    }# End of if(sum(is.na(recDat$totalRec)) < length(recDat$totalRec)){
 
 
 
@@ -631,8 +647,14 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     }
 
     finalAlpha <- prodScalars * alpha
-    trendLength <- simPar$trendLength #3 * gen
-    #trendLength <- simPar$endYear-simPar$startYear+1 #3 * gen
+    startYear<-simPar$startYear
+    endYear <-simPar$endYear
+    if(!is.null(endYear)&!is.null(startYear)&!is.na(endYear)&!is.na(startYear)){
+      trendLength <- endYear-startYear+1
+    }else{
+      trendLength <- simPar$trendLength #3 * gen
+    }
+    
     trendAlpha <- (finalAlpha - alpha) / trendLength
     
     # Create matrix of alphas that correspond to 10-year regimes that iterate between
@@ -1313,12 +1335,21 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       # Specify alpha
       #In first year, switch from reference alpha used in priming to testing alpha; add trend for 3 generations by default
       if (y > (nPrime + 1)) {
-        if (prod == "linear" & y < (nPrime + trendLength + 1)) {
-          alphaMat[y, ] <- alphaMat[y - 1, ] + trendAlpha
+        if(prod == "linear"){
+          if(!is.null(endYear)&!is.null(startYear)&!is.na(endYear)&!is.na(startYear)){
+            if ( y >= (nPrime + startYear ) & y <= (nPrime + endYear )) {
+              alphaMat[y, ] <- alphaMat[y - 1, ] + trendAlpha
+            }else if ( y < (nPrime + startYear) | y > (nPrime + endYear) ) {
+              alphaMat[y, ] <- alphaMat[y-1, ]
+            } 
+          }else{
+            if ( y < (nPrime + trendLength + 1)) {
+              alphaMat[y, ] <- alphaMat[y - 1, ] + trendAlpha
+            }else if ( y >= (nPrime + trendLength + 1)) {
+              alphaMat[y, ] <- finalAlpha
+            } #end if prod == linear and inside trendPeriod
+          }
         }
-        if (prod == "linear" & y >= (nPrime + trendLength + 1)) {
-            alphaMat[y, ] <- finalAlpha
-        } #end if prod == linear and inside trendPeriod
         if (prod == "regime") {
           alphaMat[y, ] <- regimeAlpha[y, ]
         } #end if prod == "regime"
@@ -1327,7 +1358,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         }
         if (!prodStable & prod!="linear" & prod!="regime"){
           alphaMat[y, ] <- finalAlpha
-        }
+        }       
       } else {
         alphaMat[y, ] <- alphaMat[y - 1, ]
       }#end if y > (nPrime + 1)
@@ -1335,27 +1366,32 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       # Specify beta
       #In first year, switch from reference beta ; add trend for 3 generations by default
       if (y > (nPrime + 1)) {
-        if (cap == "linear" & y < (nPrime + trendLength + 1)) {
-          capMat[y, ] <- capMat[y - 1, ] + trendCapacity
-          betaMat[y, ] <- 1/capMat[y,]#betaMat[y - 1, ] + trendBeta
-        }
-        if (cap == "linear" & y >= (nPrime + trendLength + 1)) {
-          capMat[y,] <- finalCapacity
-          betaMat[y, ] <- 1/capMat[y,]#finalBeta
+        if(cap == "linear"){
+          if(!is.null(endYear)&!is.null(startYear)&!is.na(endYear)&!is.na(startYear)){
+            if ( y >= (nPrime + startYear ) & y <= (nPrime + endYear)) {
+              capMat[y, ] <- capMat[y - 1, ] + trendCapacity
+            }else if ( y < (nPrime + startYear)| y > (nPrime + endYear) ) {
+              capMat[y, ] <- capMat[y - 1, ]
+            } 
+          }else{
+            if ( y < (nPrime + trendLength + 1)) {
+              capMat[y, ] <- capMat[y - 1, ] + trendCapacity
+            }else if ( y >= (nPrime + trendLength + 1)) {
+              capMat[y,] <- finalCapacity
+            }
+          }
         }
         if (cap == "regime"){
           capMat[y, ] <- regimeCap[y, ]
-          betaMat[y,] <- 1/capMat[y, ]
         }
         if(capStable){
           capMat[y, ] <- capMat[y - 1, ]
-          betaMat[y, ] <- 1/capMat[y,]#
         }
         if(!capStable & cap!="linear" & cap!="regime"){
           warning(paste(cap,"is not a valid option, treating capacity as stable"))
           capMat[y, ] <- capMat[y - 1, ]
-          betaMat[y, ] <- 1/capMat[y,]#
         }
+        betaMat[y, ] <- 1/capMat[y,]#
       } else {
         capMat[y, ] <- capMat[y - 1, ]
         betaMat[y, ] <- 1/capMat[y,]#betaMat[y - 1, ]
@@ -2406,8 +2442,14 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   #____________________________________________________________________________
   ## CU-specific outputs
   # Data
-  meanSMSY <- arrayMean(sMSY) # CU's average BMs through time and trials
-  meanSGen <- arrayMean(sGen)
+  if(nTrials>1){
+    meanSMSY <- arrayMean(sMSY) # CU's average BMs through time and trials
+    meanSGen <- arrayMean(sGen)
+  }else{
+    meanSMSY <- sMSY
+    meanSGen <- sGen
+  }
+  
   cuList <- list(nameOM, keyVar, plotOrder, nameMP, harvContRule, stkName,
                  stkID, manUnit, targetER, cuProdTrends, meanSMSY, meanSGen,
                  medS, varS,

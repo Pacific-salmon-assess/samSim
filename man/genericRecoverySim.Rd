@@ -23,7 +23,15 @@ genericRecoverySim(
 )
 }
 \arguments{
-\item{y}{TO BE DEFINED}
+\item{simPar}{is a .csv file that contains the input parameters that 
+characterize a specific simulation run, but which are *shared* among CUs. 
+A detailed descrption of the contents of the `simPar` file can be found by accessing ?simParexample}
+
+\item{cuPar}{is a .csv file that contains CU-specific input parameters. Note that these parameters should *not* vary among simulation runs. Differences in operating models that involve CU-specific traits (e.g. population dynamics) can typically be introduced via options in the `simPar` file. Each row represents a specific CU.}
+
+\item{catchDat}{Default Null}
+
+\item{random}{}
 }
 \value{
 TO BE DEFINED
