@@ -22,8 +22,10 @@
 #'   \item{prodRegime}{productivity regime (`low`, `lowStudT`, `med`, `studT`, `skew`, `skewT`, `decline`, `divergent`, `oneUp`,  `oneDown`, `high`)}   
 #'   \item{prodPpnChange}{Scalar to modify productivy parameter, values >1 indicate increase linear trend and <1 declining linear trend}  
 #'   \item{trendLength}{length of the trend in SR parameters in years, fo now trend happens in the beginning of the simulation time series}    
+#'   \item{prodRegimeLen}{Length of productivity regimes, default is 10}
 #'   \item{capRegime}{type of SR capacity (Smax) regime, current options are "linear", "regime"  any other option is treated as stable without warning}        
 #'   \item{capPpnChange}{Scalar to modify Smax parameter, values >1 indicate increase linear trend and <1 declining linear trend}  
+#'   \item{capRegimeLen}{Length of capacity regimes (when "regime" is used forcapRegime), default is 10}
 #'   \item{startYear}{indicates when a productivity decline (if specified by `prodRegime == "decline"`) should start -- not implemented}       
 #'   \item{endYear}{indicates when a productivity decline (if specified by `prodRegime == "decline"`) should end}     
 #'   \item{rho}{temporal autocorrelation coefficient in recruitment deviations}   

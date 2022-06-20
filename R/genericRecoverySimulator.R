@@ -556,7 +556,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   #_______________________________________________________________________
   ## Simulation model
   for (n in 1:nTrials) {
-
+    #n<-1
     #_______________________________________________________________________
     # Set up Stock-Recruitment parameters
     # When derived from MCMC input file, SR draws are done very trial
@@ -657,13 +657,25 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     
     trendAlpha <- (finalAlpha - alpha) / trendLength
     
-    # Create matrix of alphas that correspond to 10-year regimes that iterate between
-    # initial alpha and final alpha
-    runRegime <- function(a1,a2,y)( rep( c(rep(a1,10),rep(a2,10)),
-                                       ceiling(y/20) )[1:y] )
-    regimeAlpha <- mapply(runRegime, alpha, alpha*simPar$prodPpnChange,
+  
+    if(is.null(simPar$prodRegimeLen)){
+      regimeAlpha <- mapply(runRegime, alpha, alpha*simPar$prodPpnChange,
                         rep(simYears,length(alpha)))
-
+      if(prod=="regime"){
+        warning(" simPar$prodRegimeLen not provided, assuming default regime length of 10 years.")
+      }
+      
+    }else if(is.na(simPar$prodRegimeLen)){
+      regimeAlpha <- mapply(runRegime, alpha, alpha*simPar$prodPpnChange,
+                        rep(simYears,length(alpha)))
+      if(prod=="regime"){
+        warning(" simPar$prodRegimeLen not provided, assuming default regime length of 10 years.")
+      }
+    }else{
+      regimeAlpha <- mapply(runRegime, alpha, alpha*simPar$prodPpnChange,
+                        rep(simYears,length(alpha)), reglen=simPar$prodRegimeLen)
+    }
+   
 
     cuProdTrends <- dplyr::case_when(
       prodScalars < 1 ~ "decline",
@@ -699,8 +711,22 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
     # Create matrix of capacity that corresponds to 10-year regimes that iterate between
     # initial cap and final cap
-    regimeCap <- mapply(runRegime, capacity, capacity*simPar$capPpnChange,
+    if(is.null(simPar$capRegimeLen)){
+     regimeCap <- mapply(runRegime, capacity, capacity*simPar$capPpnChange,
                         rep(simYears,length(capacity)))
+      if(cap=="regime"){
+        warning(" simPar$capRegimeLen not provided, assuming default regime length of 10 years.")}
+    }else if(is.na(simPar$capRegimeLen)){
+      regimeCap <- mapply(runRegime, capacity, capacity*simPar$capPpnChange,
+                        rep(simYears,length(capacity)))
+      if(cap=="regime"){
+        warning(" simPar$capRegimeLen not provided, assuming default regime length of 10 years.")}
+    }else{
+      regimeCap <- mapply(runRegime, alpha, alpha*simPar$prodPpnChange,
+                        rep(simYears,length(alpha)), simPar$capRegimeLen)
+    }
+
+    
 
    regimeAlpha <- rbind(matrix(NA, nrow=nPrime, ncol=length(alpha)), regimeAlpha)
    regimeCap <- rbind(matrix(NA, nrow=nPrime, ncol=length(capacity)), regimeCap)
