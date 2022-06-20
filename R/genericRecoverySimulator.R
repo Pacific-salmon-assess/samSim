@@ -619,7 +619,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     # is the productivity scenario stable
     prodStable <- ifelse(prod %in% c("linear", "decline", "increase", "divergent",
                                      "divergentSmall", "oneUp", "oneDown",
-                                     "scalar", "regime"),
+                                     "scalar", "regime", "sine"),
                      FALSE,
                      TRUE)
 
@@ -647,16 +647,30 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     }
 
     finalAlpha <- prodScalars * alpha
-    startYear<-simPar$startYear
-    endYear <-simPar$endYear
-    if(!is.null(endYear)&!is.null(startYear)&!is.na(endYear)&!is.na(startYear)){
+
+    startYear<-ifelse("startYear" %in% names(simPar),simPar$startYear,NA)
+    endYear<-ifelse("endYear" %in% names(simPar),simPar$endYear,NA)
+    
+    if(!is.na(endYear)&!is.na(startYear)){
       trendLength <- endYear-startYear+1
     }else{
       trendLength <- simPar$trendLength #3 * gen
     }
     
-    trendAlpha <- (finalAlpha - alpha) / trendLength
-    
+       
+    if (prod == "sine"){
+      if(is.null(simPar$ampSinProd)|is.null(simPar$sinCycleLen)){
+        stop("simPar$ampSinProd and simPar$sinCycleLen must be defined for prodRegime 'sine' option")
+      }
+      if(is.na(simPar$ampSinProd)|is.na(simPar$sinCycleLen)){
+        stop("simPar$ampSinProd and simPar$sinCycleLen must be defined for prodRegime 'sine' option")
+      } 
+      sinetrend <- (nPrime + 1):nYears
+      trendAlpha <- 1+simPar$ampSinProd* sin(2*pi/(simPar$sinCycleLen)*sinetrend)
+    }else{
+      trendAlpha <- (finalAlpha - alpha) / trendLength
+    }
+
   
     if(is.null(simPar$prodRegimeLen)){
       regimeAlpha <- mapply(runRegime, alpha, alpha*simPar$prodPpnChange,
@@ -1362,12 +1376,13 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #In first year, switch from reference alpha used in priming to testing alpha; add trend for 3 generations by default
       if (y > (nPrime + 1)) {
         if(prod == "linear"){
-          if(!is.null(endYear)&!is.null(startYear)&!is.na(endYear)&!is.na(startYear)){
+          
+          if(!is.na(endYear)&!is.na(startYear)){
             if ( y >= (nPrime + startYear ) & y <= (nPrime + endYear )) {
               alphaMat[y, ] <- alphaMat[y - 1, ] + trendAlpha
             }else if ( y < (nPrime + startYear) | y > (nPrime + endYear) ) {
               alphaMat[y, ] <- alphaMat[y-1, ]
-            } 
+            }             
           }else{
             if ( y < (nPrime + trendLength + 1)) {
               alphaMat[y, ] <- alphaMat[y - 1, ] + trendAlpha
@@ -1375,14 +1390,14 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               alphaMat[y, ] <- finalAlpha
             } #end if prod == linear and inside trendPeriod
           }
-        }
-        if (prod == "regime") {
+        }else if (prod == "regime") {
           alphaMat[y, ] <- regimeAlpha[y, ]
-        } #end if prod == "regime"
-        if (prodStable) {
+        }else if (prodStable) {
           alphaMat[y, ] <- alphaMat[y - 1, ]
-        }
-        if (!prodStable & prod!="linear" & prod!="regime"){
+        }else if(prod == "sine"){
+          alphaMat[y, ] <- refAlpha * trendAlpha[y-nPrime]
+        }else{
+        #if (!prodStable & prod!="linear" & prod!="regime"){
           alphaMat[y, ] <- finalAlpha
         }       
       } else {
@@ -1393,7 +1408,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #In first year, switch from reference beta ; add trend for 3 generations by default
       if (y > (nPrime + 1)) {
         if(cap == "linear"){
-          if(!is.null(endYear)&!is.null(startYear)&!is.na(endYear)&!is.na(startYear)){
+          if(!is.na(endYear)&!is.na(startYear)){
             if ( y >= (nPrime + startYear ) & y <= (nPrime + endYear)) {
               capMat[y, ] <- capMat[y - 1, ] + trendCapacity
             }else if ( y < (nPrime + startYear)| y > (nPrime + endYear) ) {
