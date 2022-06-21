@@ -434,6 +434,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   returnArray <- array(NA, dim = c(nYears, nCU, nTrials))
   logRSArray <- array(NA, dim = c(nYears, nCU, nTrials))
   recDevArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  prodDevArray <- array(NA, dim = c(nYears, nCU, nTrials))
   # migMortArray <- array(NA, dim = c(nYears, nCU, nTrials))
   singCatchArray <- array(NA, dim = c(nYears, nCU, nTrials))
   singTACArray <- array(NA, dim = c(nYears, nCU, nTrials))
@@ -506,6 +507,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   larB2 <- cuPar$larkBeta2
   larB3 <- cuPar$larkBeta3
   larSig <- cuPar$larkSigma
+   if(prod == "randomwalk"){
+    siga <- cuPar$sigmaProd
+   }
 
   coef1<-cuPar$coef1
   coVarInit<-cuPar$covarInit
@@ -619,7 +623,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     # is the productivity scenario stable
     prodStable <- ifelse(prod %in% c("linear", "decline", "increase", "divergent",
                                      "divergentSmall", "oneUp", "oneDown",
-                                     "scalar", "regime", "sine"),
+                                     "scalar", "regime", "sine", "randomwalk"),
                      FALSE,
                      TRUE)
 
@@ -766,6 +770,13 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     #calculate shared variance and correct based on correlation
     covMat <- (t(sigMat) %*% sigMat) * correlCU
     diag(covMat) <- as.numeric(sig^2) #add variance
+    
+    if(prod == "randomwalk"){
+      sigaMat <- matrix(as.numeric(siga), nrow = 1, ncol = nCU)
+      #calculate shared variance and correct based on correlation
+      covMatProd <- (t(sigaMat) %*% sigaMat) * correlCU
+      diag(covMatProd) <- as.numeric(siga^2) #add variance
+    }
 
 
     # Specify among-CU variability in gamma coefficient (if required for sim scenario)
@@ -798,6 +809,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     extinct <- matrix(0, nrow = nYears, ncol = nCU)
     extinctAg <- rep(0, nTrials)
     errorCU <- matrix(NA, nrow = nYears, ncol = nCU)
+    errorCUProd <- matrix(NA, nrow = nYears, ncol = nCU)
     migMortRate <- matrix(NA, nrow = nYears, ncol = nCU)
     laggedError <- matrix(NA, nrow = nYears, ncol = nCU)
     ppnAge2Ret5 <- matrix(NA, nrow = nYears, ncol = nCU)
@@ -1381,7 +1393,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             if ( y >= (nPrime + startYear ) & y <= (nPrime + endYear )) {
               alphaMat[y, ] <- alphaMat[y - 1, ] + trendAlpha
             }else if ( y < (nPrime + startYear) | y > (nPrime + endYear) ) {
-              alphaMat[y, ] <- alphaMat[y-1, ]
+              alphaMat[y, ] <- alphaMat[y - 1, ]
             }             
           }else{
             if ( y < (nPrime + trendLength + 1)) {
@@ -1396,6 +1408,19 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           alphaMat[y, ] <- alphaMat[y - 1, ]
         }else if(prod == "sine"){
           alphaMat[y, ] <- refAlpha * trendAlpha[y-nPrime]
+        }else if(prod== "randomwalk"){
+          errorCUProd[y, ]<-sn::rmst(n = 1, xi = rep(0, nCU),
+                                     alpha = rep(0, nCU), nu = 10000,
+                                     Omega = covMatProd)
+          if(biasCor){
+            alphaMat[y, ] <- alphaMat[y - 1, ] + errorCUProd[y, ] - .5*siga^2
+          }else{
+            alphaMat[y, ] <- alphaMat[y - 1, ] + errorCUProd[y, ]
+          }
+          
+          #avoid very low productivities that will cause rapid extinction
+          alphaMat[y, ]<-ifelse(mean(alphaMat[(y-2):y, ])<0.1,alphaMat[y, ],0.1)
+          
         }else{
         #if (!prodStable & prod!="linear" & prod!="regime"){
           alphaMat[y, ] <- finalAlpha
@@ -2244,7 +2269,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
       } # end of k loop over CUs
 
-      } # end of loop 3
+    } # end of loop 3
     #__________________________________________________________________________
     ### Draw one trial for plotting
     if (n == drawTrial) {
@@ -2395,6 +2420,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     logRSArray[ , , n] <- logRS
     obsTotalCatch <- obsAmCatch + obsMixCatch + obsSingCatch
     recDevArray[ , , n] <- errorCU
+    prodDevArray[ , , n] <- errorCUProd
     singCatchArray[ , , n] <- singCatch
     singTACArray[ , , n] <- singTAC
     totalCatchArray[ , , n] <- totalCatch
