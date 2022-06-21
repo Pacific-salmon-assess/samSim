@@ -1419,7 +1419,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           }
           
           #avoid very low productivities that will cause rapid extinction
-          alphaMat[y, ]<-ifelse(mean(alphaMat[(y-2):y, ])<0.1,alphaMat[y, ],0.1)
+          alphaMat[y, ]<-ifelse(apply(alphaMat[(y-2):y,],2,mean)<0.1,0.1,alphaMat[y, ])
           
         }else{
         #if (!prodStable & prod!="linear" & prod!="regime"){
@@ -1549,7 +1549,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       recRY6[y, ] <- recBY[y - 6, ] * ppnAges[y - 6, , 5]
       recRY[y, ] <- recRY2[y, ] + recRY3[y, ] + recRY4[y, ] + recRY5[y, ] + recRY6[y, ]
 
-
       recRYAg[y, n] <- sum(recRY[y, ])
 
       #________________________________________________________________________
@@ -1593,7 +1592,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
       # Get observed recruitment by brood year
       obsBYLag<-ageMaxRec + 1
-
 
       # Loop over number of years in which fish that came from spawners in BY will recruit
       obsRecBY_noAgeErr[y-obsBYLag,]<-0
@@ -2130,7 +2128,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                          error = runif(nAges, 0.0001, 0.9999))
           }
         }# End of if(!is.null(agePpnConst)){
-
 
       }#End of  for (k in 1:nrow(ageStruc)) {
 
