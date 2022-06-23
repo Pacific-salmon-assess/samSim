@@ -337,7 +337,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                       harvContRule),
                    "ppnMix" = ppnMix,
                    "sigma" = adjSig,
-                   "endYear" = endYr,
+                   "EndYear" = endYr,
                    "adjustAge" = simPar$adjustAge,
                    "mixOUSig" = mixOUSig,
                    "adjustForecast" = simPar$adjustForecast,
@@ -652,13 +652,13 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
     finalAlpha <- prodScalars * alpha
 
-    startYear<-ifelse("startYear" %in% names(simPar),simPar$startYear,NA)
-    endYear<-ifelse("endYear" %in% names(simPar),simPar$endYear,NA)
+    prodStartYear<-ifelse("prodStartYear" %in% names(simPar),simPar$prodStartYear,NA)
+    prodEndYear<-ifelse("prodEndYear" %in% names(simPar),simPar$prodEndYear,NA)
     
-    if(!is.na(endYear)&!is.na(startYear)){
-      trendLength <- endYear-startYear+1
+    if(!is.na(prodEndYear)&!is.na(prodStartYear)){
+      prodTrendLength <- prodEndYear-prodStartYear + 1
     }else{
-      trendLength <- simPar$trendLength #3 * gen
+      prodTrendLength <- simPar$prodTrendLength #3 * gen
     }
     
        
@@ -672,7 +672,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       sinetrend <- (nPrime + 1):nYears
       trendAlpha <- 1+simPar$ampSinProd* sin(2*pi/(simPar$sinCycleLen)*sinetrend)
     }else{
-      trendAlpha <- (finalAlpha - alpha) / trendLength
+      trendAlpha <- (finalAlpha - alpha) / prodTrendLength
     }
 
   
@@ -702,6 +702,15 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     )
 
     # Include time-varying trends in beta (To Be Included)
+    capStartYear<-ifelse("capStartYear" %in% names(simPar),simPar$capStartYear,NA)
+    capEndYear<-ifelse("capEndYear" %in% names(simPar),simPar$capEndYear,NA)
+    
+    if(!is.na(prodEndYear)&!is.na(prodStartYear)){
+      capTrendLength <- capEndYear-capStartYear + 1
+    }else{
+      capTrendLength <- simPar$capTrendLength #3 * gen
+    }
+
     cap <- simPar$capRegime
     capStable <- ifelse(cap %in% c("linear", "decline", "increase",
                                    "divergent", "divergentSmall",
@@ -725,34 +734,34 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     }
 
     finalCapacity <- capacityScalars * capacity
-    trendCapacity <- (finalCapacity - capacity) / trendLength
+    trendCapacity <- (finalCapacity - capacity) / capTrendLength
 
     # Create matrix of capacity that corresponds to 10-year regimes that iterate between
     # initial cap and final cap
-    if(is.null(simPar$capRegimeLen)){
-     regimeCap <- mapply(runRegime, capacity, capacity*simPar$capPpnChange,
-                        rep(simYears,length(capacity)))
-      if(cap=="regime"){
-        warning(" simPar$capRegimeLen not provided, assuming default regime length of 10 years.")}
-    }else if(is.na(simPar$capRegimeLen)){
+    if("capRegimeLen" %in% names(simPar) & !is.na(simPar$capRegimeLen)){
+      regimeCap <- mapply(runRegime, capacity, capacity*simPar$capPpnChange,
+                        rep(simYears,length(capacity)), simPar$capRegimeLen)
+    }else{
       regimeCap <- mapply(runRegime, capacity, capacity*simPar$capPpnChange,
                         rep(simYears,length(capacity)))
       if(cap=="regime"){
-        warning(" simPar$capRegimeLen not provided, assuming default regime length of 10 years.")}
-    }else{
-      regimeCap <- mapply(runRegime, alpha, alpha*simPar$prodPpnChange,
-                        rep(simYears,length(alpha)), simPar$capRegimeLen)
+        warning(" simPar$capRegimeLen not provided, assuming default regime length of 10 years.")
+      }
     }
-
     
-
-   regimeAlpha <- rbind(matrix(NA, nrow=nPrime, ncol=length(alpha)), regimeAlpha)
-   regimeCap <- rbind(matrix(NA, nrow=nPrime, ncol=length(capacity)), regimeCap)
+    
+    regimeAlpha <- rbind(matrix(NA, nrow=nPrime, ncol=length(alpha)), regimeAlpha)
+    regimeCap <- rbind(matrix(NA, nrow=nPrime, ncol=length(capacity)), regimeCap)
 
 
     # Adjust sigma up or down
 
-    sig <- ifelse(model == "ricker" | model=="rickerSurv", ricSig, larSig) * adjSig
+    recsig <- simPar$sigRegime
+    if(recsig== "scalar"){
+      sig <- ifelse(model == "ricker" | model=="rickerSurv", ricSig, larSig) * adjSig
+    }else{
+      sig <- ifelse(model == "ricker" | model=="rickerSurv", ricSig, larSig) 
+    }
 
     if (is.null(ricPars) == FALSE) {
       gamma<-ifelse(model == "rickerSurv", ricGamma, NA)
@@ -1389,16 +1398,16 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       if (y > (nPrime + 1)) {
         if(prod == "linear"){
           
-          if(!is.na(endYear)&!is.na(startYear)){
-            if ( y >= (nPrime + startYear ) & y <= (nPrime + endYear )) {
+          if(!is.na(prodEndYear)&!is.na(prodStartYear)){
+            if ( y >= (nPrime + prodStartYear ) & y <= (nPrime + prodEndYear )) {
               alphaMat[y, ] <- alphaMat[y - 1, ] + trendAlpha
-            }else if ( y < (nPrime + startYear) | y > (nPrime + endYear) ) {
+            }else if ( y < (nPrime + prodStartYear) | y > (nPrime + prodEndYear) ) {
               alphaMat[y, ] <- alphaMat[y - 1, ]
             }             
           }else{
-            if ( y < (nPrime + trendLength + 1)) {
+            if ( y < (nPrime + prodTrendLength + 1)) {
               alphaMat[y, ] <- alphaMat[y - 1, ] + trendAlpha
-            }else if ( y >= (nPrime + trendLength + 1)) {
+            }else if ( y >= (nPrime + prodTrendLength + 1)) {
               alphaMat[y, ] <- finalAlpha
             } #end if prod == linear and inside trendPeriod
           }
@@ -1433,16 +1442,16 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #In first year, switch from reference beta ; add trend for 3 generations by default
       if (y > (nPrime + 1)) {
         if(cap == "linear"){
-          if(!is.na(endYear)&!is.na(startYear)){
-            if ( y >= (nPrime + startYear ) & y <= (nPrime + endYear)) {
+          if(!is.na(capEndYear)&!is.na(capStartYear)){
+            if ( y >= (nPrime + capStartYear ) & y <= (nPrime + capEndYear)) {
               capMat[y, ] <- capMat[y - 1, ] + trendCapacity
-            }else if ( y < (nPrime + startYear)| y > (nPrime + endYear) ) {
+            }else if ( y < (nPrime + capStartYear)| y > (nPrime + capEndYear) ) {
               capMat[y, ] <- capMat[y - 1, ]
             } 
           }else{
-            if ( y < (nPrime + trendLength + 1)) {
+            if ( y < (nPrime + capTrendLength + 1)) {
               capMat[y, ] <- capMat[y - 1, ] + trendCapacity
-            }else if ( y >= (nPrime + trendLength + 1)) {
+            }else if ( y >= (nPrime + capTrendLength + 1)) {
               capMat[y,] <- finalCapacity
             }
           }
@@ -1463,6 +1472,18 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         betaMat[y, ] <- 1/capMat[y,]#betaMat[y - 1, ]
       } #end if y > (nPrime + 1)
 
+
+      #TODO Introduce regime shift sigma
+      if(recsig== "shift"){
+        if(y-nPrime == simPar$sigShiftYear){
+          sig <- sig * adjSig
+          sigMat <- matrix(as.numeric(sig), nrow = 1, ncol = nCU)
+          #calculate shared variance and correct based on correlation
+          covMat <- (t(sigMat) %*% sigMat) * correlCU
+          diag(covMat) <- as.numeric(sig^2) #add variance
+    
+        }
+      }
       sigmaMat[y, ] <- sig
 
       #Estimate BMs if normative period not being used, otherwise assume they are equal to last year of observation
@@ -2726,10 +2747,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   #           row.names = FALSE)
 
    srDatoutList <- list(srDatout, nameOM, simYears, nTrials, ricSig, rho, canER, obsSig,
-                         obsMixCatchSig, prod, prodScalars, cap, capacityScalars, trendLength)
+                         obsMixCatchSig, prod, prodScalars, prodTrendLength, cap, capacityScalars, capTrendLength)
     names(srDatoutList) <- c("srDatout", "nameOM", "simYears", "nTrials", "ricSig", "rho",
                              "canER", "obsSig", "obsMixCatchSig", "prod", "prodScalars",
-                             "cap", "capacityScalars", "trendLength")
+                             "prodTrendLength", "cap", "capacityScalars", "capTrendLength")
     fileName <- paste(simPar$scenario, "CUsrDat.RData", sep = "")
 
     saveRDS(srDatoutList, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName,
