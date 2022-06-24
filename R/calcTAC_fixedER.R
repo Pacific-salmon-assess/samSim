@@ -31,7 +31,7 @@ calcTAC_fixedER <- function(rec, canER, amER, ppnMixVec, cvER, randomVar=T, runi
   # calculate beta shape pars for can ER distribution
 
     #Avoid implausible v high exploitation and NaN in qbeta
-    if(canER>=0.95) canER <- 0.95
+    canER<-ifelse(canER>=0.95,0.95, canER) 
 
     sigCanER<-cvER*canER
 

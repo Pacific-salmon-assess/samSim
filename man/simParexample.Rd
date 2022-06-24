@@ -14,7 +14,7 @@ A dataframe with 45 columns used as input to define simulation scenarios and MP:
   \item{plotOrder}{order in which grouped scenarios will be plotted (useful when keyVar is not an ordinal or numeric variable)}
   \item{species}{lower case species name (chum, sockeye and coho have been tested robustly; pink has not; chinook should be used with extreme caution since most stocks do not meet assumptions of the model- I am not sure this still holds)} 
   \item{simYears}{length of the simulation period (excluding priming period)}
-  \item{harvContRule}{harvest control rule (`TAM`, `fixedER`, `genPA`)} 
+  \item{harvContRule}{harvest control rule (`TAM`(deprecated), `fixedER`, `genPA`(deprecated),`trendER`(TBI), `shiftER`(TBI)} 
   \item{benchmark}{biological benchmark used to assess conservation status (`stockRecruit`, `percentile`)}
   \item{canER}{total Canadian exploitation rate} 
   \item{usER}{ American exploitation rate (note can also be supplied as CU-specific value in `cuPars`)}

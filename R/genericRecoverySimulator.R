@@ -67,7 +67,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   species <- simPar$species #species (sockeye, chum, pink, coho)
   simYears <- simPar$simYears #total length of simulation period
   nTrials <- nTrials #number of trials to simulate
-  canER <- simPar$canER #baseline exploitation rate divided among mixed and single CU fisheries
+  canER       <- simPar$canER #baseline exploitation rate divided among mixed and single CU fisheries
+  finalCanER  <- simPar$finalCanER  
+  ERStartYear <- simPar$ERStartYear 
+  EREndYear   <- simPar$EREndYear   
+
   ppnMix <- simPar$propMixHigh #ppn of Canadian harvest allocated to mixed stock fisheries when abundance is high (default)
   singleHCR <- ifelse(is.null(simPar$singleHCR), FALSE, simPar$singleHCR) #if TRUE single stock TAC is only harvested when BMs met
   moveTAC <- ifelse(is.null(simPar$moveTAC), FALSE, simPar$moveTAC) #if TRUE single stock TAC for low abundance CUs is re-allocated
@@ -127,6 +131,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
   # American ER
   amER <- rep(simPar$usER * usERScalar, length.out = nCU)
+
+
 
 
   # # En-route mortality
@@ -439,6 +445,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   singCatchArray <- array(NA, dim = c(nYears, nCU, nTrials))
   singTACArray <- array(NA, dim = c(nYears, nCU, nTrials))
   totalCatchArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  expRateArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  obsExpRateArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  trendCanER<-matrix(nrow=nYears,ncol = nCU)
+  HCRERArray <- array(NA, dim = c(nYears, nCU, nTrials))
 
   #Plotting matrices and vectors
   # hcr <- matrix(NA, nrow = nTrials, ncol = nCU)
@@ -556,6 +566,29 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   if (is.null(simPar$adjustBeta) == FALSE) {
     beta <- beta * simPar$adjustBeta
   }
+
+
+  #setERtrend
+    if(harvContRule == "fixedER"){
+     
+      trendCanER<-rep(canER,nYears) %*%  t(canERScalar)
+      
+        
+
+    }else if(harvContRule == "trendER"){
+         
+        trendCanERbase<-rep(canER,nYears)
+        trendCanERbase[ERStartYear:EREndYear+nPrime] <- seq(canER, finalCanER,length=length(ERStartYear:EREndYear) )
+        trendCanERbase[(EREndYear+nPrime):nYears] <-  finalCanER
+        trendCanER <- trendCanERbase %*%  t(canERScalar)
+    
+    } else if(harvContRule == "shiftER"){
+         
+        trendCanERbase<-rep(canER,nYears)
+        trendCanERbase[(nPrime+ERStartYear):nYears] <-  finalCanER
+        trendCanER <- trendCanERbase %*%  t(canERScalar)
+    } 
+    
 
   #_______________________________________________________________________
   ## Simulation model
@@ -881,6 +914,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     obsSingCatch <- matrix(NA, nrow = nYears, ncol = nCU)
     obsTotalCatch <- matrix(NA, nrow = nYears, ncol = nCU)
     expRate <- matrix(NA, nrow = nYears, ncol = nCU)
+    #canERtrend <- rep(NA, nYears)
     obsExpRate <- matrix(NA, nrow = nYears, ncol = nCU)
     extYears <- rep(nYears, nCU) #years extinct
     extYearsAg <- nYears
@@ -914,6 +948,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     fb5 <- matrix(0, nrow = nYears, ncol = nCU) # fall back matrix for when true lower BM > higher
     fb6 <- matrix(0, nrow = nYears, ncol = nCU) #fall back for when both BMs are NA
 
+    
     #__________________________________________________________________________________________
     ### LOOP 1: Priming loop
     # - Includes only past data, used to represent both real and observed abundances to "prime" the simulation
@@ -1473,7 +1508,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       } #end if y > (nPrime + 1)
 
 
-      #TODO Introduce regime shift sigma
+     
       if(recsig== "shift"){
         if(y-nPrime == simPar$sigShiftYear){
           sig <- sig * adjSig
@@ -1801,48 +1836,46 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #                 overlapConstraint = overlapConstraint[y, ],
       #                 constrainMix = constrainMix)
 
+ 
+      if(is.null(cvERSMU)) {
+        tacs <- calcTAC_fixedER(rec = recRYManU[y, ],  canER=trendCanER[y,],
+                                amER = amER, ppnMixVec, cvER = cvER,
+                                randomVar=T)
 
-      if (harvContRule == "fixedER") {
-        if(is.null(cvERSMU)) {
-          tacs <- calcTAC_fixedER(rec = recRYManU[y, ],  canER=canER,
-                                  amER = amER, ppnMixVec, cvER = cvER,
-                                  randomVar=T)
-          # calcTAAC_fixedER uses 2*nCUs random numbers/year when runif=NULL
-          }
-        if(!is.null(cvERSMU)) {
-          #Calculate annual deviation of overall ER from canER (takes 2 rand#s)
-          canEROU <- calcCanEROU_fixedER(canER=canER, cvERSMU=cvERSMU)
-          #In the first year, identify CU-specific ERs with variability
-          # This uses nCU random numbers
-          if (y==(nPrime+1)) cuERnormDevs <- runif(nCU, 0.01,0.99)
-          # In subsequent years, call a vector of random numbers to align random
-          # number call with is.null(cvERSMU) case
-          if (y> (nPrime+1)) {
-            if(is.null(annualcvERCU)) runif(nCU)
-            # If annual deviations in ER among CUs is speciied, then draw
-            # annual vectors of runif
-            if (!is.null(annualcvERCU)) {
-              if (annualcvERCU) cuERnormDevs <- runif(nCU, 0.01,0.99)
-              if (!annualcvERCU) runif(nCU, 0.01,0.99)
-             }# ENn of if (!is.null(annualcvERCU)) {
-            }# End of if(is.null(annualcvERCU)) runif(nCU)
+       
+        # calcTAAC_fixedER uses 2*nCUs random numbers/year when runif=NULL
+      }
+      if(!is.null(cvERSMU)) {
+        #Calculate annual deviation of overall ER from canER (takes 2 rand#s)
+        canEROU <- calcCanEROU_fixedER(canER=trendCanER[y,], cvERSMU=cvERSMU)
+        #In the first year, identify CU-specific ERs with variability
+        # This uses nCU random numbers
+        if (y==(nPrime+1)) cuERnormDevs <- runif(nCU, 0.01,0.99)
+        # In subsequent years, call a vector of random numbers to align random
+        # number call with is.null(cvERSMU) case
+        if (y> (nPrime+1)) {
+          if(is.null(annualcvERCU)) runif(nCU)
+          # If annual deviations in ER among CUs is speciied, then draw
+          # annual vectors of runif
+          if (!is.null(annualcvERCU)) {
+            if (annualcvERCU) cuERnormDevs <- runif(nCU, 0.01,0.99)
+            if (!annualcvERCU) runif(nCU, 0.01,0.99)
+          }# ENn of if (!is.null(annualcvERCU)) {
+        }# End of if(is.null(annualcvERCU)) runif(nCU)
+        # tacs are calculated from an annual deviation in overall ER, canEROU
+        # and a CU-specific deviation from that annul overall ER that is
+        # constant over time, specified by cuERnormDevs
+        tacs <- calcTAC_fixedER(rec = recRYManU[y, ],  canER=canEROU,
+                                amER = amER, ppnMixVec, cvER = cvER,
+                                randomVar=T, runif=cuERnormDevs)
+        #Within  if(!is.null(cvERSMU)), there is a call to 2+nCU random
+        # numbers/yr, compared to 2*nCU random numbers within
+        # is.null(cvERSMU). Add 2*nCU-(nCU+2) random numbers/year to
+        # re-align random numbers
+        runif( 2*nCU - (nCU+2))
+      }#End of if(!is.null(cvERSMU))
 
-          # tacs are calculated from an annual deviation in overall ER, canEROU
-          # and a CU-specific deviation from that annul overall ER that is
-          # constant over time, specified by cuERnormDevs
-            tacs <- calcTAC_fixedER(rec = recRYManU[y, ],  canER=canEROU,
-                                    amER = amER, ppnMixVec, cvER = cvER,
-                                    randomVar=T, runif=cuERnormDevs)
-            #Within  if(!is.null(cvERSMU)), there is a call to 2+nCU random
-            # numbers/yr, compared to 2*nCU random numbers within
-            # is.null(cvERSMU). Add 2*nCU-(nCU+2) random numbers/year to
-            # re-align random numbers
-            runif( 2*nCU - (nCU+2))
-
-            }#End of if(!is.null(cvERSMU))
-
-        }#End of if (harvContRule == "fixedER")
-
+      
 
       # Proportion of MU-level RY recruitement that each CU accounts for
       truePpn <- recRY[y, ] / recRYManU[y, ]
@@ -1923,7 +1956,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
       # Calculate realized catches (if statement necessary because
       # calcRealCatch has random number generator reset in original samSim
-      # For samSim@LRP, that seed set has been removed.)
+      # For samSim@timevar, that seed set has been removed.)
       if (random != TRUE) {
 
         amCatch[y, ] <- calcRealCatch(recRY[y, ], amTAC[y, ], sigma = mixOUSig,
@@ -1963,8 +1996,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       mixExpRate[y, ] <- mixCatch[y, ] / recRY[y, ]
       singExpRate[y, ] <- singCatch[y, ] / recRY[y, ]
       singExpRate[y, ][is.na(singExpRate[y, ])] <- 0
-      expRate[y, ] <- (amCatch[y, ] + mixCatch[y, ] + singCatch[y, ]) /
-        recRY[y, ]
+      expRate[y, ] <- (totalCatch[y, ]) / recRY[y, ]
 
       expRate[recRY == 0] <- 0
       expRateAg[y, n] <- ifelse(recRYAg[y, n] == 0, 0,
@@ -1973,8 +2005,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       # Calculate target harvest rate for Canadian fisheries only
       targetCanER[y, ] <- apply(rbind(mixTAC[y, ], singTAC[y, ]), 2, sum) /
         recRY[y, ]
-      targetExpRateAg[y, n] <- ifelse(harvContRule == "fixedER",
-                                      canER + amER,
+      targetExpRateAg[y, n] <- ifelse(harvContRule %in% c("fixedER","trendER","shiftER" ),
+                                      trendCanER[y,]  + amER,
                                       sum(totalTAC[y, ]) / recRYAg[y, n])
 
 
@@ -2443,15 +2475,26 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     singTACArray[ , , n] <- singTAC
     totalCatchArray[ , , n] <- totalCatch
     counterLowerBMArray[ , , n] <- counterLowerBM
-
+    
+    #need to better define this target ER without implementation and observation error 
+    #does not vary by 
+    HCRERArray[ , , n] <- t(t(trendCanER) + amER)
+    #realized esploitation rate 
+    expRateArray[ , , n] <- expRate
+    obsExpRateArray[ , , n] <- obsExpRate
 
     #Store trial and CU specific means, variances, and proportions to add to
     #aggregate data frame
     #NOTE CHANGE IF FIXED ERs VARY AMONG CUs
+    #TODO change
     targetER[n, ] <- ifelse(harvContRule == "fixedER",
                             rep(canER, nCU),
                             apply(targetCanER[(nPrime+1):nYears, ], 2,
                                   function(x) mean(x, na.rm = TRUE)))
+    
+    
+
+    
     #data of interest
     yrsSeq <- seq(from = nPrime + 1, to = nYears, by = 1)
     #median and CVs of true or obs PMs through time per trial
@@ -2697,6 +2740,12 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     betaDat.i<-as.data.frame(betaArray[,,i])
     capDat.i<-as.data.frame(capArray[,,i])
     sigmaDat.i<-as.data.frame(sigmaArray[,,i])
+    
+    HCRERDat.i<-as.data.frame(HCRERArray[,,i])
+    expRateDat.i<-as.data.frame(expRateArray[,,i])
+    obsExpRateDat.i<-as.data.frame(obsExpRateArray[,,i])
+
+    
 
     if(nrow(spnDat.i) != nrow(recDat.i) )
       print("warning, spawner and recruitment are not aligned in output csv file")
@@ -2726,13 +2775,24 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     sigmaDat_long.i <- sigmaDat.i %>%
         tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="sigma")
 
+   
+    expRateDat_long.i <- expRateDat.i %>%
+        tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="ER")
+    obsExpRateDat_long.i <- obsExpRateDat.i %>%
+        tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="obsER")
+    HCRERDat_long.i <- HCRERDat.i %>%
+        tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="targetER")
+
     srDat_long.i <- spnDat_long.i %>% tibble::add_column(recruits=recDat_long.i$recruits) %>%
         tibble::add_column(obsSpawners=obsSpnDat_long.i$obsSpawners) %>%
         tibble::add_column(obsRecruits=obsRecDat_long.i$obsRecruits) %>%
         tibble::add_column(beta=betaDat_long.i$beta) %>%
         tibble::add_column(alpha=alphaDat_long.i$alpha) %>%
         tibble::add_column(capacity=capDat_long.i$capacity) %>%
-        tibble::add_column(sigma=sigmaDat_long.i$sigma) 
+        tibble::add_column(sigma=sigmaDat_long.i$sigma) %>%
+        tibble::add_column(ER=expRateDat_long.i$ER) %>%
+        tibble::add_column(obsER=obsExpRateDat_long.i$obsER)%>%
+        tibble::add_column(targetER=HCRERDat_long.i$targetER)
 
     if (i == 1) srDatout<-srDat_long.i
     if (i > 1) {
