@@ -389,6 +389,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   # True benchmark pars
   sMSY <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   sGen <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  uMSY  <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   sMSY_habitat <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   sGen_habitat <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   # Estimated ricker pars:
@@ -1235,8 +1236,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                 beta[k]
               sGen[y, k, n] <- as.numeric(sGenSolver(
                 theta = c(refAlpha[k], refAlpha[k] / sEqVar[y, k, n], ricSig[k]),
-                sMSY = sMSY[y, k, n]
-              ))
+                sMSY = sMSY[y, k, n]))
+              uMSY[y, k, n] <- 0.5 *refAlpha[k] - 0.07*refAlpha[k]^2
             }
             if (model[k] == "rickerSurv") {
               refAlpha_prime<- refAlpha[k] + (gamma[k]*log(coVarInit[k]))
@@ -1527,6 +1528,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           if (normPeriod == TRUE) {
             sMSY[y, k, n] <- sMSY[nPrime, k, n]
             sGen[y, k, n] <- sGen[nPrime, k, n]
+            uMSY[y, k, n] <-uMSY[nPrime, k, n]
           } else if (normPeriod == FALSE) {
             sEqVar[y, k, n] <- alphaMat[y,k]/betaMat[y,k] #refAlpha[k] / beta[k]
             sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 -  alphaMat[y,k]))) / betaMat[y,k]
@@ -1534,6 +1536,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               theta = c(alphaMat[y,k], alphaMat[y,k] / sEqVar[y, k, n], ricSig[k]),
               sMSY = sMSY[y, k, n]
             ))
+            uMSY[y, k, n] <- 0.5 *refAlpha[k] - 0.07*refAlpha[k]^2
           }
         } #end if model == ricker
         if (model[k] == "rickerSurv") {
@@ -2745,7 +2748,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     expRateDat.i<-as.data.frame(expRateArray[,,i])
     obsExpRateDat.i<-as.data.frame(obsExpRateArray[,,i])
 
-    
+    sMSY.i  <- as.data.frame(sMSY[,,i])
+    sGen.i  <- as.data.frame(sGen[,,i])
+    uMSy.i  <- as.data.frame(uMSY[,,i])
+
 
     if(nrow(spnDat.i) != nrow(recDat.i) )
       print("warning, spawner and recruitment are not aligned in output csv file")
@@ -2783,6 +2789,13 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     HCRERDat_long.i <- HCRERDat.i %>%
         tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="targetER")
 
+    sMSY_long.i <- sMSY.i %>%
+        tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="sMSY")
+    sGen_long.i <- sGen.i %>%
+        tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="sGen")
+    uMSy_long.i <- uMSy.i %>%
+        tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="uMSy")
+
     srDat_long.i <- spnDat_long.i %>% tibble::add_column(recruits=recDat_long.i$recruits) %>%
         tibble::add_column(obsSpawners=obsSpnDat_long.i$obsSpawners) %>%
         tibble::add_column(obsRecruits=obsRecDat_long.i$obsRecruits) %>%
@@ -2792,7 +2805,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         tibble::add_column(sigma=sigmaDat_long.i$sigma) %>%
         tibble::add_column(ER=expRateDat_long.i$ER) %>%
         tibble::add_column(obsER=obsExpRateDat_long.i$obsER)%>%
-        tibble::add_column(targetER=HCRERDat_long.i$targetER)
+        tibble::add_column(targetER=HCRERDat_long.i$targetER)%>%
+        tibble::add_column(sMSY=sMSY_long.i$sMSY)%>%
+        tibble::add_column(sGen=sGen_long.i$sGen)%>%
+        tibble::add_column(uMSY=uMSy_long.i$uMSy)
 
     if (i == 1) srDatout<-srDat_long.i
     if (i > 1) {
@@ -2811,7 +2827,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     names(srDatoutList) <- c("srDatout", "nameOM", "simYears", "nTrials", "ricSig", "rho",
                              "canER", "obsSig", "obsMixCatchSig", "prod", "prodScalars",
                              "prodTrendLength", "cap", "capacityScalars", "capTrendLength")
-    fileName <- paste(simPar$scenario, "CUsrDat.RData", sep = "")
+    fileName <- paste(simPar$nameOM, "_",simPar$nameMP,"_", "CUsrDat.RData", sep = "")
 
     saveRDS(srDatoutList, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName,
                                        sep = "/"), version=3)
