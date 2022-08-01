@@ -19,6 +19,3 @@ This is a component function within getTau used to calculate log proportions.
 Originally written by B. Dorner and C. Holt so C. Freshwater unable to
 fully verify documentation.
 }
-\examples{
-
-}
