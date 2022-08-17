@@ -789,8 +789,12 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
 
     # Adjust sigma up or down
-
-    recsig <- simPar$sigRegime
+    if(!is.null(simPar$sigRegime)){
+      recsig <- simPar$sigRegime
+    }else{
+      recsig <- "stable"
+    }
+    
     if(recsig== "scalar"){
       sig <- ifelse(model == "ricker" | model=="rickerSurv", ricSig, larSig) * adjSig
     }else{

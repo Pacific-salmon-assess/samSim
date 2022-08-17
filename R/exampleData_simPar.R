@@ -19,15 +19,30 @@
 #'   \item{propMixHigh}{proportion of Canadian catch allocated to mixed-stock fisheries (can range from 0 to 1)}  
 #'   \item{singleHCR}{single stock harvest control rule (`FALSE`, `retro`, `forecast`)}  
 #'   \item{moveTAC}{if `TRUE` and single stock quota from low-abundance CUs is re-allocated to other CUs}   
-#'   \item{prodRegime}{productivity regime (`low`, `lowStudT`, `med`, `studT`, `skew`, `skewT`, `decline`, `divergent`, `oneUp`,  `oneDown`, `high`)}   
+#'   \item{prodRegime}{productivity regime. Options are: `low` multiply alpha by 0.65,
+#'  `lowStudT` same as `low` and use student-t for SR error distribution,
+#'  `med` constant and unchanged alpha,
+#'  `studT` same as `med` and use student-t for SR error distribution,
+#'  `skew` use skewed normal for SR error distribution,
+#'  `skewT` use skewed student-t for SR error distribution, 
+#'  `linear` linear trend where the end value is adjusted by prodPpnChange, 
+#'  `decline` linear decline trend with final alpha is 0.65 times initial value,
+#'  `increase` linear increase trend with final alpha is 1.35 times initial value,
+#'  `divergent` productivity for CUs have decline of increasing trends,
+#'  `oneUp` one CU picked at random has an increasing trend final alpha is 1.35 times initial value,
+#'  `oneDown` one CU picked at random has an increasing trend final alpha is 0.65 times initial value, 
+#'  `sine` sine trend in productivity requiring further parameters ampSinProd and sinCycleLen),
+#'  `regime` regime shifts based on prodPpnChange and prodRegimeLen,
+#'  `randomwalk` . }   
 #'   \item{prodPpnChange}{Scalar to modify productivity parameter, values >1 indicate increase linear trend and <1 declining linear trend}  
-#'   \item{prodTrendLength}{Length of the trend in productivity parameter in years, fo now trend happens in the beginning of the simulation time series}    
+#'   \item{prodTrendLength}{Length of the trend in productivity parameter in years, if prodStartYear not defined, then trend happens in the beginning of the simulation time series}    
 #'   \item{prodStartYear}{indicates when a productivity decline (if specified by `prodRegime == "decline"`) should start -- not implemented}       
-#'   \item{prodEndYear}{indicates when a productivity decline (if specified by `prodRegime == "decline"`) should end}     
-#'   \item{prodPpnChange}{Scalar to modify productivy parameter, values >1 indicate increase linear trend and <1 declining linear trend}  
-#'   \item{prodEndYear}{indicates when a productivity decline (if specified by `prodRegime == "decline"`) should end}     
+#'   \item{prodEndYear}{indicates when a productivity decline (if specified by `prodRegime == "decline"`) should end}          
 #'   \item{prodRegimeLen}{Length of each productivity regime, when prodRegime is "regime".  Default is 10}
-#'   \item{capRegime}{type of SR capacity (Smax) regime, current options are "linear", "regime". Any other string is treated as stable without warning}        
+#'   \item{capRegime}{type of SR capacity (Smax) regime, current options are `linear` linear trend where the end value is adjusted by prodPpnChange,
+#'  `regime` regime shifts based on capPpnChange and capRegimeLen,
+#'  `decline` linear decline trend with final alpha is 0.65 times initial value, 
+#'  `increase` linear decline trend with final alpha is 1.35 times initial value. Any other string is treated as stable without warning}        
 #'   \item{capPpnChange}{Scalar to modify Smax parameter, values >1 indicate increase linear trend and <1 declining linear trend}  
 #'   \item{capRegimeLen}{Length of capacity regimes (when "regime" is used for capRegime), default is 10}
 #'   \item{capTrendLength}{Length of the trend in capacity parameter in years, trend happens in the beginning of the simulation time series}    
@@ -45,7 +60,7 @@
 #'   \item{sig_logCovar1}{log-normal variation for annual SR covariate}   
 #'   \item{sampCU_coef1}{TRUE/FALSE indicating whether CU-specific coefficients for the SR covariate should be sampled}    
 #'   \item{sigCU_coef1}{among-CU variation in coefficients for the SR covariate (only applied if sampCU_coef1 == TRUE)}      
-#'   \item{tauCatch}{logistic variation in CU-specific catches}        
+#'   \item{tauCatch}{multivariate logistic variation in CU-specific catches}        
 #'   \item{obsSig}{log-normal variation in spawner observation error}          
 #'   \item{mixOUSig}{beta-distributed variation in mixed-stock fishery outcome uncertainty; input parameter represents the standard deviation used to calculate the location parameter}       
 #'   \item{singOUSig}{beta-distributed variation in single-stock fishery outcome uncertainty; input parameter represents the standard deviation used to calculate the location parameter}      
