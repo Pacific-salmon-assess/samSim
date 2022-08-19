@@ -1849,7 +1849,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                 amER = amER, ppnMixVec, cvER = cvER,
                                 randomVar=T)
 
-       
+        # re-align random numbers
+        if(nCU==1)runif(1)
         # calcTAAC_fixedER uses 2*nCUs random numbers/year when runif=NULL
       }
       if(!is.null(cvERSMU)) {
@@ -1879,7 +1880,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         # numbers/yr, compared to 2*nCU random numbers within
         # is.null(cvERSMU). Add 2*nCU-(nCU+2) random numbers/year to
         # re-align random numbers
-        runif( 2*nCU - (nCU+2))
+        if(nCU>1)runif( 2*nCU - (nCU+2))
       }#End of if(!is.null(cvERSMU))
 
       
@@ -2505,70 +2506,70 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     #data of interest
     yrsSeq <- seq(from = nPrime + 1, to = nYears, by = 1)
     #median and CVs of true or obs PMs through time per trial
-    medS[n, ] <- apply(na.omit(S[yrsSeq, ]), 2, median)
-    varS[n, ] <- apply(na.omit(S[yrsSeq, ]), 2, cv)
-    medObsS[n, ] <- apply(na.omit(obsS[yrsSeq, ]), 2, median)
-    varObsS[n, ] <- apply(na.omit(obsS[yrsSeq, ]), 2, cv)
-    medRecRY[n, ] <- apply(na.omit(recRY[yrsSeq, ]), 2, median)
-    varRecRY[n, ] <- apply(na.omit(recRY[yrsSeq, ]), 2, cv)
-    medRecBY[n, ] <- apply(na.omit(recBY[yrsSeq, ]), 2, median)
-    varRecBY[n, ] <- apply(na.omit(recBY[yrsSeq, ]), 2, cv)
-    medObsRecRY[n, ] <- apply(na.omit(obsRecRY[yrsSeq, ]), 2,
+    medS[n, ] <- apply(na.omit(as.matrix(S[yrsSeq, ])), 2, median)
+    varS[n, ] <- apply(na.omit(as.matrix(S[yrsSeq, ])), 2, cv)
+    medObsS[n, ] <- apply(na.omit(as.matrix(obsS[yrsSeq, ])), 2, median)
+    varObsS[n, ] <- apply(na.omit(as.matrix(obsS[yrsSeq, ])), 2, cv)
+    medRecRY[n, ] <- apply(na.omit(as.matrix(recRY[yrsSeq, ])), 2, median)
+    varRecRY[n, ] <- apply(na.omit(as.matrix(recRY[yrsSeq, ])), 2, cv)
+    medRecBY[n, ] <- apply(na.omit(as.matrix(recBY[yrsSeq, ])), 2, median)
+    varRecBY[n, ] <- apply(na.omit(as.matrix(recBY[yrsSeq, ])), 2, cv)
+    medObsRecRY[n, ] <- apply(na.omit(as.matrix(obsRecRY[yrsSeq, ])), 2,
                               median)
-    varObsRecRY[n, ] <- apply(na.omit(obsRecRY[yrsSeq, ]), 2, cv)
-    medObsRecBY[n, ] <- apply(na.omit(obsRecBY[yrsSeq, ]), 2,
+    varObsRecRY[n, ] <- apply(na.omit(as.matrix(obsRecRY[yrsSeq, ])), 2, cv)
+    medObsRecBY[n, ] <- apply(na.omit(as.matrix(obsRecBY[yrsSeq, ])), 2,
                               median)
-    varObsRecBY[n, ] <- apply(na.omit(obsRecBY[yrsSeq, ]), 2, cv)
-    medAlpha[n, ] <- apply(na.omit(alphaMat[yrsSeq, ]), 2, median)
-    varAlpha[n, ] <- apply(na.omit(alphaMat[yrsSeq, ]), 2, cv)
-    medEstAlpha[n, ] <- apply(na.omit(estRicA[yrsSeq, , n]), 2, median)
-    varEstAlpha[n, ] <- apply(na.omit(estRicA[yrsSeq, , n]), 2, cv)
-    medBeta[n, ] <- apply(na.omit(betaMat[yrsSeq, ]), 2, median)
-    varBeta[n, ] <- apply(na.omit(betaMat[yrsSeq, ]), 2, cv)
+    varObsRecBY[n, ] <- apply(na.omit(as.matrix(obsRecBY[yrsSeq, ])), 2, cv)
+    medAlpha[n, ] <- apply(na.omit(as.matrix(alphaMat[yrsSeq, ])), 2, median)
+    varAlpha[n, ] <- apply(na.omit(as.matrix(alphaMat[yrsSeq, ])), 2, cv)
+    medEstAlpha[n, ] <- apply(na.omit(as.matrix(estRicA[yrsSeq, , n])), 2, median)
+    varEstAlpha[n, ] <- apply(na.omit(as.matrix(estRicA[yrsSeq, , n])), 2, cv)
+    medBeta[n, ] <- apply(na.omit(as.matrix(betaMat[yrsSeq, ])), 2, median)
+    varBeta[n, ] <- apply(na.omit(as.matrix(betaMat[yrsSeq, ])), 2, cv)
     #medBeta[n, ] <- if (is.null(nrow(beta))) {
     #  beta
     #} else {
     #  apply(na.omit(beta), 2, median)
     #}#avg capacity through time per trial
-    medTotalCatch[n, ] <- apply(totalCatch[yrsSeq, ], 2, median, na.rm = TRUE)
-    varTotalCatch[n, ] <- apply(totalCatch[yrsSeq, ], 2, cv)
+    medTotalCatch[n, ] <- apply(as.matrix(totalCatch[yrsSeq, ]), 2, median, na.rm = TRUE)
+    varTotalCatch[n, ] <- apply(as.matrix(totalCatch[yrsSeq, ]), 2, cv)
     #stability in catch
-    stblTotalCatch[n, ] <- apply(totalCatch[yrsSeq, ], 2, function(x) 1 / cv(x))
-    medObsTotalCatch[n, ] <- apply(obsTotalCatch[yrsSeq, ], 2, median,
+    stblTotalCatch[n, ] <- apply(as.matrix(totalCatch[yrsSeq, ]), 2, function(x) 1 / cv(x))
+    medObsTotalCatch[n, ] <- apply(as.matrix(obsTotalCatch[yrsSeq, ]), 2, median,
                                    na.rm=TRUE)
-    varObsTotalCatch[n, ] <- apply(obsTotalCatch[yrsSeq, ], 2, cv)
-    stblObsTotalCatch[n, ] <- apply(obsTotalCatch[yrsSeq, ], 2,
+    varObsTotalCatch[n, ] <- apply(as.matrix(obsTotalCatch[yrsSeq, ]), 2, cv)
+    stblObsTotalCatch[n, ] <- apply(as.matrix(obsTotalCatch[yrsSeq, ]), 2,
                                     function(x) 1 / cv(x))
     #median TAC lost due to overlap constraints
     #medForgoneCatch[n, ] <- apply(forgoneCatch[yrsSeq, ], 2, median)
-    medTotalER[n, ] <- apply(expRate[yrsSeq, ], 2, median, na.rm=TRUE)
-    medTotalObsER[n, ] <- apply(obsExpRate[yrsSeq, ], 2, median, na.rm=TRUE)
+    medTotalER[n, ] <- apply(as.matrix(expRate[yrsSeq, ]), 2, median, na.rm=TRUE)
+    medTotalObsER[n, ] <- apply(as.matrix(obsExpRate[yrsSeq, ]), 2, median, na.rm=TRUE)
     #median single stock ER relative to escapement across sim period
     #medTAMSingER[n, ] <- apply(tamSingER[yrsSeq, ], 2, median, na.rm=TRUE)
     #ppn of years true abundance above true upper BM per trial
-    ppnYrsUpperBM[n, ] <- apply(na.omit(counterUpperBM[yrsSeq, ]), 2, mean)
-    ppnYrsLowerBM[n, ] <- apply(na.omit(counterLowerBM[yrsSeq, ]), 2, mean)
-    ppnYrsUpperObsBM[n, ] <- apply(na.omit(counterUpperObsBM[yrsSeq, ]), 2,
+    ppnYrsUpperBM[n, ] <- apply(na.omit(as.matrix(counterUpperBM[yrsSeq, ])), 2, mean)
+    ppnYrsLowerBM[n, ] <- apply(na.omit(as.matrix(counterLowerBM[yrsSeq, ])), 2, mean)
+    ppnYrsUpperObsBM[n, ] <- apply(na.omit(as.matrix(counterUpperObsBM[yrsSeq, ])), 2,
                                    mean)
-    ppnYrsLowerObsBM[n, ] <- apply(na.omit(counterLowerObsBM[yrsSeq, ]), 2,
+    ppnYrsLowerObsBM[n, ] <- apply(na.omit(as.matrix(counterLowerObsBM[yrsSeq, ])), 2,
                                    mean)
-    ppnYrsOpenSingle[n, ] <- apply(na.omit(counterSingleBMLow[yrsSeq, ]), 2,
+    ppnYrsOpenSingle[n, ] <- apply(na.omit(as.matrix(counterSingleBMLow[yrsSeq, ])), 2,
                                    mean)
     #PMs for early period
-    medEarlyS[n, ] <- apply(na.omit(S[(nPrime + 1):endEarly, ]), 2, median)
-    medEarlyRecRY[n, ] <- apply(na.omit(recRY[(nPrime + 1):endEarly, ]), 2,
+    medEarlyS[n, ] <- apply(na.omit(as.matrix(S[(nPrime + 1):endEarly, ])), 2, median)
+    medEarlyRecRY[n, ] <- apply(na.omit(as.matrix(recRY[(nPrime + 1):endEarly, ])), 2,
                                 median)
     medEarlyTotalCatch[n, ] <- apply(na.omit(
-      totalCatch[(nPrime + 1):endEarly, ]), 2, median)
+      as.matrix(totalCatch[(nPrime + 1):endEarly, ])), 2, median)
     #aggregate data
-    meanSingExpRate[yrsSeq, n] <- apply(singExpRate[yrsSeq, ], 1, mean)
-    ppnCUsUpperBM[yrsSeq, n] <- apply(counterUpperBM[yrsSeq, ], 1, mean)
-    ppnCUsLowerBM[yrsSeq, n] <- apply(counterLowerBM[yrsSeq, ], 1, mean)
-    ppnCUsUpperObsBM[yrsSeq, n] <- apply(counterUpperObsBM[yrsSeq, ], 1, mean)
-    ppnCUsLowerObsBM[yrsSeq, n] <- apply(counterLowerObsBM[yrsSeq, ], 1, mean)
-    ppnCUsExtinct[yrsSeq, n] <- apply(extinct[yrsSeq, ], 1, mean)
+    meanSingExpRate[yrsSeq, n] <- apply(as.matrix(singExpRate[yrsSeq, ]), 1, mean)
+    ppnCUsUpperBM[yrsSeq, n] <- apply(as.matrix(counterUpperBM[yrsSeq, ]), 1, mean)
+    ppnCUsLowerBM[yrsSeq, n] <- apply(as.matrix(counterLowerBM[yrsSeq, ]), 1, mean)
+    ppnCUsUpperObsBM[yrsSeq, n] <- apply(as.matrix(counterUpperObsBM[yrsSeq, ]), 1, mean)
+    ppnCUsLowerObsBM[yrsSeq, n] <- apply(as.matrix(counterLowerObsBM[yrsSeq, ]), 1, mean)
+    ppnCUsExtinct[yrsSeq, n] <- apply(as.matrix(extinct[yrsSeq, ]), 1, mean)
     #ppnConstrained[yrsSeq, n] <- apply(overlapConstraint[yrsSeq, ], 1, mean)
-    ppnCUsOpenSingle[yrsSeq, n] <- apply(counterSingleBMLow[yrsSeq, ], 1,
+    ppnCUsOpenSingle[yrsSeq, n] <- apply(as.matrix(counterSingleBMLow[yrsSeq, ]), 1,
                                          mean)
 
 
@@ -2739,7 +2740,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   for(i in 1:nTrials) {
 
     # spwnrArray = df of number of columns = number of Cus
-    spnDat.i<-as.data.frame(spwnrArray[,,i])
+    spnDat.i<-as.data.frame(spwnrArray[,,i])   
     recDat.i<-as.data.frame(recArray[,,i])
     obsSpnDat.i<-as.data.frame(obsSpwnrArray[,,i])
     obsRecDat.i<-as.data.frame(obsRecArray[,,i])
@@ -2755,6 +2756,24 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     sMSY.i  <- as.data.frame(sMSY[,,i])
     sGen.i  <- as.data.frame(sGen[,,i])
     uMSy.i  <- as.data.frame(uMSY[,,i])
+
+    if(nCU==1){
+      names(spnDat.i)<-paste0("V",1:nCU)
+      names(recDat.i)<-paste0("V",1:nCU)
+      names(obsSpnDat.i)<-paste0("V",1:nCU)
+      names(obsRecDat.i)<-paste0("V",1:nCU)
+      names(alphaDat.i)<-paste0("V",1:nCU)
+      names(betaDat.i)<-paste0("V",1:nCU)
+      names(capDat.i)<-paste0("V",1:nCU)
+      names(sigmaDat.i)<-paste0("V",1:nCU)
+      names(HCRERDat.i)<-paste0("V",1:nCU)
+      names(expRateDat.i)<-paste0("V",1:nCU)
+      names(obsExpRateDat.i)<-paste0("V",1:nCU)
+      names(sMSY.i)<-paste0("V",1:nCU)
+      names(sGen.i)<-paste0("V",1:nCU)
+      names(uMSy.i)<-paste0("V",1:nCU)
+    }
+    
 
 
     if(nrow(spnDat.i) != nrow(recDat.i) )
