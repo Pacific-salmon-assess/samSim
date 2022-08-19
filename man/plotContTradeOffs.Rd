@@ -27,7 +27,3 @@ simultaneously. It may be untoward to try place so many different variables
 with divergents units in the same figure, but hey, people seem to want to see
 them...
 }
-\examples{
-
-
-}

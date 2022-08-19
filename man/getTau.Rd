@@ -24,6 +24,3 @@ observed vs. simulated standard deviations for proportions data. Note that
 objective function is constrained to sample between 0 and 3 at intervals of
 0.1; however that should be sufficient for most proportion data.
 }
-\examples{
-
-}

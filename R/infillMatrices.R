@@ -30,7 +30,7 @@
 #' @export
 infill <- function(mat) {
   tsLength <- min(25, nrow(mat))
-  meanAbund <- apply(mat[(nrow(mat) - tsLength):nrow(mat), ], 2, geoMean)
+  meanAbund <- apply(as.matrix(mat[(nrow(mat) - tsLength):nrow(mat), ]), 2, geoMean)
   ppnAbund <- matrix(meanAbund/sum(meanAbund), nrow = nrow(mat),
                      ncol = ncol(mat), byrow = TRUE)
   present <- ifelse(is.na(mat), 0, 1)
