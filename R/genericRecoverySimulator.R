@@ -133,8 +133,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   amER <- rep(simPar$usER * usERScalar, length.out = nCU)
 
 
-
-
   # # En-route mortality
   # enRouteMort <- ifelse(is.null(simPar$enRouteMort), FALSE, simPar$enRouteMort)
   # if (enRouteMort == TRUE) {
@@ -772,20 +770,22 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
     # Create matrix of capacity that corresponds to 10-year regimes that iterate between
     # initial cap and final cap
-    if("capRegimeLen" %in% names(simPar) & !is.na(simPar$capRegimeLen)){
-      regimeCap <- mapply(runRegime, capacity, capacity*simPar$capPpnChange,
-                        rep(simYears,length(capacity)), simPar$capRegimeLen)
-    }else{
-      regimeCap <- mapply(runRegime, capacity, capacity*simPar$capPpnChange,
-                        rep(simYears,length(capacity)))
-      if(cap=="regime"){
+    if(cap=="regime"){
+      if("capRegimeLen" %in% names(simPar) & !is.na(simPar$capRegimeLen)){
+        regimeCap <- mapply(runRegime, capacity, capacity*simPar$capPpnChange,
+                          rep(simYears,length(capacity)), simPar$capRegimeLen)
+      }else{
+        regimeCap <- mapply(runRegime, capacity, capacity*simPar$capPpnChange,
+                          rep(simYears,length(capacity)))
+        
         warning(" simPar$capRegimeLen not provided, assuming default regime length of 10 years.")
       }
+      regimeCap <- rbind(matrix(NA, nrow=nPrime, ncol=length(capacity)), regimeCap)
     }
     
     
     regimeAlpha <- rbind(matrix(NA, nrow=nPrime, ncol=length(alpha)), regimeAlpha)
-    regimeCap <- rbind(matrix(NA, nrow=nPrime, ncol=length(capacity)), regimeCap)
+    
 
 
     # Adjust sigma up or down
@@ -1375,8 +1375,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     # Pull residuals from observed data to make time series coherent
     errorCU[1:nPrime, ] <- residMatrix
     # Only necessary to infill values in gappy time series
-    infillRecBY <- infill(recBY[1:nPrime, ])
-    infillS <- infill(S[1:nPrime, ])
+    infillRecBY <- infill(mat=matrix(recBY[1:nPrime, ], ncol=nCU))
+    infillS <- infill(matrix(S[1:nPrime, ], ncol=nCU))
 
     #Default recruitment cap reflecting observed abundance (not quantiles),
     # if SR data exist (recCap defined above when there are no SR data)

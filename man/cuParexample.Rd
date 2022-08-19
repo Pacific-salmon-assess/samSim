@@ -7,47 +7,48 @@
 \format{
 A dataframe with 45 columns used as input to define simulation scenarios and MP:
 \describe{
-  \item{manUnit}{} 
-  \item{stkName}{Name of stock}
-  \item{model}{stock recruitment model to be used. Options are "ricker", "rickerSurv" and "larkin"}
-  \item{domCycle}{}
-  \item{minER}{}
-  \item{cvER}{} 
-  \item{usERScalar}{}
-  \item{canERScalar}{} 
-  \item{tauCycAge}{}
-  \item{alpha}{}
-  \item{beta0}{}
-  \item{sigma}{}	
-  \item{coef1}{}	
-  \item{covarInit}{}	
+  \item{manUnit}{Management unit name} 
+  \item{stkName}{CU or stock name}
+  \item{stk}{CU identification number (can be assigned arbitrarily or based on previous modeling exercises)}
+  \item{model}{stock recruitment model to be used. Options are `ricker`, `rickerSurv` and `larkin`}
+  \item{domCycle}{Optional. integer to identify the dominant cycle line in Larkin stocks (1, 2, 3, 4 or NA)}
+  \item{minER}{minimum Canadian Exploitation rate}
+  \item{cvER}{Variation in exploitation rates among CUs.} 
+  \item{usERScalar}{Scalar used to specify if any CUs should have  US ERs scaled above or below the MU-level average specified in simPars}
+  \item{canERScalar}{Scalar used to specify if any CUs should have Canadian ERs scaled above or below the MU-level average specified in simPars} 
+  \item{tauCycAge}{multivariate logistic error}
+  \item{alpha}{Productivity parameter for stock recruitment relationship based on Ricker of the form R <- S * exp(a - b * S) }
+  \item{beta0}{Density-dependance parameter for Ricker models based on Ricker of the form R <- S * exp(a - b * S)}
+  \item{sigma}{recruitment variation for Ricker models}	
+  \item{coef1}{additional coefficient to covariates added to Ricker models, representing, for example survival coefficients, or environmental variables}	
+  \item{covarInit}{covariate value to be used in model initalization}	
   \item{Sinit}{ Numbers of spawners to initialize simulations, if absent Seq is used}
-  \item{mu_logCovar1}{}	
-  \item{sig_logCovar1}{}	
-  \item{min_logCovar}{}	
-  \item{max_logCovar}{}	
-  \item{aveGenTime}{}	
-  \item{ageFirstRec}{}	
-  \item{ageMaxRec}{}	
-  \item{larkAlpha}{}	
-  \item{larkBeta0}{}	
-  \item{larkBeta1}{}	
-  \item{larkBeta2}{}	
-  \item{larkBeta3}{}	
-  \item{larkSigma}{}	
-  \item{meanRec2}{}	
-  \item{meanRec3}{}	
-  \item{meanRec4}{}	
-  \item{meanRec5}{}	
-  \item{meanRec6}{}	
-  \item{medianRec}{}	
-  \item{lowQRec}{}	
-  \item{highQRec}{}	
-  \item{meanDBE}{}	
-  \item{sdDBE}{}	
-  \item{medMA}{}	
-  \item{meanForecast}{}	
-  \item{sdForecast}{}
+  \item{mu_logCovar1}{mean of lognormal distribution for annual SR covariate (e.g., marine survival)}	
+  \item{sig_logCovar1}{log-normal variation for annural SR covariate}	
+  \item{min_logCovar}{minimum covariate value limit}	
+  \item{max_logCovar}{mmax covariate value limit}	
+  \item{aveGenTime}{generation length}	
+  \item{ageFirstRec}{ age at first recruitment}	
+  \item{ageMaxRec}{maximum age of recruits}	
+  \item{larkAlpha}{productivity parameter for Larkin models}	
+  \item{larkBeta0}{density-dependence parameter for Larkin models}	
+  \item{larkBeta1}{lag-1 density-dependence parameter for Larkin models}	
+  \item{larkBeta2}{lag-2 density-dependence parameter for Larkin models}	
+  \item{larkBeta3}{lag-3 density-dependence parameter for Larkin models}	
+  \item{larkSigma}{recruitment variation for Larkin models}	
+  \item{meanRec2}{mean proportion of age-2 recruits}	
+  \item{meanRec3}{mean proportion of age-3 recruits}	
+  \item{meanRec4}{mean proportion of age-4 recruits}	
+  \item{meanRec5}{mean proportion of age-5 recruits}	
+  \item{meanRec6}{mean proportion of age-6 recruits}	
+  \item{medianRec}{ median historical recruitment}	
+  \item{lowQRec}{25th percentile historical recruitment- used to compare simulation plots and observed historical data}	
+  \item{highQRec}{75th percentile historical recruitment- used to compare simulation plots and observed historical data}	
+  \item{meanDBE}{Optional. mean difference between estimates (a proxy for en route mortality)- on ly needed if modeling en route mortality}	
+  \item{sdDBE}{Optional. interannual standard deviation of difference between estimates}	
+  \item{medMA}{Optional. median mortality adjustment used in TAM harvest control rule. Necessary if modeling TAM harvest control rule (Fraser sockeye)}	
+  \item{meanForecast}{Optional. mean forecast relative to observed}	
+  \item{sdForecast}{Optional. interannual standard deviation of forecast}
  
 }
 }
