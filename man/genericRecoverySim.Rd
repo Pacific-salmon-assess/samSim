@@ -31,7 +31,29 @@ A detailed descrption of the contents of the `simPar` file can be found by acces
 
 \item{catchDat}{Default Null}
 
-\item{random}{}
+\item{srDat}{stock recruitment data, with columns: c("stk", "yr", "ets", "totalSpwn", "rec2", "rec3", "rec4", "rec5", "rec6")}
+
+\item{variableCU}{Logical. If plots are labelled by CU or not}
+
+\item{makeSubDirs}{Logical. Should results be stored in subdirectories under the outDir}
+
+\item{ricPars}{file containing posterior draws for the Ricker parameters for each CU}
+
+\item{larkPars}{file containing posterior draws for the Larkin parameters for each CU}
+
+\item{cuCustomCorrMat}{File containing custom correlation matrix between CUs, Default is NULL}
+
+\item{erCorrMat}{deprecated}
+
+\item{nTrials}{Number of trials in simulatiosns}
+
+\item{uniqueProd}{Logical, If false, all CU's are assigned the same productivity and capacity parameters}
+
+\item{uniqueSurv}{Logical, If false, all CU's are assigned the same survival parameters}
+
+\item{random}{If random = TRUE then each simulation will start at a different point}
+
+\item{outDir}{directories where results are stored}
 }
 \value{
 TO BE DEFINED

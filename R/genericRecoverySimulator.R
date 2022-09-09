@@ -23,17 +23,18 @@
 #' A detailed descrption of the contents of the `simPar` file can be found by accessing ?simParexample
 #' @param cuPar is a .csv file that contains CU-specific input parameters. Note that these parameters should *not* vary among simulation runs. Differences in operating models that involve CU-specific traits (e.g. population dynamics) can typically be introduced via options in the `simPar` file. Each row represents a specific CU.
 #' @param catchDat Default Null
-#' @param srDat
-#' @param variableCU
-#' @param makeSubDirs
-#' @param ricPars
-#' @param larkPars
-#' @param cuCustomCorrMat
-#' @param erCorrMat
-#' @param nTrials
-#' @param uniqueProd
-#' @param uniqueSurv
-#' @param random
+#' @param srDat stock recruitment data, with columns: c("stk", "yr", "ets", "totalSpwn", "rec2", "rec3", "rec4", "rec5", "rec6")
+#' @param variableCU Logical. If plots are labelled by CU or not
+#' @param makeSubDirs Logical. Should results be stored in subdirectories under the outDir
+#' @param ricPars file containing posterior draws for the Ricker parameters for each CU
+#' @param larkPars file containing posterior draws for the Larkin parameters for each CU
+#' @param cuCustomCorrMat File containing custom correlation matrix between CUs, Default is NULL
+#' @param erCorrMat deprecated
+#' @param nTrials Number of trials in simulatiosns
+#' @param uniqueProd Logical, If false, all CU's are assigned the same productivity and capacity parameters
+#' @param uniqueSurv Logical, If false, all CU's are assigned the same survival parameters
+#' @param random If random = TRUE then each simulation will start at a different point
+#' @param outDir directories where results are stored
 #' 
 #' @return TO BE DEFINED
 #' @export
