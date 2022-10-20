@@ -517,9 +517,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   larB2 <- cuPar$larkBeta2
   larB3 <- cuPar$larkBeta3
   larSig <- cuPar$larkSigma
-   if(prod == "randomwalk"){
+  if(prod == "randomwalk"){
     siga <- cuPar$sigmaProd
-   }
+  }
 
   coef1<-cuPar$coef1
   coVarInit<-cuPar$covarInit
@@ -548,10 +548,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
 
   # If .csv of par dist is not passed and productivity is something other than "med", give error warning
-  if (prod != "med" & is.null(ricPars) == TRUE) {
-    stop("Full SR parameter dataset necessary to simulate alternative
-         productivity scenarios")
-  }
+  #CW this is no longer true
+  #if (prod != "med" & is.null(ricPars) == TRUE) {
+  #  stop("Full SR parameter dataset necessary to simulate alternative
+  #       productivity scenarios")
+  #}
 
 
   # Adjust sigma (Ricker only) following Holt and Folkes 2015 if a
