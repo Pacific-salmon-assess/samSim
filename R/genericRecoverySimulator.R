@@ -561,7 +561,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     ricSig <- ricSig^2 * (1 - rho^2)
   }
 
-  #TODO expand this to time dependant beta
+  #TODO expand this to time dependent beta
   #not sure why this code repeates below
   beta <- ifelse(model == "ricker" | model == "rickerSurv", ricB, larB)
   if (is.null(simPar$adjustBeta) == FALSE) {
