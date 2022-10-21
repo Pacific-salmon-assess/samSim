@@ -1470,7 +1470,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           }
           
           #avoid very low productivities that will cause rapid extinction
-          alphaMat[y, ]<-ifelse(apply(alphaMat[(y-2):y,],2,mean)<0.1,0.1,alphaMat[y, ])
+          alphaMat[y, ]<-ifelse(apply(matrix(alphaMat[(y-2):y,],ncol=nCU),2,mean)<0.1,0.1,alphaMat[y, ])
           
         }else{
         #if (!prodStable & prod!="linear" & prod!="regime"){
