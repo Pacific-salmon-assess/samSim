@@ -2499,7 +2499,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     #TODO change
     targetER[n, ] <- ifelse(harvContRule == "fixedER",
                             rep(canER, nCU),
-                            apply(targetCanER[(nPrime+1):nYears, ], 2,
+                            apply(as.matrix(targetCanER[(nPrime+1):nYears, ]), 2,
                                   function(x) mean(x, na.rm = TRUE)))
     
     
