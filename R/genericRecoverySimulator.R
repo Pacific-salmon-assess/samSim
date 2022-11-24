@@ -1858,7 +1858,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       }
       if(!is.null(cvERSMU)) {
         #Calculate annual deviation of overall ER from canER (takes 2 rand#s)
-        canEROU <- calcCanEROU_fixedER(canER=trendCanER[y,], cvERSMU=cvERSMU)
+        canEROU <- calcCanEROU_fixedER(canER=trendCanER[y,], cvERSMU=cvERSMU, maxER=maxER)
         #In the first year, identify CU-specific ERs with variability
         # This uses nCU random numbers
         if (y==(nPrime+1)) cuERnormDevs <- runif(nCU, 0.01,0.99)
