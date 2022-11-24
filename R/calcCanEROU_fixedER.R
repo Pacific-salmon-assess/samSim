@@ -12,7 +12,7 @@
 #' calcCanEROU_fixedER(canER=0.3, cvERSMU=0.1)
 #'
 #'
-calcCanEROU_fixedER <- function(canER,  cvERSMU, randomVar=T) {
+calcCanEROU_fixedER <- function(canER,  cvERSMU, randomVar=T, maxER) {
   # At present, OU is only applied to Canadian ER
 
   if (randomVar == F) {
@@ -34,6 +34,10 @@ calcCanEROU_fixedER <- function(canER,  cvERSMU, randomVar=T) {
     # if any CUs have a CV of 0, set to mean canER
     canEROU[sigCanER ==0]<-canER
   }
+  if(!is.null(maxER)){
+    canEROU <- pmin(canEROU,maxER)
+  }
+
   return(canEROU)
 
 }

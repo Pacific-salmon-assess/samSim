@@ -117,6 +117,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
   # Minimum exploitation rate applied
   minER <- cuPar$minER
+  # maxER exploitation rate applied
+  maxER <- cuPar$maxER
   # Annual variation in exploitation rate
   cvERSMU <- simPar$cvERSMU
   # Variation in exploitation rates among CUs.
@@ -1438,8 +1440,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       # Specify alpha
       #In first year, switch from reference alpha used in priming to testing alpha; add trend for 3 generations by default
       if (y > (nPrime + 1)) {
-        if(prod == "linear"){
-          
+        if(prod == "linear"){  
           if(!is.na(prodEndYear)&!is.na(prodStartYear)){
             if ( y >= (nPrime + prodStartYear ) & y <= (nPrime + prodEndYear )) {
               alphaMat[y, ] <- alphaMat[y - 1, ] + trendAlpha
