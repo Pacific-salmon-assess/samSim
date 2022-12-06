@@ -4,7 +4,7 @@
 \alias{calcCanEROU_fixedER}
 \title{Title}
 \usage{
-calcCanEROU_fixedER(canER, cvERSMU, randomVar = T)
+calcCanEROU_fixedER(canER, cvERSMU, randomVar = T, maxER)
 }
 \arguments{
 \item{canER}{A numeric representing the target Canadian exploitation rate}

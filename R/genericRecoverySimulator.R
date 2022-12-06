@@ -1971,29 +1971,29 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       if (random != TRUE) {
 
         amCatch[y, ] <- calcRealCatch(recRY[y, ], amTAC[y, ], sigma = mixOUSig,
-                                      setSeedInput = n * y)#round(runif(1,1,10000),0))#n * y
+                                      setSeedInput = n * y,maxER=maxER)#round(runif(1,1,10000),0))#n * y
         remRec1 <- pmax(recRY[y, ] - amCatch[y, ], 0)
         mixCatch[y, ] <- calcRealCatch(remRec1, mixTAC[y, ], sigma = mixOUSig,
-                                       setSeedInput = n * y)#round(runif(1,1,10000),0))#n * y
+                                       setSeedInput = n * y,maxER=maxER)#round(runif(1,1,10000),0))#n * y
         remRec2 <- pmax(remRec1 - mixCatch[y, ] - extinctThresh, 0)
         #  migMortRate[y, ] <- enRouteMR * migMortErr
         # migMort1 <- remRec2 * (preFMigMort * migMortRate[y, ])
         #  remRec3 <- pmax(remRec2 - migMort1 - extinctThresh, 0)
         singCatch[y, ] <- calcRealCatch(remRec2, singTAC[y, ],
-                                        sigma = singOUSig, setSeedInput =n * y)
+                                        sigma = singOUSig, setSeedInput =n * y,maxER=maxER)
                                           #round(runif(1,1,10000),0))#n * y
       } else {
         amCatch[y, ] <- calcRealCatch(recRY[y, ], amTAC[y, ], sigma = mixOUSig,
-                                      random = TRUE)
+                                      random = TRUE,maxER=maxER)
         remRec1 <- pmax(recRY[y, ] - amCatch[y, ], 0)
         mixCatch[y, ] <- calcRealCatch(remRec1, mixTAC[y, ], sigma = mixOUSig,
-                                       random = TRUE)
+                                       random = TRUE,maxER=maxER)
         remRec2 <- pmax(remRec1 - mixCatch[y, ] - extinctThresh, 0)
         #  migMortRate[y, ] <- enRouteMR * migMortErr
         #  migMort1 <- remRec2 * (preFMigMort * migMortRate[y, ])
         #  remRec3 <- pmax(remRec2 - migMort1 - extinctThresh, 0)
         singCatch[y, ] <- calcRealCatch(remRec2, singTAC[y, ],
-                                        sigma = singOUSig, random = TRUE)
+                                        sigma = singOUSig, random = TRUE,maxER=maxER)
       }
 
       remRec3 <- pmax(remRec2 - singCatch[y, ] - extinctThresh, 0)

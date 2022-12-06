@@ -12,7 +12,8 @@ A dataframe with 45 columns used as input to define simulation scenarios and MP:
   \item{stk}{CU identification number (can be assigned arbitrarily or based on previous modeling exercises)}
   \item{model}{stock recruitment model to be used. Options are `ricker`, `rickerSurv` and `larkin`}
   \item{domCycle}{Optional. integer to identify the dominant cycle line in Larkin stocks (1, 2, 3, 4 or NA)}
-  \item{minER}{minimum Canadian Exploitation rate}
+  \item{minER}{minimum Canadian Exploitation rate- currently not implemented}
+  \item{maxER}{maximum cap on Canadian Exploitation rate}
   \item{cvER}{Variation in exploitation rates among CUs.} 
   \item{usERScalar}{Scalar used to specify if any CUs should have  US ERs scaled above or below the MU-level average specified in simPars}
   \item{canERScalar}{Scalar used to specify if any CUs should have Canadian ERs scaled above or below the MU-level average specified in simPars} 

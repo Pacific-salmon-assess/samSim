@@ -4,7 +4,14 @@
 \alias{calcRealCatch}
 \title{Calculate realized catches}
 \usage{
-calcRealCatch(rec, tac, sigma = 0.1, random = FALSE, setSeedInput = NULL)
+calcRealCatch(
+  rec,
+  tac,
+  sigma = 0.1,
+  random = FALSE,
+  setSeedInput = NULL,
+  maxER = 0.99
+)
 }
 \arguments{
 \item{rec}{A numeric vector of length nCU representing CU-specific

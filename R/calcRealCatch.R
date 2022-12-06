@@ -45,7 +45,7 @@
 #'
 #' @export
 calcRealCatch <- function(rec, tac, sigma = 0.1, random =  FALSE,
-                          setSeedInput = NULL) {
+                          setSeedInput = NULL,maxER=0.99) {
   #hack to replace 0s and let function run without looping
   tempRec <- rec
   tempRec[tempRec == 0] <- 0.00001
@@ -57,7 +57,7 @@ calcRealCatch <- function(rec, tac, sigma = 0.1, random =  FALSE,
   erMat <- matrix(NA, nrow = length(rec), ncol = 4)
 
   if (sigma > 0) {
-    mu <- pmin(0.99, tac / tempRec)
+    mu <- pmin(maxER, tac / tempRec)
     #Constraint location and shape parameters to be non-negative, otherwise NaN
     #produced
     location <- pmax(0.00001,
@@ -72,6 +72,7 @@ calcRealCatch <- function(rec, tac, sigma = 0.1, random =  FALSE,
         #overfish due to OU)
         if (mu[k] != 0) {
           realER <- rbeta(n = 1, shape1 = location[k], shape2 = shape[k])
+          realER <- min(maxER,realER)
           realCatch[k] <- realER * rec[k]
         } else {
           #if TAC is 0 then realCatch is 0
@@ -85,6 +86,7 @@ calcRealCatch <- function(rec, tac, sigma = 0.1, random =  FALSE,
       #calc target ER (capped at 99% which may occur if other fisheries
       #overfish due to OU)
       realER <- rbeta(length(mu), location, shape)
+      realER <- min(maxER,realER)
       realCatch <- realER * rec
     } #end vectorized version
   }
