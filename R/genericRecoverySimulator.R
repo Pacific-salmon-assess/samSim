@@ -1850,7 +1850,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       if(is.null(cvERSMU)) {
         tacs <- calcTAC_fixedER(rec = recRYManU[y, ],  canER=trendCanER[y,],
                                 amER = amER, ppnMixVec, cvER = cvER,
-                                randomVar=T)
+                                randomVar=T, maxER=maxER)
 
         # re-align random numbers
         if(nCU==1)runif(1)
@@ -1878,7 +1878,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         # constant over time, specified by cuERnormDevs
         tacs <- calcTAC_fixedER(rec = recRYManU[y, ],  canER=canEROU,
                                 amER = amER, ppnMixVec, cvER = cvER,
-                                randomVar=T, runif=cuERnormDevs)
+                                randomVar=T, runif=cuERnormDevs, maxER=maxER)
         #Within  if(!is.null(cvERSMU)), there is a call to 2+nCU random
         # numbers/yr, compared to 2*nCU random numbers within
         # is.null(cvERSMU). Add 2*nCU-(nCU+2) random numbers/year to

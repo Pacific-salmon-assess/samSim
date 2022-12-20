@@ -18,7 +18,7 @@
 #' calcTAC_fixedER(rec=1000, canER=0.3, amER = 0.1, ppnMix = 0.5)
 #'
 #'
-calcTAC_fixedER <- function(rec, canER, amER, ppnMixVec, cvER, randomVar=T, runif=NULL) {
+calcTAC_fixedER <- function(rec, canER, amER, ppnMixVec, cvER, randomVar=T, runif=NULL, maxER) {
 
   if (randomVar == F) {
     canTAC <- canER * rec
@@ -31,7 +31,8 @@ calcTAC_fixedER <- function(rec, canER, amER, ppnMixVec, cvER, randomVar=T, runi
   # calculate beta shape pars for can ER distribution
 
     #Avoid implausible v high exploitation and NaN in qbeta
-    canER<-ifelse(canER>=0.95,0.95, canER) 
+    #comment out because of implememtation of maxER formally
+    #canER<-ifelse(canER>=0.95,0.95, canER) 
 
     sigCanER<-cvER*canER
 
@@ -59,6 +60,10 @@ calcTAC_fixedER <- function(rec, canER, amER, ppnMixVec, cvER, randomVar=T, runi
 
     # if any CUs have a CV of 0, set to mean canER
     canER.real[sigCanER ==0]<-canER
+
+    if(!is.null(maxER)){
+      canER.real <- pmin(canER.real,maxER)
+    }
 
     # calculate TACs
     canTAC <- canER.real * rec

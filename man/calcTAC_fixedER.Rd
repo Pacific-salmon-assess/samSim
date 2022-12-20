@@ -4,7 +4,16 @@
 \alias{calcTAC_fixedER}
 \title{Title}
 \usage{
-calcTAC_fixedER(rec, canER, amER, ppnMixVec, cvER, randomVar = T, runif = NULL)
+calcTAC_fixedER(
+  rec,
+  canER,
+  amER,
+  ppnMixVec,
+  cvER,
+  randomVar = T,
+  runif = NULL,
+  maxER
+)
 }
 \arguments{
 \item{rec}{A numeric representing MU-specific return abundance}
