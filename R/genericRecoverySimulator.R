@@ -706,7 +706,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         stop("simPar$ampSinProd and simPar$sinCycleLen must be defined for prodRegime 'sine' option")
       } 
       sinetrend <- (nPrime + 1):nYears
-      trendAlpha <- 1+simPar$ampSinProd* sin(2*pi/(simPar$sinCycleLen)*sinetrend)
+      trendAlpha <- 1+simPar$ampSinProd * sin(2*pi/(simPar$sinCycleLen)*sinetrend)
     }else{
       trendAlpha <- (finalAlpha - alpha) / prodTrendLength
     }
@@ -741,7 +741,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     capStartYear<-ifelse("capStartYear" %in% names(simPar),simPar$capStartYear,NA)
     capEndYear<-ifelse("capEndYear" %in% names(simPar),simPar$capEndYear,NA)
     
-    if(!is.na(prodEndYear)&!is.na(prodStartYear)){
+    if(!is.na(capEndYear)&!is.na(capStartYear)){
       capTrendLength <- capEndYear-capStartYear + 1
     }else{
       capTrendLength <- simPar$capTrendLength #3 * gen
@@ -789,7 +789,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     
     
     regimeAlpha <- rbind(matrix(NA, nrow=nPrime, ncol=length(alpha)), regimeAlpha)
-    
+    #add prodStartYear and prodRegimeLen
 
 
     # Adjust sigma up or down
@@ -1455,7 +1455,18 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             } #end if prod == linear and inside trendPeriod
           }
         }else if (prod == "regime") {
-          alphaMat[y, ] <- regimeAlpha[y, ]
+          #alphaMat[y, ] <- regimeAlpha[y, ]
+          print("aqui")
+          if(!is.na(prodEndYear)&!is.na(prodStartYear)){
+            if ( y >= (nPrime + prodStartYear ) & y <= (nPrime + prodEndYear )) {
+              alphaMat[y, ] <- regimeAlpha[y, ]
+            }else if ( y < (nPrime + prodStartYear) | y > (nPrime + prodEndYear) ) {
+              alphaMat[y, ] <- alphaMat[y - 1, ]
+            }             
+          }else{
+            alphaMat[y, ] <- regimeAlpha[y, ]
+          }
+
         }else if (prodStable) {
           alphaMat[y, ] <- alphaMat[y - 1, ]
         }else if(prod == "sine"){
