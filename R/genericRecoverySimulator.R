@@ -1455,8 +1455,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             } #end if prod == linear and inside trendPeriod
           }
         }else if (prod == "regime") {
-          #alphaMat[y, ] <- regimeAlpha[y, ]
-          print("aqui")
+         
           if(!is.na(prodEndYear)&!is.na(prodStartYear)){
             if ( y >= (nPrime + prodStartYear ) & y <= (nPrime + prodEndYear )) {
               alphaMat[y, ] <- regimeAlpha[y, ]
@@ -1511,7 +1510,17 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           }
         }
         if (cap == "regime"){
-          capMat[y, ] <- regimeCap[y, ]
+          #capMat[y, ] <- regimeCap[y, ]
+          if(!is.na(capEndYear)&!is.na(capStartYear)){
+            if ( y >= (nPrime + capStartYear ) & y <= (nPrime + capEndYear )) {
+              capMat[y, ] <- regimeCap[y, ]
+            }else if ( y < (nPrime + capStartYear) | y > (nPrime + capEndYear) ) {
+              capMat[y, ] <- capMat[y - 1, ]
+            }             
+          }else{
+            capMat[y, ] <- regimeCap[y, ]
+          }
+
         }
         if(capStable){
           capMat[y, ] <- capMat[y - 1, ]
