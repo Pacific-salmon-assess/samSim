@@ -1119,7 +1119,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                   laggedError[y, k] <- dum[[2]]
 
                   #Keep recruitment below CU-specific cap, here specified as Seq x 5
-                  if (is.null(rCap)) CapScalar <- 3
+                  if (is.null(rCap)) CapScalar <- 5
                   if (!is.null(rCap)) CapScalar <- rCap
                   if(is.null(cuPar$Sinit)) recCap <- CapScalar * refAlpha / beta
                   if(!is.null(cuPar$Sinit)) recCap <- CapScalar * cuPar$Sinit
@@ -1173,8 +1173,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                                       error = errorCU[y, k],
                                                       sig = ricSig[k],
                                                       biasCor = biasCor) }
-                  #Keep recruitment below CU-specific cap, here specified as Seq x 3
-                  if (is.null(rCap)) CapScalar <- 3
+                  #Keep recruitment below CU-specific cap, here specified as Seq x 5
+                  if (is.null(rCap)) CapScalar <- 5
                   if (!is.null(rCap)) CapScalar <- rCap
 
                   if(is.null(cuPar$Sinit)) recCap <- CapScalar * refAlpha / beta
@@ -2252,6 +2252,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
       for (k in 1:nCU) {
         if (S[y, k] > 0) {
+          #CW add time-varying cap
+          recCap[k] < CapScalar * alphaMat[y, k] / betaMat[y,k]
           if (model[k] == "ricker") {
 
               dum <- rickerModel(S[y, k], alphaMat[y, k], betaMat[y,k],
@@ -2261,6 +2263,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
             laggedError[y, k] <- dum[[2]]
             #keep recruitment below CU-specific cap
+            
+            
             recBY[y, k] <- min(dum[[1]], recCap[k])
           }
           if (model[k] == "rickerSurv") {
