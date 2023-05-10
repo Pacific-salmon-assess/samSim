@@ -1379,8 +1379,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     # Pull residuals from observed data to make time series coherent
     errorCU[1:nPrime, ] <- residMatrix
     # Only necessary to infill values in gappy time series
-    infillRecBY <- infill(mat=matrix(recBY[1:nPrime, ], ncol=nCU))
-    infillS <- infill(matrix(S[1:nPrime, ], ncol=nCU))
+    infillRecBY <- infill(matrix(recBY[1:nPrime, ], ncol=nCU))
+    infillS <- infill(matrix(S[1:nPrime, ], ncol=nCU)) 
 
     #Default recruitment cap reflecting observed abundance (not quantiles),
     # if SR data exist (recCap defined above when there are no SR data)
@@ -2813,6 +2813,12 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     }
     
 
+
+    if(nCU==1){
+      names(spnDat.i)<-paste0("V",1:nCU)
+      names(recDat.i)<-paste0("V",1:nCU)
+    }
+    
 
     if(nrow(spnDat.i) != nrow(recDat.i) )
       print("warning, spawner and recruitment are not aligned in output csv file")
