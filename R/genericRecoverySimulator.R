@@ -2253,7 +2253,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       for (k in 1:nCU) {
         if (S[y, k] > 0) {
           #CW add time-varying cap
-          recCap[k] < CapScalar * alphaMat[y, k] / betaMat[y,k]
+          recCap[k] <- CapScalar * alphaMat[y, k] / betaMat[y,k]
           if (model[k] == "ricker") {
 
               dum <- rickerModel(S[y, k], alphaMat[y, k], betaMat[y,k],
