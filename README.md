@@ -3,7 +3,7 @@
 
 -----  
 
-**Authors: Cameron Freshwater**  
+**Authors: Cameron Freshwater, Carrie Holt, Kendra Holt, Catarina Wor**  
 **Date: 2019-02-01 (ONGOING)**
 
 -----
