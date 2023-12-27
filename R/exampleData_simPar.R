@@ -13,7 +13,8 @@
 #'   \item{simYears}{length of the simulation period (excluding priming period)}
 #'   \item{harvContRule}{harvest control rule (`TAM`(deprecated), `fixedER`, `genPA`(deprecated),`trendER`, `shiftER`} 
 #'   \item{benchmark}{biological benchmark used to assess conservation status (`stockRecruit`, `percentile`)}
-#'   \item{canER}{total Canadian exploitation rate} 
+#'   \item{canER}{initial Canadian exploitation rate} 
+#'   \item{finalCanER}(final Canadian exploitation rate})
 #'   \item{usER}{ American exploitation rate (note can also be supplied as CU-specific value in `cuPars`)}
 #'   \item{cvERSMU}{Annual variation in exploitation rate for the SMU}  
 #'   \item{propMixHigh}{proportion of Canadian catch allocated to mixed-stock fisheries (can range from 0 to 1)}  
