@@ -15,9 +15,9 @@ A dataframe with 45 columns used as input to define simulation scenarios and MP:
   \item{minER}{minimum Canadian Exploitation rate- currently not implemented}
   \item{maxER}{maximum cap on Canadian Exploitation rate}
   \item{cvER}{Variation in exploitation rates among CUs.} 
-  \item{usERScalar}{Scalar used to specify if any CUs should have  US ERs scaled above or below the MU-level average specified in simPars}
+  \item{usERScalar}{Scalar used to specify if any CUs should have US ERs scaled above or below the MU-level average specified in simPars}
   \item{canERScalar}{Scalar used to specify if any CUs should have Canadian ERs scaled above or below the MU-level average specified in simPars} 
-  \item{tauCycAge}{multivariate logistic error}
+  \item{tauCycAge}{multivariate logistic average variation in proportions of returns by age, see Schnute and Richards 1995, eqns.S.9 and S.10}
   \item{alpha}{Productivity parameter for stock recruitment relationship based on Ricker of the form R <- S * exp(a - b * S) }
   \item{beta0}{Density-dependance parameter for Ricker models based on Ricker of the form R <- S * exp(a - b * S)}
   \item{sigma}{recruitment variation for Ricker models}	
@@ -37,11 +37,11 @@ A dataframe with 45 columns used as input to define simulation scenarios and MP:
   \item{larkBeta2}{lag-2 density-dependence parameter for Larkin models}	
   \item{larkBeta3}{lag-3 density-dependence parameter for Larkin models}	
   \item{larkSigma}{recruitment variation for Larkin models}	
-  \item{meanRec2}{mean proportion of age-2 recruits}	
-  \item{meanRec3}{mean proportion of age-3 recruits}	
-  \item{meanRec4}{mean proportion of age-4 recruits}	
-  \item{meanRec5}{mean proportion of age-5 recruits}	
-  \item{meanRec6}{mean proportion of age-6 recruits}	
+  \item{meanRec2}{mean proportion of age-2 recruits in a brood year}	
+  \item{meanRec3}{mean proportion of age-3 recruits in a brood year}	
+  \item{meanRec4}{mean proportion of age-4 recruits in a brood year}	
+  \item{meanRec5}{mean proportion of age-5 recruits in a brood year}	
+  \item{meanRec6}{mean proportion of age-6 recruits in a brood year}	
   \item{medianRec}{ median historical recruitment}	
   \item{lowQRec}{25th percentile historical recruitment- used to compare simulation plots and observed historical data}	
   \item{highQRec}{75th percentile historical recruitment- used to compare simulation plots and observed historical data}	

@@ -96,6 +96,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   #is included in forward projections of stock-recruitment model
   rCap <- simPar$rCap
 
+  #MAnagement procedure
+  assessType <- ifelse(is.null(simPar$assessType),"default",simPar$assessType)
   # Should BMs be fixed at normative period?; if yes, then BMs aren't updated during sim period
   normPeriod <- ifelse(is.null(simPar$normPeriod), TRUE, simPar$normPeriod)
 
@@ -2109,11 +2111,32 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
       #Build SRR (even with normative period useful for diagnostics)
       for (k in 1:nCU) {
-        srMod <- quickLm(xVec = obsS[, k], yVec = obsLogRS[, k])
-        estYi[y, k, n] <- srMod[[1]]
-        estSlope[y, k, n] <- srMod[[2]]
-        estRicB[y, k, n] <- ifelse(extinct[y, k] == 1, NA, -estSlope[y, k, n])
-        estRicA[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estYi[y, k, n])
+
+        if(assessType=="default"){
+          srMod <- quickLm(xVec = obsS[, k], yVec = obsLogRS[, k])
+          estYi[y, k, n] <- srMod[[1]]
+          estSlope[y, k, n] <- srMod[[2]]
+          estRicB[y, k, n] <- ifelse(extinct[y, k] == 1, NA, -estSlope[y, k, n])
+          estRicA[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estYi[y, k, n])
+        }else if(assessType=="rwa"){
+
+          assessdat<-data.frame(
+                   S=obsS[, k],
+                   R=obsRecBY[, k],
+                   logRS=obsLogRS[, k])
+          
+          #priors
+          Smax_mean <- (max(assessdat$S)*.5)
+          Smax_sd <- Smax_mean
+          logbeta_pr_sig <- sqrt(log(1+((1/ Smax_sd)*(1/ Smax_sd))/((1/Smax_mean)*(1/Smax_mean))))
+          logbeta_pr <- log(1/(Smax_mean))-0.5*logbeta_pr_sig^2
+
+          tva<- ricker_rw_TMB(data=assessdat,tv.par="a",logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig)
+
+          estYi[y, k, n] <- tva$beta
+          estSlope[y, k, n] <- tail(tva$alpha)
+
+        }
       }
       #Benchmark estimates
       # -- If normative period is TRUE than do not estimate BMs (they will diverge

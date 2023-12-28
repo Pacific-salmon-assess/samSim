@@ -34,4 +34,16 @@ tau <- 0.7
 error <- runif(nAges, 0.0001, 0.9999)
 ppnAgeErr(ppnAgeVec, tau, error)
 
+prop<-c(.1,.4,.3,.2)
+truedf<-data.frame(Var2=1:4,prop=prop)
+dfage<-reshape2::melt(t(replicate(1000,ppnAgeErr(prop,.5,runif(4, 0.0001, 0.9999)))))
+
+
+ggplot(dfage)+
+geom_line(aes(x=Var2,y=value,group=Var1),alpha=.3)+
+geom_line(data=truedf,aes(x=Var2,y=prop),color="blue",linewidth=2)
+
+
+
+
 }

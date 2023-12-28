@@ -7,14 +7,18 @@
 #'   \item{scenario}{scenario name. Used in subdirectories names as well as naming CUsrDat output file} 
 #'   \item{nameOM}{operating model name. Used in naming simulation oyutput directories and many output files}
 #'   \item{nameMP}{management procedure name, used in naming output files}
-#'   \item{keyVar}{focal variable of the analysis; subjective since typically multiple variables will differ among scenarios, but should be a focal point of main figures. Currently can be one of the following arguments: `prodRegime`, `synch`, `expRate`, `ppnMix`, `sigma`, `endYear`, `adjustAge`, `mixOUSig`, `adjustForecast`, `adjustEnRoute`, `obsSig`, `obsMixCatch` (**NOTE these should eventually be defined explicitly**)}
+#'   \item{keyVar}{focal variable of the analysis; subjective since typically multiple variables will differ 
+#'    among scenarios, but should be a focal point of main figures. Currently can be one of the following arguments: `prodRegime`, 
+#'   `synch`, `expRate`, `ppnMix`, `sigma`, `endYear`, `adjustAge`, `mixOUSig`, `adjustForecast`, `adjustEnRoute`, `obsSig`, 
+#'   `obsMixCatch` (**NOTE these should eventually be defined explicitly**)}
 #'   \item{plotOrder}{order in which grouped scenarios will be plotted (useful when keyVar is not an ordinal or numeric variable)}
-#'   \item{species}{lower case species name (chum, sockeye and coho have been tested robustly; pink has not; chinook should be used with extreme caution since most stocks do not meet assumptions of the model- I am not sure this still holds)} 
+#'   \item{species}{lower case species name (chum, sockeye and coho have been tested robustly; pink has not; chinook should be 
+#'    used with extreme caution since most stocks do not meet assumptions of the model- I am not sure this still holds)} 
 #'   \item{simYears}{length of the simulation period (excluding priming period)}
 #'   \item{harvContRule}{harvest control rule (`TAM`(deprecated), `fixedER`, `genPA`(deprecated),`trendER`, `shiftER`} 
 #'   \item{benchmark}{biological benchmark used to assess conservation status (`stockRecruit`, `percentile`)}
 #'   \item{canER}{initial Canadian exploitation rate} 
-#'   \item{finalCanER}(final Canadian exploitation rate})
+#'   \item{finalCanER}{final Canadian exploitation rate}
 #'   \item{usER}{ American exploitation rate (note can also be supplied as CU-specific value in `cuPars`)}
 #'   \item{cvERSMU}{Annual variation in exploitation rate for the SMU}  
 #'   \item{propMixHigh}{proportion of Canadian catch allocated to mixed-stock fisheries (can range from 0 to 1)}  
@@ -75,6 +79,7 @@
 #'   \item{adjustAge}{scalar on `tauCatch`}       
 #'   \item{adjustForecast}{Scalar to adjust the sigma used to simulate population forecast}  
 #'   \item{agePpnConst}{Logical. If TRUE set age proportion to be constant among CUs}     
+#'   \item{assessType}{Type of assessment model, default is the simple linear model, rwa relies on samEst to estimate random walk time-varying alpha model }     
 #' }
 "simParexample"
 

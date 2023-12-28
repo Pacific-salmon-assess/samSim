@@ -2,7 +2,11 @@ Package: samSim
 Type: Package
 Title: Closed-loop salmon dynamics simulator
 Version: 0.0.0.9
-Authors@R: person("Cameron", "Freshwater", email = "cameron.freshwater@dfo-mpo.gc.ca", role = c("aut", "cre"))
+Authors@R: c(person("Cameron", "Freshwater", email = "cameron.freshwater@dfo-mpo.gc.ca", role = c("aut", "cre")),
+             person("Carrie", "Holt", email = "Carrie.Holt@dfo-mpo.gc.ca", role = "aut"),
+             person("Kendra", "Holt", email = "Kendra.Holt@dfo-mpo.gc.ca", role = "aut"),
+             person("Catarina", "Wor", email = "catarina.wor@dfo-mpo.gc.ca", role = "aut")
+            )
 Description: samSim is intended to evaluate management strategies for Pacific salmon stocks while accounting for a range of uncertainties.
 License: GPL-3
 Depends:
@@ -25,12 +29,16 @@ Imports:
     synchrony,
     tidyr,
     zoo,
-    tibble
+    tibble,
+    samEst
+Remotes: 
+    github::Pacific-salmon-assess/samEst
 RoxygenNote: 7.2.3
 Suggests:
     knitr,
     rmarkdown,
-    testthat
+    testthat,
+    reshape2
 VignetteBuilder: knitr
 LinkingTo: 
     Rcpp,
