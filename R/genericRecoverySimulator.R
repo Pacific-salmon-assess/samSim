@@ -1436,6 +1436,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
 
     for (y in (nPrime + 1):nYears) {
+      #y=nPrime + 1
       #________________________________________________________________________
       ### Population dynamics submodel
 
@@ -2120,10 +2121,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           estRicA[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estYi[y, k, n])
         }else if(assessType=="rwa"){
 
-          assessdat<-data.frame(
-                   S=obsS[, k],
-                   R=obsRecBY[, k],
-                   logRS=obsLogRS[, k])
+          assessdat <- data.frame(
+                      S=obsS[(nPrime-10):(y-1), k],
+                     R=obsRecBY[(nPrime-10):(y-1), k],
+                     logRS=obsLogRS[(nPrime-10):(y-1), k])
           
           #priors
           Smax_mean <- (max(assessdat$S)*.5)
@@ -2133,8 +2134,17 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
           tva<- ricker_rw_TMB(data=assessdat,tv.par="a",logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig)
 
-          estYi[y, k, n] <- tva$beta
-          estSlope[y, k, n] <- tail(tva$alpha)
+           names(tva)
+           if(tva$model$convergence==0){
+             estYi[y, k, n] <- tva$beta
+             estSlope[y, k, n] <- mean(tail(tva$alpha,n=ageMaxRec))
+           }else{
+             estYi[y, k, n] <- NA
+             estSlope[y, k, n] <- NA
+           }
+   
+          estRicB[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estSlope[y, k, n])
+          estRicA[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estYi[y, k, n])
 
         }
       }
