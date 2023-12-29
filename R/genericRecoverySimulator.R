@@ -95,6 +95,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   biasCor <- simPar$biasCor # logical describing if log-normal bias correction
   #is included in forward projections of stock-recruitment model
   rCap <- simPar$rCap
+  assessFreq <- simPar$assessFreq
+  ERfeedbackAdj <- simPar$ERfeedbackAdj
 
   #MAnagement procedure
   assessType <- ifelse(is.null(simPar$assessType),"default",simPar$assessType)
@@ -403,6 +405,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   estSlope <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   estSMSY <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   estSGen <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  estUMSY <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   # lowerAgBM <- matrix(0, nrow = nYears, ncol = nTrials)
   # upperAgBM <- matrix(0, nrow = nYears, ncol = nTrials)
   # lowerAgObsBM <- matrix(0, nrow = nYears, ncol = nTrials)
@@ -449,6 +452,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   singCatchArray <- array(NA, dim = c(nYears, nCU, nTrials))
   singTACArray <- array(NA, dim = c(nYears, nCU, nTrials))
   totalCatchArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  totalCACatchArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  totalUSCatchArray <- array(NA, dim = c(nYears, nCU, nTrials))
   expRateArray <- array(NA, dim = c(nYears, nCU, nTrials))
   obsExpRateArray <- array(NA, dim = c(nYears, nCU, nTrials))
   trendCanER<-matrix(nrow=nYears,ncol = nCU)
@@ -501,6 +506,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   medEarlyRecRY <- matrix(NA, nrow = nTrials, ncol = nCU)
   medEarlyTotalCatch <- matrix(NA, nrow = nTrials, ncol = nCU)
   counterLowerBMArray <- array(NA, dim=c(nYears, nCU, nTrials), dimnames=NULL)
+  counterUpperBMArray <- array(NA, dim=c(nYears, nCU, nTrials), dimnames=NULL)
+  counterLowerObsBMArray <- array(NA, dim=c(nYears, nCU, nTrials), dimnames=NULL)
+  counterUpperObsBMArray <- array(NA, dim=c(nYears, nCU, nTrials), dimnames=NULL)
 
 
   # Randomly selects trial to draw and plot
@@ -1365,6 +1373,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       obsSAg[y, n] <- sAg[y, n]
       estSMSY[y, , n] <- sMSY[y, , n]
       estSGen[y, , n] <- sGen[y, , n]
+      estUMSY[y, , n] <- uMSY[y, , n]
       upperObsBM[y, ] <- upperBM[y, ] #obs = true during priming
       lowerObsBM[y, ] <- lowerBM[y, ]
 
@@ -1434,7 +1443,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     # -	Loops over years: (nPrime + 1):nYears
     #___________________________________________________________________
 
-
+    updatebmyr<-1
     for (y in (nPrime + 1):nYears) {
       #y=nPrime + 1
       #________________________________________________________________________
@@ -1566,7 +1575,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               theta = c(alphaMat[y,k], alphaMat[y,k] / sEqVar[y, k, n], ricSig[k]),
               sMSY = sMSY[y, k, n]
             ))
-            uMSY[y, k, n] <- 0.5 *refAlpha[k] - 0.07*refAlpha[k]^2
+            uMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 -  alphaMat[y,k])))
           }
         } #end if model == ricker
         if (model[k] == "rickerSurv") {
@@ -1881,7 +1890,14 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       }
       if(!is.null(cvERSMU)) {
         #Calculate annual deviation of overall ER from canER (takes 2 rand#s)
+        
+        #adjust Canadian Er if below upper benchmark in last observedS
+        if(counterSingleBMHigh[y, k]==0&!is.null(ERfeedbackAdj)){
+          trendCanER[y,] <- trendCanER[y,]*ERfeedbackAdj
+        }
+        
         canEROU <- calcCanEROU_fixedER(canER=trendCanER[y,], cvERSMU=cvERSMU, maxER=maxER)
+
         #In the first year, identify CU-specific ERs with variability
         # This uses nCU random numbers
         if (y==(nPrime+1)) cuERnormDevs <- runif(nCU, 0.01,0.99)
@@ -1944,8 +1960,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               #Needs to be in for loop because calc depends on whether stock is
               #cyclic or not; should eventually be replaced w/ estimated BMs
 
-              singCUStatus[y, k] <- median(obsS[(y - 1):(y - gen), k])
-
+              #singCUStatus[y, k] <- median(obsS[(y - 1):(y - gen), k])
+              singCUStatus[y, k] <- (obsS[(y - 1), k])
 
               if (singCUStatus[y, k] >= lowerObsBM[y - 1, k]) {
                 counterSingleBMLow[y, k] <- 1
@@ -2134,14 +2150,13 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
           tva<- ricker_rw_TMB(data=assessdat,tv.par="a",logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig)
 
-           names(tva)
-           if(tva$model$convergence==0){
-             estYi[y, k, n] <- tva$beta
-             estSlope[y, k, n] <- mean(tail(tva$alpha,n=ageMaxRec))
-           }else{
-             estYi[y, k, n] <- NA
-             estSlope[y, k, n] <- NA
-           }
+          if(tva$model$convergence==0){
+            estYi[y, k, n] <- tva$beta
+            estSlope[y, k, n] <- mean(tail(tva$alpha,n=ageMaxRec))
+          }else{
+            estYi[y, k, n] <- NA
+            estSlope[y, k, n] <- NA
+          }
    
           estRicB[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estSlope[y, k, n])
           estRicA[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estYi[y, k, n])
@@ -2158,6 +2173,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         estS50th[y, , n] <- s50th[nPrime, , n]
         estSGen[y, , n] <- sGen[y, , n]
         estSMSY[y, , n] <- sMSY[y, , n]
+        estUMSY[y, , n] <- uMSY[y, , n]
       } else if (normPeriod == FALSE) {
 
         if (model[k] == "larkin" | model[k]=="rickerSurv") {
@@ -2184,6 +2200,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                      (1 - gsl::lambert_W0(exp(
                                        1 - estRicA[y, k, n]))) /
                                        estRicB[y, k, n])
+          estUMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
+                                     1 - gsl::lambert_W0(exp(
+                                       1 - estRicA[y, k, n])))
           if (is.na(estRicB[y, k, n]) == FALSE) {
             if (estRicB[y, k, n] > 0) {
               if ((1 / estRicB[y, k, n]) <= max(obsS[,k], na.rm = TRUE) * 4) {
@@ -2196,12 +2215,15 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                   estSGen[, k, n]))), k, n]
                 estSMSY[y, k, n] <- estSMSY[max(which(!is.na(
                   estSMSY[, k, n]))), k, n]
+                estUMSY[y, k, n] <- estUMSY[max(which(!is.na(
+                  estUMSY[, k, n]))), k, n]
                 fb1[y, k] <- 1
               }
             }# End of if(estRicB[y, n]>0)
           } else{
             estSGen[y, k, n] <- estSGen[max(which(!is.na(estSGen[, k, n]))), k, n]
             estSMSY[y, k, n] <- estSMSY[max(which(!is.na(estSMSY[, k, n]))), k, n]
+            estUMSY[y, k, n] <- estUMSY[max(which(!is.na(estUMSY[, k, n]))), k, n]
             fb2[y, k] <- 1
           } #end(if(is.na(estRicB)))
         } #end for(k in 1:nCU)
@@ -2211,6 +2233,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                     set to NA")
             estSGen[y, k, n] <- estSGen[max(which(!is.na(estSGen[, k, n]))), k, n]
             estSMSY[y, k, n] <- estSMSY[max(which(!is.na(estSMSY[, k, n]))), k, n]
+            estUMSY[y, k, n] <- estUMSY[max(which(!is.na(estUMSY[, k, n]))), k, n]
             fb3[y, k] <- 1
           }
         }
@@ -2349,8 +2372,16 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             #is spawner abundance greater than upper/lower BM
             upperBM[y, k] <- 0.8 * sMSY[y, k, n]
             lowerBM[y, k] <- sGen[y, k, n]
-            upperObsBM[y, k] <- 0.8 * estSMSY[y, k, n]
-            lowerObsBM[y, k] <- estSGen[y, k, n]
+            if(updatebmyr== assessFreq){
+              upperObsBM[y, k] <- 0.8 * estSMSY[y, k, n]
+              lowerObsBM[y, k] <- estSGen[y, k, n]
+              updatebmyr<-1
+            }else{
+              upperObsBM[y, k] <- upperObsBM[y-1, k]
+              lowerObsBM[y, k] <- lowerObsBM[y-1, k]
+              updatebmyr<-updatebmyr+1
+            }
+            
           }
           if (bm == "percentile") {
             upperBM[y, k] <- s50th[y, k, n]
@@ -2552,7 +2583,12 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     singCatchArray[ , , n] <- singCatch
     singTACArray[ , , n] <- singTAC
     totalCatchArray[ , , n] <- totalCatch
+    totalCACatchArray[ , , n] <- mixCatch[y, ] + singCatch[y, ]
+    totalUSCatchArray[ , , n] <- amCatch[y, ]
     counterLowerBMArray[ , , n] <- counterLowerBM
+    counterUpperBMArray[ , , n] <- counterUpperBM
+    counterLowerObsBMArray[ , , n] <- counterLowerObsBM
+    counterUpperObsBMArray[ , , n] <- counterUpperObsBM
     
     #need to better define this target ER without implementation and observation error 
     #does not vary by 
@@ -2722,13 +2758,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                   sep = "/"), version=3)
 
 
-  # Save CU-specific performance above lower benchmarks
-   fileName <- ifelse(variableCU == "TRUE",
-                      paste(cuNameOM, cuNameMP, "CUaboveLB.RData",
-                            sep = "_"),
-                      paste(nameOM, nameMP, "CUaboveLB.RData", sep = "_"))
-   saveRDS(counterLowerBMArray , file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName,
-                                  sep = "/"), version=3)
+  
   # Store aggregate data as data frame; each variable is a vector of single, trial-specific values
   yrsSeq <- (nPrime + 1):nYears
   aggDat <- data.frame(opMod = rep(nameOM, length.out = nTrials),
@@ -2916,18 +2946,122 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     }
   }
 
-  #fileName <- ifelse(variableCU == "TRUE", paste(cuNameOM, cuNameMP, "CUspwnDat.csv", sep = "_"),
-  #                   paste(nameOM, nameMP, "CU_SRDat.csv", sep = "_"))
-  #
-  # write.csv(srDatout, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName, sep = "/"),
-  #           row.names = FALSE)
-
    srDatoutList <- list(srDatout, nameOM, simYears, nTrials, ricSig, rho, canER, obsSig,
                          obsMixCatchSig, prod, prodScalars, prodTrendLength, cap, capacityScalars, capTrendLength)
     names(srDatoutList) <- c("srDatout", "nameOM", "simYears", "nTrials", "ricSig", "rho",
                              "canER", "obsSig", "obsMixCatchSig", "prod", "prodScalars",
                              "prodTrendLength", "cap", "capacityScalars", "capTrendLength")
     fileName <- paste(simPar$nameOM, "_",simPar$nameMP,"_", "CUsrDat.RData", sep = "")
+
+    saveRDS(srDatoutList, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName,
+                                       sep = "/"), version=3)
+
+
+  # Create CU catch and status summary table
+
+  for(i in 1:nTrials) {
+
+
+    counterLowerBM.i<-as.data.frame(counterLowerBMArray[,,i])  
+    counterUpperBM.i<-as.data.frame(counterUpperBMArray[,,i])  
+    counterLowerObsBM.i<-as.data.frame(counterLowerObsBMArray[,,i])  
+    counterUpperObsBM.i<-as.data.frame(counterUpperObsBMArray[,,i])  
+    totalCatch.i<-as.data.frame(totalCatchArray[,,i])  
+    totalCACatch.i<-as.data.frame(totalCACatchArray[,,i]) 
+    totalUSCatch.i<-as.data.frame(totalUSCatchArray[,,i]) 
+
+    sMSYEst.i  <- as.data.frame(estSMSY[,,i])
+    sGenEst.i  <- as.data.frame(estSGen[,,i])
+    uMSyEst.i  <- as.data.frame(estUMSY[,,i])
+
+
+    if(nCU==1){
+      names(counterLowerBM.i)<-paste0("V",1:nCU)
+      names(counterUpperBM.i)<-paste0("V",1:nCU)
+      names(counterLowerObsBM.i)<-paste0("V",1:nCU)
+      names(counterUpperObsBM.i)<-paste0("V",1:nCU)
+      names(totalCatch.i)<-paste0("V",1:nCU)
+      names(totalCACatch.i)<-paste0("V",1:nCU)
+      names(totalUSCatch.i)<-paste0("V",1:nCU)
+      names(sMSYEst.i)<-paste0("V",1:nCU)
+      names(sGenEst.i)<-paste0("V",1:nCU)
+      names(uMSyEst.i)<-paste0("V",1:nCU)
+    }
+    
+    
+    counterLowerBM.i<-counterLowerBM.i %>% tibble::add_column(year=1:nrow(counterLowerBMArray)) %>%
+      tibble::add_column(iteration=rep(i,nrow(counterLowerBMArray)))
+    counterUpperBM.i<-counterUpperBM.i %>% tibble::add_column(year=1:nrow(counterUpperBMArray)) %>%
+      tibble::add_column(iteration=rep(i,nrow(counterUpperBMArray)))
+    counterLowerObsBM.i<-counterLowerObsBM.i %>% tibble::add_column(year=1:nrow(counterLowerObsBMArray)) %>%
+      tibble::add_column(iteration=rep(i,nrow(counterLowerObsBMArray)))
+    counterUpperObsBM.i<-counterUpperObsBM.i %>% tibble::add_column(year=1:nrow(counterUpperObsBMArray)) %>%
+      tibble::add_column(iteration=rep(i,nrow(counterUpperObsBMArray)))
+    totalCatch.i<-totalCatch.i %>% tibble::add_column(year=1:nrow(totalCatchArray)) %>%
+      tibble::add_column(iteration=rep(i,nrow(totalCatchArray)))
+    totalCACatch.i<-totalCACatch.i %>% tibble::add_column(year=1:nrow(totalCACatchArray)) %>%
+      tibble::add_column(iteration=rep(i,nrow(totalCACatchArray)))
+    totalUSCatch.i<-totalUSCatch.i %>% tibble::add_column(year=1:nrow(totalUSCatchArray)) %>%
+      tibble::add_column(iteration=rep(i,nrow(totalUSCatchArray)))
+
+    sMSYEst.i<-sMSYEst.i %>% tibble::add_column(year=1:nrow(estSMSY)) %>%
+      tibble::add_column(iteration=rep(i,nrow(estSMSY)))
+    sGenEst.i<-sGenEst.i %>% tibble::add_column(year=1:nrow(estSGen)) %>%
+      tibble::add_column(iteration=rep(i,nrow(estSGen)))
+    uMSyEst.i<-uMSyEst.i %>% tibble::add_column(year=1:nrow(estUMSY)) %>%
+      tibble::add_column(iteration=rep(i,nrow(estUMSY)))
+
+ 
+
+    counterLowerBM_long.i <- counterLowerBM.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="aboveLowerBM")
+    counterUpperBM_long.i <- counterUpperBM.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="aboveUpperBM")
+
+    counterLowerObsBM_long.i <- counterLowerObsBM.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="aboveLowerObsBM")
+    counterUpperObsBM_long.i <- counterUpperObsBM.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="aboveUpperObsBM")
+
+     
+    totalCatch_long.i <- totalCatch.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="totalCatch")
+    totalCACatch_long.i <- totalCACatch.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="totalCACatch")
+    totalUSCatch_long.i <- counterUpperObsBM.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="totalUSCatch")
+   
+
+    sMSYEst_long.i <- sMSYEst.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="sMSYEst")
+    sGenEst_long.i <- sGenEst.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="sGenEst")
+    uMSyEst_long.i <- uMSyEst.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="uMSyEst")
+   
+
+    
+
+     HCRDat_long.i <- counterLowerBM_long.i %>% tibble::add_column(aboveUpperBM=counterUpperBM_long.i$aboveUpperBM) %>%
+        tibble::add_column(aboveLowerObsBM=counterLowerObsBM_long.i$aboveLowerObsBM) %>%
+        tibble::add_column(aboveUpperObsBM=counterUpperObsBM_long.i$aboveUpperObsBM) %>%
+        tibble::add_column(totalCatch=totalCatch_long.i$totalCatch) %>%
+        tibble::add_column(totalCACatch=totalCACatch_long.i$totalCACatch) %>%
+        tibble::add_column(totalUSCatch=totalUSCatch_long.i$totalUSCatch) %>%
+        tibble::add_column(sMSYEst=sMSYEst_long.i$sMSYEst) %>%
+        tibble::add_column(sGenEst=sGenEst_long.i$sGenEst)%>%
+        tibble::add_column(uMSyEst=uMSyEst_long.i$uMSyEst)
+
+    if (i == 1) hcrDatout<-HCRDat_long.i
+    if (i > 1) {
+      hcrDatout <- dplyr::bind_rows(hcrDatout,HCRDat_long.i)
+    }
+  }
+
+
+   hcrDatoutList <- list(hcrDatout, nameOM, simYears, nTrials)
+    names(hcrDatoutList) <- c("srDatout", "nameOM", "simYears", "nTrials")
+    fileName <- paste(simPar$nameOM, "_",simPar$nameMP,"_", "CU_HCR_PM.RData", sep = "")
 
     saveRDS(srDatoutList, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName,
                                        sep = "/"), version=3)

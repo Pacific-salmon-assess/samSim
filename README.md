@@ -1,12 +1,7 @@
 # samSim
-## Closed-loop simulation package for salmon CUs
+## Closed-loop simulation package for salmon CUs - Southern BC chinook populations
 
------  
 
-**Authors: Cameron Freshwater**  
-**Date: 2019-02-01 (ONGOING)**
-
------
 
 ### Summary
 This repository contains the necessary files to run stochastic closed-loop simulations parameterized with Pacific salmon stock-recruitment data. The principal function, `recoverySim()`, is intended to test the performance of different management procedures (broadly a mix of harvest control rules and assessment methods) across operating models representing distinct ecological hypotheses. A suite of performance metrics are generated that allow analysts to evaluate different management procedures ability to achieve multiple, interacting conservation- and catch-based objectives. In short, the model is intended to provide a framework for the quantitative component of a management strategy evaluation.
