@@ -18,6 +18,7 @@
 #' structure, survey design, and variable exploitation rules.
 #' @importFrom here here
 #' @importFrom dplyr group_by summarise
+#' @importFrom samEst ricker_rw_TMB
 #' @param simPar is a .csv file that contains the input parameters that 
 #' characterize a specific simulation run, but which are *shared* among CUs. 
 #' A detailed descrption of the contents of the `simPar` file can be found by accessing ?simParexample
@@ -967,6 +968,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     fb5 <- matrix(0, nrow = nYears, ncol = nCU) # fall back matrix for when true lower BM > higher
     fb6 <- matrix(0, nrow = nYears, ncol = nCU) #fall back for when both BMs are NA
 
+   trendCanER.iter<-matrix(nrow=nYears,ncol = nCU)
+
+
     
     #__________________________________________________________________________________________
     ### LOOP 1: Priming loop
@@ -1448,7 +1452,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #y=nPrime + 1
       #________________________________________________________________________
       ### Population dynamics submodel
-
       # Specify alpha
       #In first year, switch from reference alpha used in priming to testing alpha; add trend for 3 generations by default
       if (y > (nPrime + 1)) {
@@ -1560,7 +1563,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         }
       }
       sigmaMat[y, ] <- sig
-
       #Estimate BMs if normative period not being used, otherwise assume they are equal to last year of observation
       for (k in 1:nCU) {
         if (model[k] == "ricker") {
@@ -1880,7 +1882,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
  
       if(is.null(cvERSMU)) {
-        tacs <- calcTAC_fixedER(rec = recRYManU[y, ],  canER=trendCanER[y,],
+        trendCanER.iter[y,] <- trendCanER[y,]
+        tacs <- calcTAC_fixedER(rec = recRYManU[y, ],  canER=trendCanER.iter[y,],
                                 amER = amER, ppnMixVec, cvER = cvER,
                                 randomVar=T, maxER=maxER)
 
@@ -1892,11 +1895,13 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         #Calculate annual deviation of overall ER from canER (takes 2 rand#s)
         
         #adjust Canadian Er if below upper benchmark in last observedS
-        if(counterSingleBMHigh[y, k]==0&!is.null(ERfeedbackAdj)){
-          trendCanER[y,] <- trendCanER[y,]*ERfeedbackAdj
+        if(counterSingleBMHigh[y-1, k]==0&!is.null(ERfeedbackAdj)){
+          trendCanER.iter[y,] <- trendCanER[y,]*ERfeedbackAdj
+        }else{
+          trendCanER.iter[y,] <- trendCanER[y,]
         }
         
-        canEROU <- calcCanEROU_fixedER(canER=trendCanER[y,], cvERSMU=cvERSMU, maxER=maxER)
+        canEROU <- calcCanEROU_fixedER(canER=trendCanER.iter[y,], cvERSMU=cvERSMU, maxER=maxER)
 
         #In the first year, identify CU-specific ERs with variability
         # This uses nCU random numbers
@@ -2066,7 +2071,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       targetCanER[y, ] <- apply(rbind(mixTAC[y, ], singTAC[y, ]), 2, sum) /
         recRY[y, ]
       targetExpRateAg[y, n] <- ifelse(harvContRule %in% c("fixedER","trendER","shiftER" ),
-                                      trendCanER[y,]  + amER,
+                                      trendCanER.iter[y,]  + amER,
                                       sum(totalTAC[y, ]) / recRYAg[y, n])
 
 
@@ -2129,6 +2134,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #Build SRR (even with normative period useful for diagnostics)
       for (k in 1:nCU) {
 
+
         if(assessType=="default"){
           srMod <- quickLm(xVec = obsS[, k], yVec = obsLogRS[, k])
           estYi[y, k, n] <- srMod[[1]]
@@ -2138,9 +2144,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         }else if(assessType=="rwa"){
 
           assessdat <- data.frame(
-                      S=obsS[(nPrime-10):(y-1), k],
-                     R=obsRecBY[(nPrime-10):(y-1), k],
-                     logRS=obsLogRS[(nPrime-10):(y-1), k])
+                      S=obsS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
+                     R=obsRecBY[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
+                     logRS=obsLogRS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k])
           
           #priors
           Smax_mean <- (max(assessdat$S)*.5)
@@ -2148,7 +2154,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           logbeta_pr_sig <- sqrt(log(1+((1/ Smax_sd)*(1/ Smax_sd))/((1/Smax_mean)*(1/Smax_mean))))
           logbeta_pr <- log(1/(Smax_mean))-0.5*logbeta_pr_sig^2
 
-          tva<- ricker_rw_TMB(data=assessdat,tv.par="a",logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig)
+          tva<- samEst::ricker_rw_TMB(data=assessdat,tv.par="a",logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig)
 
           if(tva$model$convergence==0){
             estYi[y, k, n] <- tva$beta
@@ -2592,7 +2598,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     
     #need to better define this target ER without implementation and observation error 
     #does not vary by 
-    HCRERArray[ , , n] <- t(t(trendCanER) + amER)
+    HCRERArray[ , , n] <- t(t(trendCanER.iter) + amER)
     #realized esploitation rate 
     expRateArray[ , , n] <- expRate
     obsExpRateArray[ , , n] <- obsExpRate
@@ -3060,10 +3066,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
 
    hcrDatoutList <- list(hcrDatout, nameOM, simYears, nTrials)
-    names(hcrDatoutList) <- c("srDatout", "nameOM", "simYears", "nTrials")
+    names(hcrDatoutList) <- c("hcrDatout", "nameOM", "simYears", "nTrials")
     fileName <- paste(simPar$nameOM, "_",simPar$nameMP,"_", "CU_HCR_PM.RData", sep = "")
 
-    saveRDS(srDatoutList, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName,
+    saveRDS(hcrDatoutList, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName,
                                        sep = "/"), version=3)
 
   } # end of genericRecoverySim()
