@@ -510,7 +510,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   counterUpperBMArray <- array(NA, dim=c(nYears, nCU, nTrials), dimnames=NULL)
   counterLowerObsBMArray <- array(NA, dim=c(nYears, nCU, nTrials), dimnames=NULL)
   counterUpperObsBMArray <- array(NA, dim=c(nYears, nCU, nTrials), dimnames=NULL)
-
+  lowerBMArray <- array(NA, dim=c(nYears, nCU, nTrials), dimnames=NULL)
+  upperBMArray <- array(NA, dim=c(nYears, nCU, nTrials), dimnames=NULL)
+  lowerObsBMArray <- array(NA, dim=c(nYears, nCU, nTrials), dimnames=NULL)
+  upperObsBMArray <- array(NA, dim=c(nYears, nCU, nTrials), dimnames=NULL)
 
   # Randomly selects trial to draw and plot
   drawTrial <- round(runif(1, min = 0.5, max = nTrials))
@@ -1879,12 +1882,18 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #                 minER = minER, maxER = maxER,
       #                 overlapConstraint = overlapConstraint[y, ],
       #                 constrainMix = constrainMix)
-
- 
-      if(is.null(cvERSMU)) {
+      
+      #adjust Canadian Er if below upper benchmark in last observedS
+      if(counterSingleBMHigh[y-1, k]==0&!is.null(ERfeedbackAdj)){
+        trendCanER.iter[y,] <- trendCanER[y,]*ERfeedbackAdj
+      }else{
         trendCanER.iter[y,] <- trendCanER[y,]
+      }
+
+      if(is.null(cvERSMU)) {
+         
         tacs <- calcTAC_fixedER(rec = recRYManU[y, ],  canER=trendCanER.iter[y,],
-                                amER = amER, ppnMixVec, cvER = cvER,
+                                amER = amER, ppnMixVec, cvER = .3,#cvER,
                                 randomVar=T, maxER=maxER)
 
         # re-align random numbers
@@ -1894,14 +1903,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       if(!is.null(cvERSMU)) {
         #Calculate annual deviation of overall ER from canER (takes 2 rand#s)
         
-        #adjust Canadian Er if below upper benchmark in last observedS
-        if(counterSingleBMHigh[y-1, k]==0&!is.null(ERfeedbackAdj)){
-          trendCanER.iter[y,] <- trendCanER[y,]*ERfeedbackAdj
-        }else{
-          trendCanER.iter[y,] <- trendCanER[y,]
-        }
         
         canEROU <- calcCanEROU_fixedER(canER=trendCanER.iter[y,], cvERSMU=cvERSMU, maxER=maxER)
+
 
         #In the first year, identify CU-specific ERs with variability
         # This uses nCU random numbers
@@ -2157,8 +2161,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           tva<- samEst::ricker_rw_TMB(data=assessdat,tv.par="a",logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig)
 
           if(tva$model$convergence==0){
-            estYi[y, k, n] <- tva$beta
-            estSlope[y, k, n] <- mean(tail(tva$alpha,n=ageMaxRec))
+            estYi[y, k, n] <- mean(tail(tva$alpha,n=ageMaxRec))
+            estSlope[y, k, n] <- tva$beta
           }else{
             estYi[y, k, n] <- NA
             estSlope[y, k, n] <- NA
@@ -2589,12 +2593,17 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     singCatchArray[ , , n] <- singCatch
     singTACArray[ , , n] <- singTAC
     totalCatchArray[ , , n] <- totalCatch
-    totalCACatchArray[ , , n] <- mixCatch[y, ] + singCatch[y, ]
-    totalUSCatchArray[ , , n] <- amCatch[y, ]
+    totalCACatchArray[ , , n] <- mixCatch + singCatch
+    totalUSCatchArray[ , , n] <- amCatch
     counterLowerBMArray[ , , n] <- counterLowerBM
     counterUpperBMArray[ , , n] <- counterUpperBM
     counterLowerObsBMArray[ , , n] <- counterLowerObsBM
     counterUpperObsBMArray[ , , n] <- counterUpperObsBM
+
+    upperBMArray[ , , n] <- upperBM
+    lowerBMArray[ , , n] <- lowerBM
+    upperObsBMArray[ , , n] <- upperObsBM
+    lowerObsBMArray[ , , n] <- lowerObsBM
     
     #need to better define this target ER without implementation and observation error 
     #does not vary by 
@@ -2980,6 +2989,12 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     sGenEst.i  <- as.data.frame(estSGen[,,i])
     uMSyEst.i  <- as.data.frame(estUMSY[,,i])
 
+    lowerBM.i<-as.data.frame(lowerBMArray[,,i])  
+    upperBM.i<-as.data.frame(upperBMArray[,,i])  
+    lowerObsBM.i<-as.data.frame(lowerObsBMArray[,,i])  
+    upperObsBM.i<-as.data.frame(upperObsBMArray[,,i])  
+
+
 
     if(nCU==1){
       names(counterLowerBM.i)<-paste0("V",1:nCU)
@@ -2992,6 +3007,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       names(sMSYEst.i)<-paste0("V",1:nCU)
       names(sGenEst.i)<-paste0("V",1:nCU)
       names(uMSyEst.i)<-paste0("V",1:nCU)
+      names(lowerBM.i)<-paste0("V",1:nCU)
+      names(upperBM.i)<-paste0("V",1:nCU)
+      names(lowerObsBM.i)<-paste0("V",1:nCU)
+      names(upperObsBM.i)<-paste0("V",1:nCU)
     }
     
     
@@ -3016,14 +3035,21 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       tibble::add_column(iteration=rep(i,nrow(estSGen)))
     uMSyEst.i<-uMSyEst.i %>% tibble::add_column(year=1:nrow(estUMSY)) %>%
       tibble::add_column(iteration=rep(i,nrow(estUMSY)))
-
- 
+    
+    lowerBM.i<-lowerBM.i %>% tibble::add_column(year=1:nrow(lowerBMArray)) %>%
+      tibble::add_column(iteration=rep(i,nrow(lowerBMArray)))
+    upperBM.i<-upperBM.i %>% tibble::add_column(year=1:nrow(upperBMArray)) %>%
+      tibble::add_column(iteration=rep(i,nrow(upperBMArray)))
+    lowerObsBM.i<-lowerObsBM.i %>% tibble::add_column(year=1:nrow(lowerObsBMArray)) %>%
+      tibble::add_column(iteration=rep(i,nrow(lowerObsBMArray)))
+    upperObsBM.i<-upperObsBM.i %>% tibble::add_column(year=1:nrow(upperObsBMArray)) %>%
+      tibble::add_column(iteration=rep(i,nrow(upperObsBMArray)))
+     
 
     counterLowerBM_long.i <- counterLowerBM.i %>%
       tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="aboveLowerBM")
     counterUpperBM_long.i <- counterUpperBM.i %>%
       tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="aboveUpperBM")
-
     counterLowerObsBM_long.i <- counterLowerObsBM.i %>%
       tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="aboveLowerObsBM")
     counterUpperObsBM_long.i <- counterUpperObsBM.i %>%
@@ -3034,7 +3060,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="totalCatch")
     totalCACatch_long.i <- totalCACatch.i %>%
       tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="totalCACatch")
-    totalUSCatch_long.i <- counterUpperObsBM.i %>%
+    totalUSCatch_long.i <- totalUSCatch.i %>%
       tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="totalUSCatch")
    
 
@@ -3045,7 +3071,16 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     uMSyEst_long.i <- uMSyEst.i %>%
       tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="uMSyEst")
    
+    lowerBM_long.i <- lowerBM.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="lowerBM")
+    upperBM_long.i <- upperBM.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="upperBM")
+    lowerObsBM_long.i <- lowerObsBM.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="lowerObsBM")
+    upperObsBM_long.i <- upperObsBM.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="upperObsBM")
 
+     
     
 
      HCRDat_long.i <- counterLowerBM_long.i %>% tibble::add_column(aboveUpperBM=counterUpperBM_long.i$aboveUpperBM) %>%
@@ -3056,7 +3091,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         tibble::add_column(totalUSCatch=totalUSCatch_long.i$totalUSCatch) %>%
         tibble::add_column(sMSYEst=sMSYEst_long.i$sMSYEst) %>%
         tibble::add_column(sGenEst=sGenEst_long.i$sGenEst)%>%
-        tibble::add_column(uMSyEst=uMSyEst_long.i$uMSyEst)
+        tibble::add_column(uMSyEst=uMSyEst_long.i$uMSyEst)%>%
+        tibble::add_column(lowerBM=lowerBM_long.i$lowerBM) %>%
+        tibble::add_column(upperBM=upperBM_long.i$upperBM) %>%
+        tibble::add_column(lowerObsBM=lowerObsBM_long.i$lowerObsBM) %>%
+        tibble::add_column(upperObsBM=upperObsBM_long.i$upperObsBM) 
 
     if (i == 1) hcrDatout<-HCRDat_long.i
     if (i > 1) {
