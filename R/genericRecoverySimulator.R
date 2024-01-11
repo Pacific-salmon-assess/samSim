@@ -1883,17 +1883,19 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #                 overlapConstraint = overlapConstraint[y, ],
       #                 constrainMix = constrainMix)
       
-      #adjust Canadian Er if below upper benchmark in last observedS
-      if(counterSingleBMHigh[y-1, k]==0&!is.null(ERfeedbackAdj)){
-        trendCanER.iter[y,] <- trendCanER[y,]*ERfeedbackAdj
-      }else{
-        trendCanER.iter[y,] <- trendCanER[y,]
+      #adjust Canadian ER downward if obsspawners below upper benchmark, but allow a minimum of 0.05 ER 
+      for (k in 1:nCU) {
+        if(counterSingleBMHigh[y-1, k]==0&!is.null(ERfeedbackAdj)){
+          trendCanER.iter[y,k] <- max(min(trendCanER[y,k],trendCanER[y-1,k]*ERfeedbackAdj),0.05)
+        }else{
+          trendCanER.iter[y,k] <- trendCanER[y,k]
+        }
       }
 
       if(is.null(cvERSMU)) {
          
         tacs <- calcTAC_fixedER(rec = recRYManU[y, ],  canER=trendCanER.iter[y,],
-                                amER = amER, ppnMixVec, cvER = .3,#cvER,
+                                amER = amER, ppnMixVec, cvER = cvER,
                                 randomVar=T, maxER=maxER)
 
         # re-align random numbers
@@ -2138,13 +2140,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #Build SRR (even with normative period useful for diagnostics)
       for (k in 1:nCU) {
 
-
         if(assessType=="default"){
           srMod <- quickLm(xVec = obsS[, k], yVec = obsLogRS[, k])
           estYi[y, k, n] <- srMod[[1]]
-          estSlope[y, k, n] <- srMod[[2]]
-          estRicB[y, k, n] <- ifelse(extinct[y, k] == 1, NA, -estSlope[y, k, n])
-          estRicA[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estYi[y, k, n])
+          estSlope[y, k, n] <- -srMod[[2]]
+          
         }else if(assessType=="rwa"){
 
           assessdat <- data.frame(
@@ -2168,10 +2168,33 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             estSlope[y, k, n] <- NA
           }
    
-          estRicB[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estSlope[y, k, n])
-          estRicA[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estYi[y, k, n])
+        }else if(assessType=="autocorr"){
+
+          assessdat <- data.frame(
+                     S=obsS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
+                     R=obsRecBY[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
+                     logRS=obsLogRS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k])
+          
+          #priors
+          Smax_mean <- (max(assessdat$S)*.5)
+          Smax_sd <- Smax_mean
+          logbeta_pr_sig <- sqrt(log(1+((1/ Smax_sd)*(1/ Smax_sd))/((1/Smax_mean)*(1/Smax_mean))))
+          logbeta_pr <- log(1/(Smax_mean))-0.5*logbeta_pr_sig^2
+
+          est_ar<- samEst::ricker_TMB(data=cowdat, AC=TRUE,logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig)
+        
+
+          if(est_ar$model$convergence==0){
+            estYi[y, k, n] <- est_ar$alpha
+            estSlope[y, k, n] <- est_ar$beta
+          }else{
+            estYi[y, k, n] <- NA
+            estSlope[y, k, n] <- NA
+          }
 
         }
+        estRicB[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estSlope[y, k, n])
+        estRicA[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estYi[y, k, n])
       }
       #Benchmark estimates
       # -- If normative period is TRUE than do not estimate BMs (they will diverge
