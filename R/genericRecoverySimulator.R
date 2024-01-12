@@ -1886,7 +1886,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #adjust Canadian ER downward if obsspawners below upper benchmark, but allow a minimum of 0.05 ER 
       for (k in 1:nCU) {
         if(counterSingleBMHigh[y-1, k]==0&!is.null(ERfeedbackAdj)){
-          trendCanER.iter[y,k] <- max(min(trendCanER[y,k],trendCanER[y-1,k]*ERfeedbackAdj),0.05)
+          trendCanER.iter[y,k] <- max(min(trendCanER[y,k]*ERfeedbackAdj,trendCanER[y-1,k]*ERfeedbackAdj),0.05)
         }else{
           trendCanER.iter[y,k] <- trendCanER[y,k]
         }
@@ -2181,7 +2181,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           logbeta_pr_sig <- sqrt(log(1+((1/ Smax_sd)*(1/ Smax_sd))/((1/Smax_mean)*(1/Smax_mean))))
           logbeta_pr <- log(1/(Smax_mean))-0.5*logbeta_pr_sig^2
 
-          est_ar<- samEst::ricker_TMB(data=cowdat, AC=TRUE,logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig)
+          est_ar<- samEst::ricker_TMB(data=assessdat, AC=TRUE,logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig)
         
 
           if(est_ar$model$convergence==0){
