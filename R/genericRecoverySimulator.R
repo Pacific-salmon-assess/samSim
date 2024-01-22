@@ -98,6 +98,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   rCap <- simPar$rCap
   assessFreq <- simPar$assessFreq
   ERfeedbackAdj <- simPar$ERfeedbackAdj
+  infBetaPrior <- ifelse(is.null(simPar$infBetaPrior),FALSE,simPar$infBetaPrior)
 
   #MAnagement procedure
   assessType <- ifelse(is.null(simPar$assessType),"default",simPar$assessType)
@@ -2153,8 +2154,13 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                      logRS=obsLogRS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k])
           
           #priors
-          Smax_mean <- (max(assessdat$S)*.5)
-          Smax_sd <- Smax_mean
+          if(infBetaPrior==TRUE){
+            Smax_mean <- capMat[y,k]
+            Smax_sd <- Smax_mean
+          }else{
+            Smax_mean <- (max(assessdat$S)*.5)
+            Smax_sd <- Smax_mean
+          }
           logbeta_pr_sig <- sqrt(log(1+((1/ Smax_sd)*(1/ Smax_sd))/((1/Smax_mean)*(1/Smax_mean))))
           logbeta_pr <- log(1/(Smax_mean))-0.5*logbeta_pr_sig^2
 
@@ -2176,8 +2182,14 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                      logRS=obsLogRS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k])
           
           #priors
-          Smax_mean <- (max(assessdat$S)*.5)
-          Smax_sd <- Smax_mean
+          if(infBetaPrior==TRUE){
+            Smax_mean <- capMat[y,k]
+            Smax_sd <- Smax_mean
+          }else{
+            Smax_mean <- (max(assessdat$S)*.5)
+            Smax_sd <- Smax_mean
+          }
+
           logbeta_pr_sig <- sqrt(log(1+((1/ Smax_sd)*(1/ Smax_sd))/((1/Smax_mean)*(1/Smax_mean))))
           logbeta_pr <- log(1/(Smax_mean))-0.5*logbeta_pr_sig^2
 
