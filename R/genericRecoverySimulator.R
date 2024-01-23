@@ -97,7 +97,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   #is included in forward projections of stock-recruitment model
   rCap <- simPar$rCap
   assessFreq <- simPar$assessFreq
-  ERfeedbackAdj <- simPar$ERfeedbackAdj
+  ERfeedbackAdj <- ifelse(is.null(simPar$ERfeedbackAdj),NA,simPar$ERfeedbackAdj)
+  redStatusER <- ifelse(is.null(simPar$redStatusER),NA,simPar$redStatusER)
   infBetaPrior <- ifelse(is.null(simPar$infBetaPrior),FALSE,simPar$infBetaPrior)
 
   #MAnagement procedure
@@ -1886,8 +1887,13 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       
       #adjust Canadian ER downward if obsspawners below upper benchmark, but allow a minimum of 0.05 ER 
       for (k in 1:nCU) {
-        if(counterSingleBMHigh[y-1, k]==0&!is.null(ERfeedbackAdj)){
-          trendCanER.iter[y,k] <- max(min(trendCanER[y,k]*ERfeedbackAdj,trendCanER[y-1,k]*ERfeedbackAdj),0.05)
+
+        if(counterSingleBMLow[y-1, k]==0&counterSingleBMHigh[y-1, k]==0&!is.null(redStatusER)){
+          #parei aqui
+          trendCanER.iter[y,k]<-min(trendCanER[y,k],redStatusER,na.rm = TRUE)
+
+        }else if(counterSingleBMLow[y-1, k]==1&counterSingleBMHigh[y-1, k]==0){
+          trendCanER.iter[y,k] <- max(min(trendCanER[y,k]*ERfeedbackAdj,trendCanER[y-1,k]*ERfeedbackAdj,na.rm = TRUE),minER)
         }else{
           trendCanER.iter[y,k] <- trendCanER[y,k]
         }
@@ -2415,10 +2421,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             model[k] == "larkin" & cycle[y] == domCycle[k]) {
           if (bm == "stockRecruit") {
             #is spawner abundance greater than upper/lower BM
-            upperBM[y, k] <- 0.8 * sMSY[y, k, n]
+            upperBM[y, k] <- ifelse(sGen[y, k, n]>0.8 * sMSY[y, k, n],sGen[y, k, n],0.8 * sMSY[y, k, n])
             lowerBM[y, k] <- sGen[y, k, n]
             if(updatebmyr== assessFreq){
-              upperObsBM[y, k] <- 0.8 * estSMSY[y, k, n]
+              upperObsBM[y, k] <- ifelse(estSGen[y, k, n]>0.8 * estSMSY[y, k, n],estSGen[y, k, n],0.8 * estSMSY[y, k, n])
               lowerObsBM[y, k] <- estSGen[y, k, n]
               updatebmyr<-1
             }else{
