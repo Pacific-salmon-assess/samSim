@@ -103,6 +103,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
   #MAnagement procedure
   assessType <- ifelse(is.null(simPar$assessType),"default",simPar$assessType)
+  
+  trackuMSY=simPar$trackuMSY
+  uMSY.adj=simPar$uMSY.adj
   # Should BMs be fixed at normative period?; if yes, then BMs aren't updated during sim period
   normPeriod <- ifelse(is.null(simPar$normPeriod), TRUE, simPar$normPeriod)
 
@@ -143,6 +146,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   amER <- rep(simPar$usER * usERScalar, length.out = nCU)
 
 
+  
   # # En-route mortality
   # enRouteMort <- ifelse(is.null(simPar$enRouteMort), FALSE, simPar$enRouteMort)
   # if (enRouteMort == TRUE) {
@@ -1383,6 +1387,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       estSMSY[y, , n] <- sMSY[y, , n]
       estSGen[y, , n] <- sGen[y, , n]
       estUMSY[y, , n] <- uMSY[y, , n]
+      bmUMSY[y, , n] <- uMSY[y, , n] #benchmark umsy that interacts with assessFreq
       upperObsBM[y, ] <- upperBM[y, ] #obs = true during priming
       lowerObsBM[y, ] <- lowerBM[y, ]
 
@@ -1896,6 +1901,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         }else if(counterSingleBMLow[y-1, k]==1&counterSingleBMHigh[y-1, k]==0){
           #amber status
           trendCanER.iter[y,k] <- max(min(trendCanER[y,k]*ERfeedbackAdj,trendCanER[y-1,k]*ERfeedbackAdj,na.rm = TRUE),minER)
+        }else if(trackuMSY=='TRUE'){ #sets ER based on current umsy benchmark at assessment times the er adjustment
+          trendCanER.iter[y,k] <- bmUMSY[y,k]
         }else{
           trendCanER.iter[y,k] <- trendCanER[y,k]
         }
@@ -2428,10 +2435,12 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             if(updatebmyr== assessFreq){
               upperObsBM[y, k] <- ifelse(estSGen[y, k, n]>0.8 * estSMSY[y, k, n],estSGen[y, k, n],0.8 * estSMSY[y, k, n])
               lowerObsBM[y, k] <- estSGen[y, k, n]
+              bmUMSY[y,k,n]<- estUMSY[y, k, n]*uMSY.adj
               updatebmyr<-1
             }else{
               upperObsBM[y, k] <- upperObsBM[y-1, k]
               lowerObsBM[y, k] <- lowerObsBM[y-1, k]
+              bmUMSY[y,k,n]<- bmUMSY[y-1,k,n]
               updatebmyr<-updatebmyr+1
             }
             
@@ -2647,7 +2656,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     lowerBMArray[ , , n] <- lowerBM
     upperObsBMArray[ , , n] <- upperObsBM
     lowerObsBMArray[ , , n] <- lowerObsBM
-    
+  
     #need to better define this target ER without implementation and observation error 
     #does not vary by 
     HCRERArray[ , , n] <- t(t(trendCanER.iter) + amER)
@@ -2915,6 +2924,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     sMSY.i  <- as.data.frame(sMSY[,,i])
     sGen.i  <- as.data.frame(sGen[,,i])
     uMSy.i  <- as.data.frame(uMSY[,,i])
+   
 
     if(nCU==1){
       names(spnDat.i)<-paste0("V",1:nCU)
@@ -3036,9 +3046,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     upperBM.i<-as.data.frame(upperBMArray[,,i])  
     lowerObsBM.i<-as.data.frame(lowerObsBMArray[,,i])  
     upperObsBM.i<-as.data.frame(upperObsBMArray[,,i])  
-
-
-
+    upperObsBM.i<-as.data.frame(upperObsBMArray[,,i])
+    upperObsBM.i<-as.data.frame(upperObsBMArray[,,i])
+    bmuMSy.i  <- as.data.frame(uMSYbm[,,i])
+    
     if(nCU==1){
       names(counterLowerBM.i)<-paste0("V",1:nCU)
       names(counterUpperBM.i)<-paste0("V",1:nCU)
@@ -3054,6 +3065,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       names(upperBM.i)<-paste0("V",1:nCU)
       names(lowerObsBM.i)<-paste0("V",1:nCU)
       names(upperObsBM.i)<-paste0("V",1:nCU)
+      names(bmuMSy.i)<-paste0("V",1:nCU)
     }
     
     
@@ -3087,7 +3099,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       tibble::add_column(iteration=rep(i,nrow(lowerObsBMArray)))
     upperObsBM.i<-upperObsBM.i %>% tibble::add_column(year=1:nrow(upperObsBMArray)) %>%
       tibble::add_column(iteration=rep(i,nrow(upperObsBMArray)))
-     
+    bmuMSy.i<-bmuMSy.i %>% tibble::add_column(year=1:nrow(bmuMSy.i)) %>%
+      tibble::add_column(iteration=rep(i,nrow(bmuMSy.i)))
 
     counterLowerBM_long.i <- counterLowerBM.i %>%
       tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="aboveLowerBM")
@@ -3122,7 +3135,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="lowerObsBM")
     upperObsBM_long.i <- upperObsBM.i %>%
       tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="upperObsBM")
-
+    bmuMSy.i <- upperObsBM.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="upperObsBM")
      
     
 
@@ -3138,7 +3152,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         tibble::add_column(lowerBM=lowerBM_long.i$lowerBM) %>%
         tibble::add_column(upperBM=upperBM_long.i$upperBM) %>%
         tibble::add_column(lowerObsBM=lowerObsBM_long.i$lowerObsBM) %>%
-        tibble::add_column(upperObsBM=upperObsBM_long.i$upperObsBM) 
+        tibble::add_column(upperObsBM=upperObsBM_long.i$upperObsBM) %>%
+         tibble::add_column(obsuMSYbm=bmuMSy.i) 
+     
 
     if (i == 1) hcrDatout<-HCRDat_long.i
     if (i > 1) {
