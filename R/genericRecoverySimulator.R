@@ -413,6 +413,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   estSMSY <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   estSGen <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   estUMSY <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  bmUMSY <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   # lowerAgBM <- matrix(0, nrow = nYears, ncol = nTrials)
   # upperAgBM <- matrix(0, nrow = nYears, ncol = nTrials)
   # lowerAgObsBM <- matrix(0, nrow = nYears, ncol = nTrials)
@@ -3065,7 +3066,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       names(upperBM.i)<-paste0("V",1:nCU)
       names(lowerObsBM.i)<-paste0("V",1:nCU)
       names(upperObsBM.i)<-paste0("V",1:nCU)
-      names(bmuMSy.i)<-paste0("V",1:nCU)
+      names(bmUMSY.i)<-paste0("V",1:nCU)
     }
     
     
@@ -3099,8 +3100,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       tibble::add_column(iteration=rep(i,nrow(lowerObsBMArray)))
     upperObsBM.i<-upperObsBM.i %>% tibble::add_column(year=1:nrow(upperObsBMArray)) %>%
       tibble::add_column(iteration=rep(i,nrow(upperObsBMArray)))
-    bmuMSy.i<-bmuMSy.i %>% tibble::add_column(year=1:nrow(bmuMSy.i)) %>%
-      tibble::add_column(iteration=rep(i,nrow(bmuMSy.i)))
+    bmUMSY.i<-bmUMSY.i %>% tibble::add_column(year=1:nrow(bmUMSY.i)) %>%
+      tibble::add_column(iteration=rep(i,nrow(bmUMSY.i)))
 
     counterLowerBM_long.i <- counterLowerBM.i %>%
       tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="aboveLowerBM")
@@ -3135,8 +3136,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="lowerObsBM")
     upperObsBM_long.i <- upperObsBM.i %>%
       tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="upperObsBM")
-    bmuMSy.i <- upperObsBM.i %>%
-      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="upperObsBM")
+    bmUMSY.i <- bmUMSY.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="UmsyBM")
      
     
 
@@ -3153,7 +3154,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         tibble::add_column(upperBM=upperBM_long.i$upperBM) %>%
         tibble::add_column(lowerObsBM=lowerObsBM_long.i$lowerObsBM) %>%
         tibble::add_column(upperObsBM=upperObsBM_long.i$upperObsBM) %>%
-         tibble::add_column(obsuMSYbm=bmuMSy.i) 
+        tibble::add_column(UmsyBM=bmUMSY.i) 
      
 
     if (i == 1) hcrDatout<-HCRDat_long.i
