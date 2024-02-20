@@ -1903,7 +1903,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           #amber status
           trendCanER.iter[y,k] <- max(min(trendCanER[y,k]*ERfeedbackAdj,trendCanER[y-1,k]*ERfeedbackAdj,na.rm = TRUE),minER)
         }else if(trackuMSY=='TRUE'){ #sets ER based on current umsy benchmark at assessment times the er adjustment
-          trendCanER.iter[y,k] <- bmUMSY[y,k]
+          trendCanER.iter[y,k] <- bmUMSY[y,k,n]
         }else{
           trendCanER.iter[y,k] <- trendCanER[y,k]
         }
@@ -3049,7 +3049,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     upperObsBM.i<-as.data.frame(upperObsBMArray[,,i])  
     upperObsBM.i<-as.data.frame(upperObsBMArray[,,i])
     upperObsBM.i<-as.data.frame(upperObsBMArray[,,i])
-    bmuMSy.i  <- as.data.frame(uMSYbm[,,i])
+    bmUMSY.i  <- as.data.frame(bmUMSY[,,i])
     
     if(nCU==1){
       names(counterLowerBM.i)<-paste0("V",1:nCU)
