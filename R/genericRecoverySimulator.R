@@ -1388,7 +1388,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       estSMSY[y, , n] <- sMSY[y, , n]
       estSGen[y, , n] <- sGen[y, , n]
       estUMSY[y, , n] <- uMSY[y, , n]
-      bmUMSY[y, , n] <- uMSY[y, , n] #benchmark umsy that interacts with assessFreq
+      bmUMSY[y, , n] <- canER #initial benchmark (before nPrime based on start ER)
       upperObsBM[y, ] <- upperBM[y, ] #obs = true during priming
       lowerObsBM[y, ] <- lowerBM[y, ]
 
@@ -1895,17 +1895,19 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       for (k in 1:nCU) {
         #this is where the harvest control rules should go
         if(trackuMSY=='TRUE'){ #sets ER based on current umsy benchmark at assessment times the er adjustment
-          trendCanER.iter[y,k] <- bmUMSY[y,k,n]
-        }else if(counterSingleBMLow[y-1, k]==0&counterSingleBMHigh[y-1, k]==0&!is.null(redStatusER)){
-          #red status
-          trendCanER.iter[y,k]<-min(trendCanER[y,k],redStatusER,na.rm = TRUE)
-
-        }else if(counterSingleBMLow[y-1, k]==1&counterSingleBMHigh[y-1, k]==0){
-          #amber status
-          trendCanER.iter[y,k] <- max(min(trendCanER[y,k]*ERfeedbackAdj,trendCanER[y-1,k]*ERfeedbackAdj,na.rm = TRUE),minER)
-        }else{
-          trendCanER.iter[y,k] <- trendCanER[y,k]
-        }
+          trendCanER.iter[y,k] <- max(bmUMSY[y,k,n],minER,na.rm=T)
+        }else if(trackuMSY=='FALSE'){
+          if(counterSingleBMLow[y-1, k]==0&counterSingleBMHigh[y-1, k]==0&!is.null(redStatusER)){
+            #red status
+            trendCanER.iter[y,k]<-min(trendCanER[y,k],redStatusER,na.rm = TRUE)
+            
+          }else if(counterSingleBMLow[y-1, k]==1&counterSingleBMHigh[y-1, k]==0){
+            #amber status
+            trendCanER.iter[y,k] <- max(min(trendCanER[y,k]*ERfeedbackAdj,trendCanER[y-1,k]*ERfeedbackAdj,na.rm = TRUE),minER)
+          }else{
+            trendCanER.iter[y,k] <- trendCanER[y,k]
+          }
+        } 
       }
 
       if(is.null(cvERSMU)) {
