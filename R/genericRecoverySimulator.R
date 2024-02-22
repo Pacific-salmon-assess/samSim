@@ -1893,20 +1893,19 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       
       #adjust Canadian ER downward if obsspawners below upper benchmark, but allow a minimum of 0.05 ER 
       for (k in 1:nCU) {
+        if(counterSingleBMLow[y-1, k]==0&counterSingleBMHigh[y-1, k]==0&!is.null(redStatusER)){
+          #red status
+          trendCanER.iter[y,k]<-min(trendCanER[y,k],redStatusER,na.rm = TRUE)
+          
+        }else if(counterSingleBMLow[y-1, k]==1&counterSingleBMHigh[y-1, k]==0){
+          #amber status
+          trendCanER.iter[y,k] <- max(min(trendCanER[y,k]*ERfeedbackAdj,trendCanER[y-1,k]*ERfeedbackAdj,na.rm = TRUE),minER)
+        }else{
+          trendCanER.iter[y,k] <- trendCanER[y,k]
+        }
         #this is where the harvest control rules should go
         if(trackuMSY=='TRUE'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
           trendCanER.iter[y,k] <- bmUMSY[y-1,k,n]
-        }else if(trackuMSY=='FALSE'){
-          if(counterSingleBMLow[y-1, k]==0&counterSingleBMHigh[y-1, k]==0&!is.null(redStatusER)){
-            #red status
-            trendCanER.iter[y,k]<-min(trendCanER[y,k],redStatusER,na.rm = TRUE)
-            
-          }else if(counterSingleBMLow[y-1, k]==1&counterSingleBMHigh[y-1, k]==0){
-            #amber status
-            trendCanER.iter[y,k] <- max(min(trendCanER[y,k]*ERfeedbackAdj,trendCanER[y-1,k]*ERfeedbackAdj,na.rm = TRUE),minER)
-          }else{
-            trendCanER.iter[y,k] <- trendCanER[y,k]
-          }
         } 
       }
 
