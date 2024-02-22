@@ -1388,7 +1388,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       estSMSY[y, , n] <- sMSY[y, , n]
       estSGen[y, , n] <- sGen[y, , n]
       estUMSY[y, , n] <- uMSY[y, , n]
-      bmUMSY[y, , n] <- canER #initial benchmark (before nPrime based on start ER)
+      bmUMSY[y, , n] <- rep(canER,nCU) #initial benchmark (before nPrime based on start ER)
       upperObsBM[y, ] <- upperBM[y, ] #obs = true during priming
       lowerObsBM[y, ] <- lowerBM[y, ]
 
@@ -1894,9 +1894,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #adjust Canadian ER downward if obsspawners below upper benchmark, but allow a minimum of 0.05 ER 
       for (k in 1:nCU) {
         #this is where the harvest control rules should go
-#        if(trackuMSY=='TRUE'){ #sets ER based on current umsy benchmark at assessment times the er adjustment
-#          trendCanER.iter[y,k] <- bmUMSY[y-1,k,n]
-#        }else if(trackuMSY=='FALSE'){
+        if(trackuMSY=='TRUE'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
+          trendCanER.iter[y,k] <- bmUMSY[y-1,k,n]
+        }else if(trackuMSY=='FALSE'){
           if(counterSingleBMLow[y-1, k]==0&counterSingleBMHigh[y-1, k]==0&!is.null(redStatusER)){
             #red status
             trendCanER.iter[y,k]<-min(trendCanER[y,k],redStatusER,na.rm = TRUE)
