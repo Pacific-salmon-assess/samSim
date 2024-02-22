@@ -1906,10 +1906,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         }
         #this is where the harvest control rules should go
         if(HCRtype=='umsy'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
-          trendCanER.iter[y,k] <- bmUMSY[y,k,n]
+          trendCanER.iter[y,k] <- bmUMSY[y-1,k,n]
         }
         if(HCRtype=='both'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
-          trendCanER.iter[y,k] <- bmUMSY[y,k,n]
+          trendCanER.iter[y,k] <- bmUMSY[y-1,k,n]
           if(counterSingleBMLow[y-1, k]==0&counterSingleBMHigh[y-1, k]==0&!is.null(redStatusER)){
             #red status
             trendCanER.iter[y,k]<-min(trendCanER.iter[y,k],redStatusER,na.rm = TRUE)
