@@ -1893,7 +1893,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       
       #adjust Canadian ER downward if obsspawners below upper benchmark, but allow a minimum of 0.05 ER 
       for (k in 1:nCU) {
-        if(HCRtype=='B')
+        if(HCRtype=='abundance')
         if(counterSingleBMLow[y-1, k]==0&counterSingleBMHigh[y-1, k]==0&!is.null(redStatusER)){
           #red status
           trendCanER.iter[y,k]<-min(trendCanER[y,k],redStatusER,na.rm = TRUE)
@@ -1905,7 +1905,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           trendCanER.iter[y,k] <- trendCanER[y,k]
         }
         #this is where the harvest control rules should go
-        if(HCRtype=='F'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
+        if(HCRtype=='umsy'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
           trendCanER.iter[y,k] <- bmUMSY[y,k,n]
         }
         if(HCRtype=='both'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
