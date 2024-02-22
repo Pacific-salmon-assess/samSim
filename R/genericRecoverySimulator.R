@@ -1269,7 +1269,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               sGen[y, k, n] <- as.numeric(sGenSolver(
                 theta = c(refAlpha[k], refAlpha[k] / sEqVar[y, k, n], ricSig[k]),
                 sMSY = sMSY[y, k, n]))
-              uMSY[y, k, n] <- 0.5 *refAlpha[k] - 0.07*refAlpha[k]^2
+              uMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 -  refAlpha[k]))) #changed to lambertW rather than approximation
             }
             if (model[k] == "rickerSurv") {
               refAlpha_prime<- refAlpha[k] + (gamma[k]*log(coVarInit[k]))
@@ -1895,7 +1895,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       for (k in 1:nCU) {
         #this is where the harvest control rules should go
         if(trackuMSY=='TRUE'){ #sets ER based on current umsy benchmark at assessment times the er adjustment
-          trendCanER.iter[y,k] <- max(bmUMSY[y,k,n],minER,na.rm=T)
+          trendCanER.iter[y,k] <- bmUMSY[y,k,n]
         }else if(trackuMSY=='FALSE'){
           if(counterSingleBMLow[y-1, k]==0&counterSingleBMHigh[y-1, k]==0&!is.null(redStatusER)){
             #red status
