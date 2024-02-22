@@ -1908,7 +1908,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             trendCanER.iter[y,k] <- trendCanER[y,k]
           }
         } 
-      #}
+      }
 
       if(is.null(cvERSMU)) {
          
