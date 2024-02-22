@@ -97,15 +97,15 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   #is included in forward projections of stock-recruitment model
   rCap <- simPar$rCap
   assessFreq <- simPar$assessFreq
-  ERfeedbackAdj <- ifelse(is.null(simPar$ERfeedbackAdj),NA,simPar$ERfeedbackAdj)
+  bmERAdj<- ifelse(is.null(simPar$bmERAdj),NA,simPar$bmERAdj)
   redStatusER <- ifelse(is.null(simPar$redStatusER),NA,simPar$redStatusER)
   infBetaPrior <- ifelse(is.null(simPar$infBetaPrior),FALSE,simPar$infBetaPrior)
 
   #MAnagement procedure
   assessType <- ifelse(is.null(simPar$assessType),"default",simPar$assessType)
   
-  trackuMSY=simPar$trackuMSY
-  uMSY.adj=simPar$uMSY.adj
+  HCRtype=simPar$HCRtype
+  fERAdj=simPar$fERAdj
   # Should BMs be fixed at normative period?; if yes, then BMs aren't updated during sim period
   normPeriod <- ifelse(is.null(simPar$normPeriod), TRUE, simPar$normPeriod)
 
@@ -1893,19 +1893,31 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       
       #adjust Canadian ER downward if obsspawners below upper benchmark, but allow a minimum of 0.05 ER 
       for (k in 1:nCU) {
+        if(HCRtype=='B')
         if(counterSingleBMLow[y-1, k]==0&counterSingleBMHigh[y-1, k]==0&!is.null(redStatusER)){
           #red status
           trendCanER.iter[y,k]<-min(trendCanER[y,k],redStatusER,na.rm = TRUE)
           
         }else if(counterSingleBMLow[y-1, k]==1&counterSingleBMHigh[y-1, k]==0){
           #amber status
-          trendCanER.iter[y,k] <- max(min(trendCanER[y,k]*ERfeedbackAdj,trendCanER[y-1,k]*ERfeedbackAdj,na.rm = TRUE),minER)
+          trendCanER.iter[y,k] <- max(min(trendCanER[y,k]*bmERAdj,trendCanER[y-1,k]*bmERAdj,na.rm = TRUE),minER)
         }else{
           trendCanER.iter[y,k] <- trendCanER[y,k]
         }
         #this is where the harvest control rules should go
-        if(trackuMSY=='TRUE'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
-          trendCanER.iter[y,k] <- bmUMSY[y-1,k,n]
+        if(HCRtype=='F'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
+          trendCanER.iter[y,k] <- bmUMSY[y,k,n]
+        }
+        if(HCRtype=='both'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
+          trendCanER.iter[y,k] <- bmUMSY[y,k,n]
+          if(counterSingleBMLow[y-1, k]==0&counterSingleBMHigh[y-1, k]==0&!is.null(redStatusER)){
+            #red status
+            trendCanER.iter[y,k]<-min(trendCanER.iter[y,k],redStatusER,na.rm = TRUE)
+            
+          }else if(counterSingleBMLow[y-1, k]==1&counterSingleBMHigh[y-1, k]==0){
+            #amber status
+            trendCanER.iter[y,k] <- max(min(trendCanER.iter[y,k]*bmERAdj,trendCanER.iter[y,k][y-1,k]*bmERAdj,na.rm = TRUE),minER)
+          }
         } 
       }
 
@@ -2436,7 +2448,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             if(updatebmyr== assessFreq){
               upperObsBM[y, k] <- ifelse(estSGen[y, k, n]>0.8 * estSMSY[y, k, n],estSGen[y, k, n],0.8 * estSMSY[y, k, n])
               lowerObsBM[y, k] <- estSGen[y, k, n]
-              bmUMSY[y,k,n]<- estUMSY[y, k, n]*uMSY.adj
+              bmUMSY[y,k,n]<- estUMSY[y, k, n]*fERadj
               updatebmyr<-1
             }else{
               upperObsBM[y, k] <- upperObsBM[y-1, k]
