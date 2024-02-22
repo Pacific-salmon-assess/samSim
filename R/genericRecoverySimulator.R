@@ -2448,7 +2448,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             if(updatebmyr== assessFreq){
               upperObsBM[y, k] <- ifelse(estSGen[y, k, n]>0.8 * estSMSY[y, k, n],estSGen[y, k, n],0.8 * estSMSY[y, k, n])
               lowerObsBM[y, k] <- estSGen[y, k, n]
-              bmUMSY[y,k,n]<- estUMSY[y, k, n]*fERadj
+              bmUMSY[y,k,n]<- estUMSY[y, k, n]*fERAdj
               updatebmyr<-1
             }else{
               upperObsBM[y, k] <- upperObsBM[y-1, k]
