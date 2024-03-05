@@ -97,7 +97,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   #is included in forward projections of stock-recruitment model
   rCap <- simPar$rCap
   assessFreq <- simPar$assessFreq
-  bmERAdj<- ifelse(is.null(simPar$bmERAdj),NA,simPar$bmERAdj)
+  bmERAdj<- ifelse(is.null(simPar$bmERAdj),1,simPar$bmERAdj)
   redStatusER <- ifelse(is.null(simPar$redStatusER),NA,simPar$redStatusER)
   infBetaPrior <- ifelse(is.null(simPar$infBetaPrior),FALSE,simPar$infBetaPrior)
 
@@ -1916,7 +1916,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             
           }else if(counterSingleBMLow[y-1, k]==1&counterSingleBMHigh[y-1, k]==0){
             #amber status
-            trendCanER.iter[y,k] <- max(min(trendCanER.iter[y,k]*bmERAdj,trendCanER.iter[y,k][y-1,k]*bmERAdj,na.rm = TRUE),minER)
+            trendCanER.iter[y,k] <- max(min(trendCanER.iter[y,k]*bmERAdj,trendCanER.iter[y-1,k]*bmERAdj,na.rm = TRUE),minER)
           }
         } 
       }
