@@ -1897,13 +1897,13 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         if(counterSingleBMLow[y-1, k]==0&counterSingleBMHigh[y-1, k]==0){
           #red status
           if(is.null(redStatusER)==F){
-            trendCanER.iter[y,k]<-min(trendCanER[y,k],redStatusER,na.rm = TRUE)
+            trendCanER.iter[y,k]<-redStatusER
           }else{
-            trendCanER.iter[y,k] <-  max(trendCanER.iter[y,k]*bmERAdj,minER,na.rm = TRUE)
+            trendCanER.iter[y,k] <-  max(trendCanER[y,k]*bmERAdj,minER)
           }
         }else if(counterSingleBMLow[y-1, k]==1&counterSingleBMHigh[y-1, k]==0){
           #amber status
-          trendCanER.iter[y,k] <-  max(trendCanER.iter[y,k]*bmERAdj,minER,na.rm = TRUE)
+          trendCanER.iter[y,k] <-  max(trendCanER[y,k]*bmERAdj,minER)
         }else{
           trendCanER.iter[y,k] <- trendCanER[y,k]
         }
@@ -1913,13 +1913,17 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         }
         if(HCRtype=='both'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
           trendCanER.iter[y,k] <- bmUMSY[y-1,k,n]
-          if(counterSingleBMLow[y-1, k]==0&counterSingleBMHigh[y-1, k]==0&!is.null(redStatusER)){
+          if(counterSingleBMLow[y-1, k]==0&counterSingleBMHigh[y-1, k]==0){
             #red status
-            trendCanER.iter[y,k]<-min(trendCanER.iter[y,k],redStatusER,na.rm = TRUE)
+            if(is.null(redStatusER)==F){
+              trendCanER.iter[y,k]<- redStatusER
+            }else{
+              trendCanER.iter[y,k] <-  max(trendCanER[y,k]*bmERAdj,minER)
+            }
             
           }else if(counterSingleBMLow[y-1, k]==1&counterSingleBMHigh[y-1, k]==0){
             #amber status
-            trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,minER,na.rm = TRUE)
+            trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,minER)
           }
         } 
       }
