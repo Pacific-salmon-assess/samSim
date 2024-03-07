@@ -1894,14 +1894,14 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #adjust Canadian ER downward if obsspawners below upper benchmark, but allow a minimum of 0.05 ER 
       for (k in 1:nCU) {
         if(HCRtype=='abundance')
-        if(counterSingleBMLow[y-1, k]==0&counterSingleBMHigh[y-1, k]==0){
+        if(counterLowerObsBM[y-1, k]==0&counterUpperObsBM[y-1, k]==0){
           #red status
           if(is.null(redStatusER)==F){
             trendCanER.iter[y,k]<- redStatusER
           }else{
-            trendCanER.iter[y,k] <-  max(trendCanER[y-1,k]*bmERAdj,0.05,na.rm=T)
+            trendCanER.iter[y,k] <-  max(trendCanER[y,k]*bmERAdj,0.05,na.rm=T)
           }
-        }else if(counterSingleBMLow[y-1, k]==1&counterSingleBMHigh[y-1, k]==0){
+        }else if(counterLowerObsBM[y-1, k]==1&counterUpperObsBM[y-1, k]==0){
           #amber status
           trendCanER.iter[y,k] <-  max(trendCanER[y-1,k]*bmERAdj,0.05,na.rm=T)
         }else{
@@ -1913,7 +1913,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         }
         if(HCRtype=='both'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
           trendCanER.iter[y,k] <- bmUMSY[y-1,k,n]
-          if(counterSingleBMLow[y-1, k]==0&counterSingleBMHigh[y-1, k]==0){
+          if(counterLowerObsBM[y-1, k]==0&counterUpperObsBM[y-1, k]==0){
             #red status
             if(is.null(redStatusER)==F){
               trendCanER.iter[y,k]<- redStatusER
@@ -1921,7 +1921,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,0.05,na.rm=T)
             }
             
-          }else if(counterSingleBMLow[y-1, k]==1&counterSingleBMHigh[y-1, k]==0){
+          }else if(counterLowerObsBM[y-1, k]==1&counterUpperObsBM[y-1, k]==0){
             #amber status
             trendCanER.iter[y,k] <-  max(trendCanER.iter[y,k]*bmERAdj,0.05,na.rm=T)
           }
