@@ -602,7 +602,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     }else if(harvContRule == "trendER"){
          
         trendCanERbase<-rep(canER,nYears)
-        trendCanERbase[ERStartYear:EREndYear+nPrime] <- seq(canER, finalCanER,length=length(ERStartYear:EREndYear) )
+        trendCanERbase[ERStartYear:EREndYear+nPrime] <- seq(canER, finalCanER,length=length(ERStartYear:EREndYear))
         trendCanERbase[(EREndYear+nPrime):nYears] <-  finalCanER
         trendCanER <- trendCanERbase %*%  t(canERScalar)
     
@@ -1897,15 +1897,15 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         if(counterSingleBMLow[y-1, k]==0&counterSingleBMHigh[y-1, k]==0){
           #red status
           if(is.null(redStatusER)==F){
-            trendCanER.iter[y,k]<-redStatusER
+            trendCanER.iter[y,k]<- redStatusER
           }else{
-            trendCanER.iter[y,k] <-  trendCanER[y,k]*bmERAdj
+            trendCanER.iter[y,k] <-  max(trendCanER[y-1,k]*bmERAdj,0.05,na.rm=T)
           }
         }else if(counterSingleBMLow[y-1, k]==1&counterSingleBMHigh[y-1, k]==0){
           #amber status
-          trendCanER.iter[y,k] <-  trendCanER[y,k]*bmERAdj
+          trendCanER.iter[y,k] <-  max(trendCanER[y-1,k]*bmERAdj,0.05,na.rm=T)
         }else{
-          trendCanER.iter[y,k] <- trendCanER[y,k]
+          trendCanER.iter[y,k] <- max(trendCanER[y,k],trendCanER[y-1,k],na.rm=T)
         }
         #this is where the harvest control rules should go
         if(HCRtype=='umsy'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
@@ -1918,12 +1918,12 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             if(is.null(redStatusER)==F){
               trendCanER.iter[y,k]<- redStatusER
             }else{
-              trendCanER.iter[y,k] <- trendCanER[y,k]*bmERAdj
+              trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,0.05,na.rm=T)
             }
             
           }else if(counterSingleBMLow[y-1, k]==1&counterSingleBMHigh[y-1, k]==0){
             #amber status
-            trendCanER.iter[y,k] <- trendCanER.iter[y,k]*bmERAdj
+            trendCanER.iter[y,k] <-  max(trendCanER.iter[y,k]*bmERAdj,0.05,na.rm=T)
           }
         } 
       }
