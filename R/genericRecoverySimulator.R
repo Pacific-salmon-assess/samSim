@@ -1896,7 +1896,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         if(HCRtype=='abundance')
         if(counterLowerObsBM[y-1, k]==0&counterUpperObsBM[y-1, k]==0){
           #red status
-          if(is.null(redStatusER)==F){
+          if(is.na(redStatusER)==F){
             trendCanER.iter[y,k]<- redStatusER
           }else{
             trendCanER.iter[y,k] <-  max(trendCanER[y,k]*bmERAdj,0.05,na.rm=T)
@@ -1915,7 +1915,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           trendCanER.iter[y,k] <- bmUMSY[y-1,k,n]
           if(counterLowerObsBM[y-1, k]==0&counterUpperObsBM[y-1, k]==0){
             #red status
-            if(is.null(redStatusER)==F){
+            if(is.na(redStatusER)==F){
               trendCanER.iter[y,k]<- redStatusER
             }else{
               trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,0.05,na.rm=T)
