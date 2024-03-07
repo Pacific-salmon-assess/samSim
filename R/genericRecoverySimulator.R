@@ -1894,10 +1894,13 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #adjust Canadian ER downward if obsspawners below upper benchmark, but allow a minimum of 0.05 ER 
       for (k in 1:nCU) {
         if(HCRtype=='abundance')
-        if(counterSingleBMLow[y-1, k]==0&counterSingleBMHigh[y-1, k]==0&!is.null(redStatusER)){
+        if(counterSingleBMLow[y-1, k]==0&counterSingleBMHigh[y-1, k]==0){
           #red status
-          trendCanER.iter[y,k]<-min(trendCanER[y,k],redStatusER,na.rm = TRUE)
-          
+          if(is.null(redStatusER)==F){
+            trendCanER.iter[y,k]<-min(trendCanER[y,k],redStatusER,na.rm = TRUE)
+          }else{
+            trendCanER.iter[y,k] <- max(min(trendCanER[y,k]*bmERAdj,trendCanER[y-1,k]*bmERAdj,na.rm = TRUE),minER)
+          }
         }else if(counterSingleBMLow[y-1, k]==1&counterSingleBMHigh[y-1, k]==0){
           #amber status
           trendCanER.iter[y,k] <- max(min(trendCanER[y,k]*bmERAdj,trendCanER[y-1,k]*bmERAdj,na.rm = TRUE),minER)
