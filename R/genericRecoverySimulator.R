@@ -1899,11 +1899,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           if(is.null(redStatusER)==F){
             trendCanER.iter[y,k]<-min(trendCanER[y,k],redStatusER,na.rm = TRUE)
           }else{
-            trendCanER.iter[y,k] <- max(min(trendCanER[y,k]*bmERAdj,trendCanER[y-1,k]*bmERAdj,na.rm = TRUE),minER)
+            trendCanER.iter[y,k] <-  max(trendCanER.iter[y,k]*bmERAdj,minER,na.rm = TRUE)
           }
         }else if(counterSingleBMLow[y-1, k]==1&counterSingleBMHigh[y-1, k]==0){
           #amber status
-          trendCanER.iter[y,k] <- max(min(trendCanER[y,k]*bmERAdj,trendCanER[y-1,k]*bmERAdj,na.rm = TRUE),minER)
+          trendCanER.iter[y,k] <-  max(trendCanER.iter[y,k]*bmERAdj,minER,na.rm = TRUE)
         }else{
           trendCanER.iter[y,k] <- trendCanER[y,k]
         }
@@ -1919,7 +1919,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             
           }else if(counterSingleBMLow[y-1, k]==1&counterSingleBMHigh[y-1, k]==0){
             #amber status
-            trendCanER.iter[y,k] <- max(min(trendCanER.iter[y,k]*bmERAdj,trendCanER.iter[y-1,k]*bmERAdj,na.rm = TRUE),minER)
+            trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,minER,na.rm = TRUE)
           }
         } 
       }
