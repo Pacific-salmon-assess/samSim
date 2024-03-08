@@ -96,9 +96,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   biasCor <- simPar$biasCor # logical describing if log-normal bias correction
   #is included in forward projections of stock-recruitment model
   rCap <- simPar$rCap
-  assessFreq <- simPar$assessFreq
-  bmERAdj<- ifelse(is.null(simPar$bmERAdj),1,simPar$bmERAdj)
-  redStatusER <- ifelse(is.null(simPar$redStatusER),NA,simPar$redStatusER)
   infBetaPrior <- ifelse(is.null(simPar$infBetaPrior),FALSE,simPar$infBetaPrior)
 
   #MAnagement procedure
@@ -106,6 +103,12 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   
   HCRtype=simPar$HCRtype
   fERAdj=simPar$fERAdj
+  assessFreq <- simPar$assessFreq
+  fixedUBM<- simPar$fixedUpperBenchmark
+  fixedLBM<- simPar$fixedLowerBenchmark
+  bmERAdj<- ifelse(is.null(simPar$bmERAdj),1,simPar$bmERAdj)
+  redStatusER <- ifelse(is.null(simPar$redStatusER),NA,simPar$redStatusER)
+  
   # Should BMs be fixed at normative period?; if yes, then BMs aren't updated during sim period
   normPeriod <- ifelse(is.null(simPar$normPeriod), TRUE, simPar$normPeriod)
 
@@ -1333,7 +1336,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                 lowerBM[y, k] <- ifelse(!is.na(sGen[y, k, n]),
                                         sGen[y, k, n],
                                         0)
+              } if(bm == "fixed"){
+                upperBM[y,k]<- fixedUBM
+                lowerBM[y,k]<- fixedBM
               }
+              
               if (bm == "percentile") {
                 upperBM[y, k] <- s50th[y, k, n]
                 lowerBM[y, k] <- s25th[y, k, n]
@@ -2465,6 +2472,13 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               bmUMSY[y,k,n]<- bmUMSY[y-1,k,n]
               updatebmyr<-updatebmyr+1
             }
+            
+          }
+          if(bm == "fixed"){
+            upperBM[y,k]<- fixedUBM
+            lowerBM[y,k]<- fixedBM
+            upperObsBM[y,k]<- fixedUBM
+            lowerObsBM[y,k]<- fixedLBM
             
           }
           if (bm == "percentile") {
