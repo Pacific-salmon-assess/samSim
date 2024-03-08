@@ -1391,6 +1391,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       bmUMSY[y, , n] <- rep(canER,nCU) #initial benchmark (before nPrime based on start ER)
       upperObsBM[y, ] <- upperBM[y, ] #obs = true during priming
       lowerObsBM[y, ] <- lowerBM[y, ]
+      counterUpperObsBM[y, ] <-counterUpperBM[y, ] #obs = true during priming
+      counterLowerObsBM[y, ] <- counterLowerBM[y, ]
 
       } # end of year loop 1 (y = 1:nPrime)
 
