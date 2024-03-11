@@ -2473,9 +2473,18 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           if(bm == "fixed"){
             upperBM[y, k] <- ifelse(sGen[y, k, n]>0.8 * sMSY[y, k, n],sGen[y, k, n],0.8 * sMSY[y, k, n])
             lowerBM[y, k] <- sGen[y, k, n]
-            upperObsBM[y,k]<- fixedUBM
-            lowerObsBM[y,k]<- fixedLBM
-            
+            if(updatebmyr== assessFreq){
+              upperObsBM[y,k]<- fixedUBM
+              lowerObsBM[y,k]<- fixedLBM
+              bmUMSY[y,k,n]<- estUMSY[y, k, n]*fERAdj
+              updatebmyr<-1
+            }else{
+              upperObsBM[y,k]<- fixedUBM
+              lowerObsBM[y,k]<- fixedLBM
+              bmUMSY[y,k,n]<- bmUMSY[y-1,k,n]
+              updatebmyr<-updatebmyr+1
+            }
+        
           }
           if (bm == "percentile") {
             upperBM[y, k] <- s50th[y, k, n]
