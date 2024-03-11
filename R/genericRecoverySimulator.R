@@ -1329,18 +1329,14 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           for (k in 1:nCU) {
             if (model[k] == "ricker" | model[k] == "rickerSurv" |
                 model[k] == "larkin" & cycle[y] == domCycle[k]) {
-              if (bm == "stockRecruit") {
+              if (bm == "stockRecruit"||bm == "fixed") {
                 upperBM[y, k] <- ifelse(!is.na(sMSY[y, k, n]),
                                         0.8 * sMSY[y, k, n],
                                         0)
                 lowerBM[y, k] <- ifelse(!is.na(sGen[y, k, n]),
                                         sGen[y, k, n],
                                         0)
-              } if(bm == "fixed"){
-                upperBM[y,k]<- fixedUBM
-                lowerBM[y,k]<- fixedBM
-              }
-              
+              } 
               if (bm == "percentile") {
                 upperBM[y, k] <- s50th[y, k, n]
                 lowerBM[y, k] <- s25th[y, k, n]
@@ -2475,8 +2471,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             
           }
           if(bm == "fixed"){
-            upperBM[y,k]<- fixedUBM
-            lowerBM[y,k]<- fixedBM
+            upperBM[y, k] <- ifelse(sGen[y, k, n]>0.8 * sMSY[y, k, n],sGen[y, k, n],0.8 * sMSY[y, k, n])
+            lowerBM[y, k] <- sGen[y, k, n]
             upperObsBM[y,k]<- fixedUBM
             lowerObsBM[y,k]<- fixedLBM
             
