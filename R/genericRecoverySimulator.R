@@ -2237,7 +2237,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
 
           if(est_ar$model$convergence==0){
-            estYi[y, k, n] <- est_ar$alpha
+            estYi[y, k, n] <- est_ar$logalpha
             estSlope[y, k, n] <- est_ar$beta
           }else{
             estYi[y, k, n] <- NA
