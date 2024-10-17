@@ -2208,7 +2208,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
           if(tva$model$convergence==0){
             estYi[y, k, n] <- mean(tail(tva$logalpha,n=ageMaxRec))
-            estSlope[y, k, n] <- tva$beta
+            estSlope[y, k, n] <- tva$beta[1]
           }else{
             estYi[y, k, n] <- NA
             estSlope[y, k, n] <- NA
