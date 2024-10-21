@@ -2204,7 +2204,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           logbeta_pr_sig <- sqrt(log(1+((1/ Smax_sd)*(1/ Smax_sd))/((1/Smax_mean)*(1/Smax_mean))))
           logbeta_pr <- log(1/(Smax_mean))-0.5*logbeta_pr_sig^2
 
-          tva<- samEst::ricker_rw_TMB(data=assessdat,tv.par="a",logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig,AICc_type="marginal")
+          tva<- samEst::ricker_rw_TMB(data=assessdat,tv.par="a",logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig,AICc_type="marginal",newton_stp=FALSE)
 
           if(tva$model$convergence==0){
             estYi[y, k, n] <- mean(tail(tva$logalpha,n=ageMaxRec))
@@ -2233,7 +2233,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           logbeta_pr_sig <- sqrt(log(1+((1/ Smax_sd)*(1/ Smax_sd))/((1/Smax_mean)*(1/Smax_mean))))
           logbeta_pr <- log(1/(Smax_mean))-0.5*logbeta_pr_sig^2
 
-          est_ar<- samEst::ricker_TMB(data=assessdat, AC=TRUE,logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig)
+          est_ar<- samEst::ricker_TMB(data=assessdat, AC=TRUE,logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig,newton_stp=FALSE)
 
 
           if(est_ar$model$convergence==0){
