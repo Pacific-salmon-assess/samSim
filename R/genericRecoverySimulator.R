@@ -2233,7 +2233,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           logbeta_pr_sig <- sqrt(log(1+((1/ Smax_sd)*(1/ Smax_sd))/((1/Smax_mean)*(1/Smax_mean))))
           logbeta_pr <- log(1/(Smax_mean))-0.5*logbeta_pr_sig^2
 
-          est_ar<- samEst::ricker_TMB(data=assessdat, AC=TRUE,logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig,newton_stp=FALSE)
+          est_ar<- samEst::ricker_TMB(data=assessdat, AC=TRUE,logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig)
 
 
           if(est_ar$model$convergence==0){
