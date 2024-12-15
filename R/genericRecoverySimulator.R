@@ -874,7 +874,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             }
             sAg[y, n] <- sum(S[y, ])
 
-
             errorCU[y, ] <- sn::rmst(n = 1, xi = rep(0, nCU),
                                      alpha = rep(0, nCU), nu = 10000,
                                      Omega = covMat)
@@ -1752,6 +1751,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         }
       }
       sAg[y, n] <- sum(S[y, ])
+      extinct[y, ] <- extinctionCheck(y = y, gen = gen,
+                                      extinctThresh = extinctThresh,
+                                      spwnMat = S)
 
 
       #___________________________________________________________________
@@ -1802,11 +1804,13 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
       #Build SRR (even with normative period useful for diagnostics)
       for (k in 1:nCU) {
-        srMod <- quickLm(xVec = obsS[, k], yVec = obsLogRS[, k])
-        estYi[y, k, n] <- srMod[[1]]
-        estSlope[y, k, n] <- srMod[[2]]
-        estRicB[y, k, n] <- ifelse(extinct[y, k] == 1, NA, -estSlope[y, k, n])
-        estRicA[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estYi[y, k, n])
+        if(extinct[y,k]==0){
+          srMod <- quickLm(xVec = obsS[, k], yVec = obsLogRS[, k])
+          estYi[y, k, n] <- srMod[[1]]
+          estSlope[y, k, n] <- srMod[[2]]
+          estRicB[y, k, n] <- ifelse(extinct[y, k] == 1, NA, -estSlope[y, k, n])
+          estRicA[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estYi[y, k, n])
+        }
       }
       #Benchmark estimates
       # -- If normative period is TRUE than do not estimate BMs (they will diverge
@@ -1998,9 +2002,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         if (recBY[y, k] <= extinctThresh) {
           recBY[y, k] <- 0
         }
-        extinct[y, ] <- extinctionCheck(y = y, gen = gen,
-                                        extinctThresh = extinctThresh,
-                                        spwnMat = S)
+        # extinct[y, ] <- extinctionCheck(y = y, gen = gen,
+        #                                 extinctThresh = extinctThresh,
+        #                                 spwnMat = S)
       } #end for(k in 1:nCU)
 
       recBYAg[y, n] <- sum(recBY[y, ])
