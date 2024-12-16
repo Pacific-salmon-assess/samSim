@@ -10,7 +10,6 @@
 #' @return Vector of simulated proportion data based on specified tau and means.
 #' @export
 #'
-#' @examples
 #'
 mvLogisticLogProp <- function(tau, logProps){
   p <- logProps[!is.na(logProps)]
@@ -42,7 +41,6 @@ mvLogisticLogProp <- function(tau, logProps){
 #' objective function (*bestTau*).
 #' @export
 #'
-#' @examples
 #'
 getTau <- function(ppnMat, plotTaus = TRUE){
   targetFun <- function(tau, expLogProp, targetSD, n=10000) {

@@ -27,5 +27,5 @@ deviations. Useful for posterior predictive comparisons and generating
 output figures if model residuals are a variable of interest.
 }
 \examples{
-EXAMPLE DATA NEEDS TO BE GENERATED
+# EXAMPLE DATA NEEDS TO BE GENERATED
 }

@@ -16,7 +16,7 @@
 #' and ncol = nCU.
 #'
 #' @examples
-#' EXAMPLE DATA NEEDS TO BE GENERATED
+#' # EXAMPLE DATA NEEDS TO BE GENERATED
 #' @export
 
 #This function pulls residuals from observed recruitment data

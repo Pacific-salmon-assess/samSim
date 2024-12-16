@@ -15,7 +15,6 @@
 #' plot is generated.
 #' @return Returns a base plot object.
 #'
-#' @examples
 #'
 #'
 #' @export

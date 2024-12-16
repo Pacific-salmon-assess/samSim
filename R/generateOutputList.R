@@ -22,8 +22,6 @@
 #' @return Returns a list of output data of length equal to the number of unique
 #' scenarios within a directory.
 #'
-#' @examples
-#' TO BE COMPLETED
 #'
 #' @export
 genOutputList <- function(dirName, subDirName = NULL, selectedCUs = NULL,

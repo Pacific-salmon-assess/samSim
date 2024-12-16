@@ -27,15 +27,9 @@
 #' year's prevErr.
 #'
 #' @examples
-#' #Spawner and recruit values represent millions of fish, stock-recruit
-#' parameters approximate those of Fraser River sockeye salmon Chilko CU.
-#'
-#' #without autoregressive error
 #' rickerModel(S = 1.1, a = 1.8, b = 1.2, error = 0.3)
 #'
-#' #with autoregressive error
-#' rickerModel(S = 1.1, a = 1.8, b = 1.2, error = 0.3, rho = 0.2,
-#' prevErr = 0.7)
+#' rickerModel(S = 1.1, a = 1.8, b = 1.2, error = 0.3, rho = 0.2,prevErr = 0.7)
 #'
 #' @export
 
@@ -108,8 +102,6 @@ rickerModel <- function(S, a, b, error, rho = NULL, prevErr = NULL,
 #' @return Returns a numeric representing recruit abundance.
 #'
 #' @examples
-#' #Spawner and recruit values represent millions of fish, parameters
-#' approximate those of Shuswap CU
 #' larkinModel(S = 1.1, Sm1 = 0.4, Sm2 = 0.2, Sm3 = 0.15, a = 2.2, b = 0.29,
 #' b1 = 0.42, b2 = 0.31, b3 = 0.21, error = 0.3)
 #'

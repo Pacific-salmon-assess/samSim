@@ -40,7 +40,3 @@ of a single scenario (i.e. one OM and one MP). The second order list
 elements depend on whether CU-specific, aggregate, or aggregate time series
 data are extracted.
 }
-\examples{
-TO BE COMPLETED
-
-}

@@ -25,8 +25,6 @@
 #' procedure, operating model, plotOrder, cuName, muName, variable, its median
 #' value, its lower quantile, and its upper quantile.
 #'
-#' @examples
-#' TO BE COMPLETED (need example data in outputs directory)
 #'
 #' @export
 
@@ -119,9 +117,6 @@ buildDataCU <- function(dirNames, cuVars, keyVarName, selectedCUs = NULL) {
 #' @return Returns a dataframe with columns for the keyVariable, management
 #' procedure, operating model, plotOrder, variable, its median value, its lower
 #' quantile, and its upper quantile.
-#'
-#' @examples
-#' TO BE COMPLETED
 #'
 #' @export
 

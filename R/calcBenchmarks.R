@@ -40,8 +40,6 @@ sGenOptimum <- function(S, theta, sMSY) {
 #' the log likelihood.
 #'
 #' @examples
-#' Stock-recruit parameters approximate those of Fraser River sockeye salmon
-#' Chilko CU.
 #' alpha = 1.2
 #' beta = 1.5
 #' sigma = 0.8

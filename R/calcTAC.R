@@ -52,10 +52,6 @@
 #' reference purposes only).
 #'
 #' @examples
-#' #Note that the function is intended to receive vectors rather than the DF
-#' #used in this example to increase efficiency within the full closed-loop
-#' simulation.
-#' head(exampleHCRList)
 #' names(exampleHCRList)[4] <- "recRYMU"
 #'
 #' rec <- exampleHCRList$recRYMU

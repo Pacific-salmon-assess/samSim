@@ -2,6 +2,7 @@
 % Please edit documentation in R/samSim.R
 \docType{package}
 \name{samSim}
+\alias{samSim-package}
 \alias{samSim}
 \title{samSim}
 \description{

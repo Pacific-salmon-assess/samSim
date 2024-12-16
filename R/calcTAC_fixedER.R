@@ -14,9 +14,6 @@
 #' @return Returns a four element list of numeric vectors with length equal to
 #' forecast:Total Canadian TAC, Canadian mixed fishery TAC, Canadian single fishery TAC, American TAC
 #' @export
-#' @examples
-#' calcTAC_fixedER(rec=1000, canER=0.3, amER = 0.1, ppnMix = 0.5)
-#'
 #'
 calcTAC_fixedER <- function(rec, canER, amER, ppnMixVec, cvER, randomVar=T, runif=NULL) {
 

@@ -53,14 +53,8 @@ i.e. all vectors for inputs and outputs are length 1. Note that by default
 prevErr and rho are NULL, resulting in a standard Ricker model.
 }
 \examples{
-#Spawner and recruit values represent millions of fish, stock-recruit
-parameters approximate those of Fraser River sockeye salmon Chilko CU.
-
-#without autoregressive error
 rickerModel(S = 1.1, a = 1.8, b = 1.2, error = 0.3)
 
-#with autoregressive error
-rickerModel(S = 1.1, a = 1.8, b = 1.2, error = 0.3, rho = 0.2,
-prevErr = 0.7)
+rickerModel(S = 1.1, a = 1.8, b = 1.2, error = 0.3, rho = 0.2,prevErr = 0.7)
 
 }

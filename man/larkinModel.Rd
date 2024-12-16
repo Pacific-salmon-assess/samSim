@@ -40,8 +40,6 @@ Larkin model.
 }
 
 \examples{
-#Spawner and recruit values represent millions of fish, parameters
-approximate those of Shuswap CU
 larkinModel(S = 1.1, Sm1 = 0.4, Sm2 = 0.2, Sm3 = 0.15, a = 2.2, b = 0.29,
 b1 = 0.42, b2 = 0.31, b3 = 0.21, error = 0.3)
 

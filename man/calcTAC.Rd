@@ -86,10 +86,6 @@ constraint. When abundance is below the lower FRP min ER is applied, between
 the two it increases linearly, and above it is max (typically Umsy).
 }
 \examples{
-#Note that the function is intended to receive vectors rather than the DF
-#used in this example to increase efficiency within the full closed-loop
-simulation.
-head(exampleHCRList)
 names(exampleHCRList)[4] <- "recRYMU"
 
 rec <- exampleHCRList$recRYMU

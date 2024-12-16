@@ -22,8 +22,6 @@ This function solves for sGen based on sMSY and the log-likelihood estimated
 in sGenOptimum.
 }
 \examples{
-Stock-recruit parameters approximate those of Fraser River sockeye salmon
-Chilko CU.
 alpha = 1.2
 beta = 1.5
 sigma = 0.8

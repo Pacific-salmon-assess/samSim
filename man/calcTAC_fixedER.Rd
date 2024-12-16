@@ -31,8 +31,3 @@ forecast:Total Canadian TAC, Canadian mixed fishery TAC, Canadian single fishery
 \description{
 Title
 }
-\examples{
-calcTAC_fixedER(rec=1000, canER=0.3, amER = 0.1, ppnMix = 0.5)
-
-
-}
