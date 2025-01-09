@@ -23,8 +23,8 @@ genericRecoverySim(
 )
 }
 \arguments{
-\item{simPar}{is a .csv file that contains the input parameters that 
-characterize a specific simulation run, but which are *shared* among CUs. 
+\item{simPar}{is a .csv file that contains the input parameters that
+characterize a specific simulation run, but which are *shared* among CUs.
 A detailed descrption of the contents of the `simPar` file can be found by accessing ?simParexample}
 
 \item{cuPar}{is a .csv file that contains CU-specific input parameters. Note that these parameters should *not* vary among simulation runs. Differences in operating models that involve CU-specific traits (e.g. population dynamics) can typically be introduced via options in the `simPar` file. Each row represents a specific CU.}
@@ -76,4 +76,22 @@ and assocaited performance measures, has been removed.
 Simulation runs primed with observed SR data
 (recDat input). The model includes data generation, variation in age
 structure, survey design, and variable exploitation rules.
+}
+\examples{
+
+genericRecoverySim(simPar=simParexample, 
+                       cuPar=cuParexample, 
+                       catchDat=NULL, 
+                       srDat=NULL,
+                       variableCU=FALSE, 
+                       ricPars=NULL, 
+                       larkPars=NULL, 
+                       cuCustomCorrMat= NULL,
+                       outDir="test", 
+                       nTrials=10, 
+                       makeSubDirs=TRUE, 
+                       random=FALSE, 
+                       uniqueProd=TRUE,
+                       uniqueSurv=FALSE)
+
 }

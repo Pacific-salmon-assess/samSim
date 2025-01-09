@@ -5,7 +5,8 @@ Version: 0.0.0.9
 Authors@R: c(person("Cameron", "Freshwater", email = "cameron.freshwater@dfo-mpo.gc.ca", role = c("aut", "cre")),
              person("Carrie", "Holt", email = "Carrie.Holt@dfo-mpo.gc.ca", role = "aut"),
              person("Kendra", "Holt", email = "Kendra.Holt@dfo-mpo.gc.ca", role = "aut"),
-             person("Catarina", "Wor", email = "catarina.wor@dfo-mpo.gc.ca", role = "aut")
+             person("Catarina", "Wor", email = "catarina.wor@dfo-mpo.gc.ca", role = "aut"),
+             person("Dan", "Greenberg", email = "dan.greenberg@dfo-mpo.gc.ca", role = "aut")
             )
 Description: samSim is intended to evaluate management strategies for Pacific salmon stocks while accounting for a range of uncertainties.
 License: GPL-3
@@ -33,7 +34,7 @@ Imports:
     samEst
 Remotes: 
     github::Pacific-salmon-assess/samEst
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
 Suggests:
     knitr,
     rmarkdown,

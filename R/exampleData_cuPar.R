@@ -18,6 +18,7 @@
 #'   \item{alpha}{Productivity parameter for stock recruitment relationship based on Ricker of the form R <- S * exp(a - b * S) }
 #'   \item{beta0}{Density-dependance parameter for Ricker models based on Ricker of the form R <- S * exp(a - b * S)}
 #'   \item{sigma}{recruitment variation for Ricker models}	
+#'   \item{sigmaProd}{variability in productivity parameter if simulated with random walk}  
 #'   \item{coef1}{additional coefficient to covariates added to Ricker models, representing, for example survival coefficients, or environmental variables}	
 #'   \item{covarInit}{covariate value to be used in model initalization}	
 #'   \item{Sinit}{ Numbers of spawners to initialize simulations, if absent Seq is used}

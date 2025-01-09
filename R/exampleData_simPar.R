@@ -8,42 +8,46 @@
 #'   \item{nameOM}{operating model name. Used in naming simulation oyutput directories and many output files}
 #'   \item{nameMP}{management procedure name, used in naming output files}
 #'   \item{keyVar}{focal variable of the analysis; subjective since typically multiple variables will differ 
-#'    among scenarios, but should be a focal point of main figures. Currently can be one of the following arguments: `prodRegime`, 
-#'   `synch`, `expRate`, `ppnMix`, `sigma`, `endYear`, `adjustAge`, `mixOUSig`, `adjustForecast`, `adjustEnRoute`, `obsSig`, 
-#'   `obsMixCatch` (**NOTE these should eventually be defined explicitly**)}
+#'                 among scenarios, but should be a focal point of main figures. Currently can be one of the following arguments: `prodRegime`, 
+#'                 `synch`, `expRate`, `ppnMix`, `sigma`, `endYear`, `adjustAge`, `mixOUSig`, `adjustForecast`, `adjustEnRoute`, `obsSig`, 
+#'                 `obsMixCatch` (**NOTE these should eventually be defined explicitly**)}
 #'   \item{plotOrder}{order in which grouped scenarios will be plotted (useful when keyVar is not an ordinal or numeric variable)}
 #'   \item{species}{lower case species name (chum, sockeye and coho have been tested robustly; pink has not; chinook should be 
-#'    used with extreme caution since most stocks do not meet assumptions of the model- I am not sure this still holds)} 
+#'                  used with extreme caution since most stocks do not meet assumptions of the model- I am not sure this still holds)} 
 #'   \item{simYears}{length of the simulation period (excluding priming period)}
 #'   \item{harvContRule}{harvest control rule (`TAM`(deprecated), `fixedER`, `genPA`(deprecated),`trendER`, `shiftER`} 
 #'   \item{benchmark}{biological benchmark used to assess conservation status (`stockRecruit`, `percentile`)}
 #'   \item{canER}{initial Canadian exploitation rate} 
 #'   \item{finalCanER}{final Canadian exploitation rate}
+#'   \item{ERStartYear}{Year in which ER trend starts}
+#'   \item{EREndYear}{Year in which ER trend ends}
 #'   \item{usER}{ American exploitation rate (note can also be supplied as CU-specific value in `cuPars`)}
 #'   \item{cvERSMU}{Annual variation in exploitation rate for the SMU}  
 #'   \item{propMixHigh}{proportion of Canadian catch allocated to mixed-stock fisheries (can range from 0 to 1)}  
 #'   \item{singleHCR}{single stock harvest control rule (`FALSE`, `retro`, `forecast`)}  
 #'   \item{moveTAC}{if `TRUE` and single stock quota from low-abundance CUs is re-allocated to other CUs}   
 #'   \item{prodRegime}{productivity regime. Options are: `low` multiply alpha by 0.65,
-#'  `lowStudT` same as `low` and use student-t for SR error distribution,
-#'  `med` constant and unchanged alpha,
-#'  `studT` same as `med` and use student-t for SR error distribution,
-#'  `skew` use skewed normal for SR error distribution,
-#'  `skewT` use skewed student-t for SR error distribution, 
-#'  `linear` linear trend where the end value is adjusted by prodPpnChange, 
-#'  `decline` linear decline trend with final alpha is 0.65 times initial value,
-#'  `increase` linear increase trend with final alpha is 1.35 times initial value,
-#'  `divergent` productivity for CUs have decline of increasing trends,
-#'  `oneUp` one CU picked at random has an increasing trend final alpha is 1.35 times initial value,
-#'  `oneDown` one CU picked at random has an increasing trend final alpha is 0.65 times initial value, 
-#'  `sine` sine trend in productivity requiring further parameters ampSinProd and sinCycleLen),
-#'  `regime` regime shifts based on prodPpnChange and prodRegimeLen,
-#'  `randomwalk` . }   
+#'                    `lowStudT` same as `low` and use student-t for SR error distribution,
+#'                    `med` constant and unchanged alpha,
+#'                    `studT` same as `med` and use student-t for SR error distribution,
+#'                    `skew` use skewed normal for SR error distribution,
+#'                    `skewT` use skewed student-t for SR error distribution, 
+#'                    `linear` linear trend where the end value is adjusted by prodPpnChange, 
+#'                    `decline` linear decline trend with final alpha is 0.65 times initial value,
+#'                    `increase` linear increase trend with final alpha is 1.35 times initial value,
+#'                    `divergent` productivity for CUs have decline of increasing trends,
+#'                    `oneUp` one CU picked at random has an increasing trend final alpha is 1.35 times initial value,
+#'                    `oneDown` one CU picked at random has an increasing trend final alpha is 0.65 times initial value, 
+#'                    `sine` sine trend in productivity requiring further parameters ampSinProd and sinCycleLen),
+#'                    `regime` regime shifts based on prodPpnChange and prodRegimeLen,
+#'                    `randomwalk` . }   
 #'   \item{prodPpnChange}{Scalar to modify productivity parameter, values >1 indicate increase linear trend and <1 declining linear trend}  
 #'   \item{prodTrendLength}{Length of the trend in productivity parameter in years, if prodStartYear not defined, then trend happens in the beginning of the simulation time series}    
 #'   \item{prodStartYear}{indicates when a productivity decline (if specified by `prodRegime == "decline"`) should start -- not implemented}       
 #'   \item{prodEndYear}{indicates when a productivity decline (if specified by `prodRegime == "decline"`) should end}          
 #'   \item{prodRegimeLen}{Length of each productivity regime, when prodRegime is "regime".  Default is 10}
+#'   \item{ampSinProd}{Amplitude of variability in productivity if sine pattern is used}
+#'   \item{sinCycleLen}{length of one comple sine cycle}
 #'   \item{capRegime}{type of SR capacity (Smax) regime, current options are `linear` linear trend where the end value is adjusted by prodPpnChange,
 #'  `regime` regime shifts based on capPpnChange and capRegimeLen,
 #'  `decline` linear decline trend with final alpha is 0.65 times initial value, 
@@ -80,6 +84,16 @@
 #'   \item{adjustForecast}{Scalar to adjust the sigma used to simulate population forecast}  
 #'   \item{agePpnConst}{Logical. If TRUE set age proportion to be constant among CUs}     
 #'   \item{assessType}{Type of assessment model, default is the simple linear model, rwa relies on samEst to estimate random walk time-varying alpha model }     
+#'   \item{rCap}{Cap on recruitment magnitude, default is 5, i.e., maximum recruitment is 5x Srep or Sinit (if available) }
+#'   \item{assessFreq}{How often are assessments run and reference points updated}  
+#'   \item{bmERAdj}{how much to change ER (a straight multiplier) when the S < escapement goal}  
+#'   \item{redStatusER}{I believe this sets a specific ER for red status specifically}  
+#'   \item{normPeriod}{Logical indicating if benchmarls should be fixed to those in the normative period} 
+#'   \item{infBetaPrior}{Logical. Should informative priors be used in samEst estimation models } 
+#'   \item{fERAdj}{multiplier for harvest Target (xUMSY)} 
+#'   \item{HCRtype}{One of umsy/abundance/both} 
+#'   \item{fixedLowerBenchmark}{set value for a fixed LowerBenchmark, note the 'benchmark' column  must equal 'fixed'} 
+#'   \item{fixedUpperBenchmark}{set value for a fixed UpperBenchmark, note the 'benchmark' column  must equal 'fixed'} 
 #' }
 "simParexample"
 

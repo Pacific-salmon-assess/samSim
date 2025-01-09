@@ -37,6 +37,23 @@
 #' @param random If random = TRUE then each simulation will start at a different point
 #' @param outDir directories where results are stored
 #'
+#'@examples
+#'
+#'genericRecoverySim(simPar=simParexample, 
+#'                        cuPar=cuParexample, 
+#'                        catchDat=NULL, 
+#'                        srDat=NULL,
+#'                        variableCU=FALSE, 
+#'                        ricPars=NULL, 
+#'                        larkPars=NULL, 
+#'                        cuCustomCorrMat= NULL,
+#'                        outDir="test", 
+#'                        nTrials=10, 
+#'                        makeSubDirs=TRUE, 
+#'                        random=FALSE, 
+#'                        uniqueProd=TRUE,
+#'                        uniqueSurv=FALSE)
+#'
 #' @return TO BE DEFINED
 #' @export
 #'
