@@ -1,0 +1,18 @@
+cff-version: 0.0.0
+message: "If you use samSim, please cite it as below."
+authors:
+- family-names: "Cameron"
+  given-names: "Freshwater"
+- family-names: "Holt"
+  given-names: "Carrie"
+- family-names: "Holt"
+  given-names: "Kendra"
+- family-names: "Wor"
+  given-names: "Catarina"
+- family-names: "Greenberg"
+  given-names: "Dan"
+title: "samSim: A closed-loop simulation tool for Pacific salmon populations"
+version: 1.0.0
+doi: 10.5281/zenodo.14630817
+date-released: 2025-01-10
+url: "https://github.com/Pacific-salmon-assess/samSim"

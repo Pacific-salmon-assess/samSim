@@ -1,10 +1,11 @@
 # samSim <img src="man/figures/logo.png" align="right" height="138" alt="" />
+
 ## Closed-loop simulation package for salmon CUs
 
 -----  
 
-**Authors: Cameron Freshwater, Carrie Holt, Kendra Holt **  
-
+**Authors: Cameron Freshwater, Carrie Holt, Kendra Holt, Catarina Wor**  
+**Date: 2019-02-01 (ONGOING)**
 
 -----
 
