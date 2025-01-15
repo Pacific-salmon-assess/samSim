@@ -1,4 +1,4 @@
-# samSim
+# samSim <img src="man/figures/logo.png" align="right" height="138" alt="" />
 ## Closed-loop simulation package for salmon conservation units and stock management units
 
 
