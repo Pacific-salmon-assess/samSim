@@ -430,6 +430,13 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   estYi <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   # estYi2 <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   estSlope <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  if(assessType=="both"){
+     estYi_tv <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+     estSlope_tv <-  estSlope <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+
+     estRicA_tv <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+     estRicB_tv <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  }
   estSMSY <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   estSGen <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   estUMSY <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
@@ -2261,6 +2268,40 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             estSlope[y, k, n] <- NA
           }
 
+        }else if(assessType=="both"){
+
+          srMod <- quickLm(xVec = obsS[, k], yVec = obsLogRS[, k])
+          estYi[y, k, n] <- srMod[[1]]
+          estSlope[y, k, n] <- -srMod[[2]]
+
+           assessdat <- data.frame(
+                      S=obsS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
+                     R=obsRecBY[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
+                     logRS=obsLogRS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k])
+
+          #priors
+          if(infBetaPrior==TRUE){
+            Smax_mean <- capMat[y,k]
+            Smax_sd <- Smax_mean
+          }else{
+            Smax_mean <- (max(assessdat$S)*.5)
+            Smax_sd <- Smax_mean
+          }
+          logbeta_pr_sig <- sqrt(log(1+((1/ Smax_sd)*(1/ Smax_sd))/((1/Smax_mean)*(1/Smax_mean))))
+          logbeta_pr <- log(1/(Smax_mean))-0.5*logbeta_pr_sig^2
+
+          tva<- samEst::ricker_rw_TMB(data=assessdat,tv.par="a",logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig,AICc_type="marginal",newton_stp=FALSE)
+
+          if(tva$model$convergence==0){
+            estYi_tv[y, k, n] <- mean(tail(tva$logalpha,n=ageMaxRec))
+            estSlope_tv[y, k, n] <- tva$beta[1]
+          }else{
+            estYi_tv[y, k, n] <- NA
+            estSlope_tv[y, k, n] <- NA
+          }
+          estRicB_tv[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estSlope_tv[y, k, n])
+          estRicA_tv[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estYi_tv[y, k, n])
+       
         }
         estRicB[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estSlope[y, k, n])
         estRicA[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estYi[y, k, n])
@@ -2298,13 +2339,24 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           estS25th[y, k, n] <- sort(obsSNoNA)[obsN25th]
           estS50th[y, k, n] <- sort(obsSNoNA)[obsN50th]
           #Calculate SR BMs
-          estSMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
+          if(assessType == "both"){
+            estSMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
                                      (1 - gsl::lambert_W0(exp(
                                        1 - estRicA[y, k, n]))) /
                                        estRicB[y, k, n])
-          estUMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
+            estUMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
+                                     1 - gsl::lambert_W0(exp(
+                                       1 - estRicA_tv[y, k, n])))
+          }else{
+            estSMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
+                                     (1 - gsl::lambert_W0(exp(
+                                       1 - estRicA[y, k, n]))) /
+                                       estRicB[y, k, n])
+            estUMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
                                      1 - gsl::lambert_W0(exp(
                                        1 - estRicA[y, k, n])))
+          }
+          
           if (is.na(estRicB[y, k, n]) == FALSE) {
             if (estRicB[y, k, n] > 0) {
               if ((1 / estRicB[y, k, n]) <= max(obsS[,k], na.rm = TRUE) * 4) {
