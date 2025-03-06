@@ -2276,7 +2276,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           estYi[y, k, n] <- srMod[[1]]
           estSlope[y, k, n] <- -srMod[[2]]
 
-           assessdat <- data.frame(
+          if(estSlope[y, k, n]<0){
+            estSlope[y, k, n] <- NA
+          }
+
+          assessdat <- data.frame(
                       S=obsS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
                      R=obsRecBY[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
                      logRS=obsLogRS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k])
@@ -2360,7 +2364,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           }
           
           if (is.na(estRicB[y, k, n]) == FALSE) {
-            if (estRicB[y, k, n] > 0) {
+            if ( estRicB[y, k, n]> 0) {
               if ((1 / estRicB[y, k, n]) <= max(obsS[,k], na.rm = TRUE) * 4) {
                 estSGen[y, k, n] <- as.numeric(sGenSolver(
                   theta = c(estRicA[y, k, n], estRicB[y, k, n], ricSig[k]),
