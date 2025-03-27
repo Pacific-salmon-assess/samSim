@@ -2,7 +2,7 @@
 % Please edit documentation in R/estimateTau.R
 \name{mvLogisticLogProp}
 \alias{mvLogisticLogProp}
-\title{Calculate multivariate logistric proportions}
+\title{Calculate multivariate logistic proportions}
 \usage{
 mvLogisticLogProp(tau, logProps)
 }

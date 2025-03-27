@@ -1,4 +1,4 @@
-#' Calculate multivariate logistric proportions
+#' Calculate multivariate logistic proportions
 #'
 #' This is a component function within getTau used to calculate log proportions.
 #' Originally written by B. Dorner and C. Holt so C. Freshwater unable to
@@ -10,7 +10,7 @@
 #' @return Vector of simulated proportion data based on specified tau and means.
 #' @export
 #'
-#' @examples
+#' 
 #'
 mvLogisticLogProp <- function(tau, logProps){
   p <- logProps[!is.na(logProps)]
@@ -44,7 +44,20 @@ mvLogisticLogProp <- function(tau, logProps){
 #'
 #' @examples
 #'
-getTau <- function(ppnMat, plotTaus = TRUE){
+#'
+#' ppnMat<-matrix(0,nrow=40,ncol=4)
+#' for(i in 1:40){
+#'   ppnMat[i,]<-ppnAgeErr(c(0.1,0.3,0.4,0.2), 0.25,
+#'        error = runif(4, 0.0001, 0.9999)) 
+#' }
+#'
+#' #estimate and recover tau
+#' getTau(ppnMat, plotTaus = TRUE)
+#'
+#'
+#'
+#'
+getTau <- function(ppnMat, gridstep = 0.01, plotTaus = TRUE){
   targetFun <- function(tau, expLogProp, targetSD, n=10000) {
     cat(". ")
     Tau <- rep(tau, n)
@@ -61,13 +74,13 @@ getTau <- function(ppnMat, plotTaus = TRUE){
   ppnMat[ppnMat == 0] <- 1e-10
 
   ## Grid search for best tau:
-  tau <- seq(from = 0, to = 3, by = 0.1)
+  tau <- seq(from = 0, to = 3, by = gridstep)
   result <- data.frame(tau=tau, objective=rep(NA, length(tau)))
   cat("finding scale parameter for variability in relative recruit
       proportions:\n")
-  for(t in tau){
+  for(ti in seq_along(tau)){
     cat(". ")
-    result[t*10+1, "objective"] <- targetFun(t, apply(log(ppnMat), 2, mean),
+    result[ti, "objective"] <- targetFun(tau[ti], apply(log(ppnMat), 2, mean),
                                              apply(ppnMat, 2, sd))
   }
   cat("\n")
