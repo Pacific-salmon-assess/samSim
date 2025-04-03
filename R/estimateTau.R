@@ -1,3 +1,99 @@
+
+
+
+#' MLE for multivariate logistic proportions 
+#'
+#' This function provides MLE estimates for the multivariate logistic likelihood
+#' function describe by Schunute and Richards 1995. Originally coded by Paul van Dam-Bates
+#' 
+#'
+#' @param agePropData matrix of proportions at age
+#' 
+#'
+#' @return List of parameter estimates for variance (tau) and mean proportions at age (pa).
+#' @export
+#'
+#' 
+#'
+mvLogisticLL <- function(agePropData){
+
+  if(sum(round(apply(agePropData,1,sum),2)!=1.00)){
+    stop(paste("line(s)",which(apply(agePropData,1,sum)>1), 
+      "do not sum up to 1. please review your proportions at age data"))
+  }
+  
+
+  A <- ncol(agePropData)
+  fit_schnute <- nlminb(numeric(A), negll_schnute, props = t(agePropData))
+  tau<-exp(fit_schnute$par[A])
+  pa<-trans(fit_schnute$par[1:(A-1)])
+
+  return(list(tau=tau,
+   pa=pa))
+}
+
+
+
+
+
+
+
+#' negative log likelihood function for multivariate logistic likelihood
+#'
+#' This function provides MLE estimates for the multivariate logistic likelihood
+#' function describe by Schunute and Richards 1995. Originally coded by Paul van Dam-Bates
+#' 
+#'
+#' @param pars parameters to be estimates (initial guesses) mean proportion at age and variance. 
+#' Make sure vector is compatible with observed proportions
+#' @param props matrix of observed proportions at age 
+#'
+#' @return negative log likelihood value
+#' @export
+#'
+#' 
+#'
+negll_schnute <- function(pars, props){
+  np <- length(pars)
+  mu <- trans(pars[1:(np-1)])
+  sigma <- exp(pars[np])
+  nll <- 0
+  for( i in 1:ncol(props)){
+    keep <- props[,i] > 0
+    pinz <- props[keep,i]
+    y <- log(pinz) - mean(log(pinz))
+    mean <- log(mu[props[,i] > 0]) - mean(log(mu[props[,i] > 0])) ## It normalizes itself
+    nll <- nll - sum(dnorm(y, mean, sigma, log = TRUE)) 
+  }
+  return(nll)
+}
+
+
+
+
+
+#' Utility transformation function
+#'
+#' This is a component function within getTau used to calculate log proportions.
+#' Originally written by B. Dorner and C. Holt so C. Freshwater unable to
+#' fully verify documentation.
+#'
+#' @param tau Value for tau to test
+#' @param logProps Log-transformed vector of mean proportion data
+#'
+#' @return Vector of simulated proportion data based on specified tau and means.
+#' @export
+#'
+trans <- function (alpha){
+ expa <- exp(alpha)
+ c(expa , 1+numeric(1))/(1+sum(expa))
+}
+
+
+
+#=========================================================
+
+
 #' Calculate multivariate logistic proportions
 #'
 #' This is a component function within getTau used to calculate log proportions.
