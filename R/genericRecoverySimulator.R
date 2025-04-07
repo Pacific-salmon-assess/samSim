@@ -36,6 +36,7 @@
 #' @param uniqueSurv Logical, If false, all CU's are assigned the same survival parameters
 #' @param random If random = TRUE then each simulation will start at a different point
 #' @param outDir directories where results are stored
+#' @param aggDatOut logical, indicating if aggregated data output is saved, Default is FALSE
 #'
 #'@examples
 #'
@@ -62,7 +63,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                variableCU=FALSE, makeSubDirs=TRUE, ricPars,
                                larkPars=NULL, cuCustomCorrMat=NULL,
                                erCorrMat=NULL, nTrials=100, uniqueProd=TRUE,
-                               uniqueSurv=FALSE, random=FALSE, outDir) {
+                               uniqueSurv=FALSE, random=FALSE, outDir, 
+                               aggDatOut=FALSE,lrpDatOut=FALSE) {
   # If random = TRUE then each simulation will start at a different point
   # i.e. should ALWAYS be FALSE except for convenience when running independent
   # chains to test convergence
@@ -2915,36 +2917,37 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   ## Aggregate outputs
   # Generate array of median, upper and lower quantiles that are passed to
   # plotting function
-  agNames <- c("Ag Spawners", "Obs Ag Spawners", "Ag Recruits RY",
+  if(aggDatOut==TRUE){
+    agNames <- c("Ag Spawners", "Obs Ag Spawners", "Ag Recruits RY",
                "Obs Ag Recruits RY", "Ag Catch", "Obs Ag Catch", "Exp Rate",
                "Obs Exp Rate", "Change Ag Catch",
                "Prop Above Upper BM", "Prop Above Lower BM",
                "Obs Prop Above Upper BM", "Obs Prop Above Lower BM")
-  agDat <- array(c(sAg, obsSAg, recRYAg, obsRecRYAg, catchAg, obsCatchAg,
+    agDat <- array(c(sAg, obsSAg, recRYAg, obsRecRYAg, catchAg, obsCatchAg,
                    expRateAg, obsExpRateAg, ppnCUsUpperBM,
                    ppnCUsLowerBM, ppnCUsUpperObsBM, ppnCUsLowerObsBM),
                  dim = c(nYears, nTrials, length(agNames)))
-  dimnames(agDat)[[3]] <- agNames
+    dimnames(agDat)[[3]] <- agNames
 
 
-  # Save aggregate data as list to create TS plot
-  agTSList <- c(list(nameOM, keyVar, plotOrder, nameMP, harvContRule,
+    # Save aggregate data as list to create TS plot
+    agTSList <- c(list(nameOM, keyVar, plotOrder, nameMP, harvContRule,
                      targetExpRateAg, firstYr, nPrime, nYears),
                 plyr::alply(agDat, 3, .dims = TRUE))
-  names(agTSList)[1:9] <- c("opMod", "keyVar", "plotOrder", "manProc", "hcr",
+    names(agTSList)[1:9] <- c("opMod", "keyVar", "plotOrder", "manProc", "hcr",
                             "targetExpRate", "firstYr", "nPrime", "nYears")
-  fileName <- ifelse(variableCU == "TRUE",
+    fileName <- ifelse(variableCU == "TRUE",
                      paste(cuNameOM, cuNameMP, "aggTimeSeries.RData",
                            sep = "_"),
                      paste(nameOM, nameMP, "aggTimeSeries.RData", sep = "_"))
-   saveRDS(agTSList, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName,
+    saveRDS(agTSList, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName,
                                   sep = "/"), version=3)
 
 
 
-  # Store aggregate data as data frame; each variable is a vector of single, trial-specific values
-  yrsSeq <- (nPrime + 1):nYears
-  aggDat <- data.frame(opMod = rep(nameOM, length.out = nTrials),
+    # Store aggregate data as data frame; each variable is a vector of single, trial-specific values
+    yrsSeq <- (nPrime + 1):nYears
+    aggDat <- data.frame(opMod = rep(nameOM, length.out = nTrials),
                        manProc = rep(nameMP, length.out = nTrials),
                        keyVar = rep(keyVar, length.out = nTrials),
                        plotOrder = rep(plotOrder, length.out = nTrials),
@@ -2994,31 +2997,34 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                        medSpawnersEarly = apply(matrix(sAg[(nPrime + 1):endEarly, ]), 2, median),
                        medRecRYEarly = apply(matrix(recRYAg[(nPrime + 1):endEarly, ]), 2, median),
                        medCatchEarly = apply(matrix(catchAg[(nPrime + 1):endEarly, ]), 2, median) #median aggregate catch in first 2 generations of management period
-  )
-  fileName <- ifelse(variableCU == "TRUE", paste(cuNameOM, cuNameMP, "aggDat.csv", sep = "_"),
+    )
+    fileName <- ifelse(variableCU == "TRUE", paste(cuNameOM, cuNameMP, "aggDat.csv", sep = "_"),
                      paste(nameOM, nameMP, "aggDat.csv", sep = "_"))
-  write.csv(aggDat, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName, sep = "/"), row.names = FALSE)
+    write.csv(aggDat, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName, sep = "/"), row.names = FALSE)
+  }
+  
 
   # Create LRP data for output
-  colnames(sAg)<-as.character(1:nTrials)
-  sAg.dat<-as.data.frame(sAg)
-  sAg.dat<-sAg.dat %>% tibble::add_column(year=1:nYears)
-  sAg.dat<-sAg.dat %>% tidyr::pivot_longer(as.character(1:nTrials), names_to="iteration", values_to="sAg")
+  if(lrpDatOut){
+    colnames(sAg)<-as.character(1:nTrials)
+    sAg.dat<-as.data.frame(sAg)
+    sAg.dat<-sAg.dat %>% tibble::add_column(year=1:nYears)
+    sAg.dat<-sAg.dat %>% tidyr::pivot_longer(as.character(1:nTrials), names_to="iteration", values_to="sAg")
 
-  colnames(ppnCUsLowerBM)<-as.character(1:nTrials)
-  ppnCUs.dat<-as.data.frame(ppnCUsLowerBM)
-  ppnCUs.dat<-ppnCUs.dat %>% tibble::add_column(year=1:nYears)
-  ppnCUs.dat<-ppnCUs.dat %>% tidyr::pivot_longer(as.character(1:nTrials), names_to="iteration", values_to="ppnCUsLowerBM")
+    colnames(ppnCUsLowerBM)<-as.character(1:nTrials)
+    ppnCUs.dat<-as.data.frame(ppnCUsLowerBM)
+    ppnCUs.dat<-ppnCUs.dat %>% tibble::add_column(year=1:nYears)
+    ppnCUs.dat<-ppnCUs.dat %>% tidyr::pivot_longer(as.character(1:nTrials), names_to="iteration", values_to="ppnCUsLowerBM")
 
-  LRP.dat <- sAg.dat %>% dplyr::left_join(ppnCUs.dat)
+    LRP.dat <- sAg.dat %>% dplyr::left_join(ppnCUs.dat)
 
-  fileName <- ifelse(variableCU == "TRUE", paste(cuNameOM, cuNameMP, "lrpDat.csv", sep = "_"),
+    fileName <- ifelse(variableCU == "TRUE", paste(cuNameOM, cuNameMP, "lrpDat.csv", sep = "_"),
                      paste(nameOM, nameMP, "lrpDat.csv", sep = "_"))
 
-   write.csv(LRP.dat, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName, sep = "/"),
+    write.csv(LRP.dat, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName, sep = "/"),
              row.names = FALSE)
 
-
+  }
   # Create CU spawner abundance and recruit data for output
 
   for(i in 1:nTrials) {
@@ -3130,7 +3136,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     }
   }
 
-   srDatoutList <- list(srDatout, nameOM, simYears, nTrials, ricSig, rho, canER, obsSig,
+  srDatoutList <- list(srDatout, nameOM, simYears, nTrials, ricSig, rho, canER, obsSig,
                          obsMixCatchSig, prod, prodScalars, prodTrendLength, cap, capacityScalars, capTrendLength)
     names(srDatoutList) <- c("srDatout", "nameOM", "simYears", "nTrials", "ricSig", "rho",
                              "canER", "obsSig", "obsMixCatchSig", "prod", "prodScalars",
@@ -3139,7 +3145,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
     saveRDS(srDatoutList, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName,
                                        sep = "/"), version=3)
-
 
   # Create CU catch and status summary table
 
