@@ -31,11 +31,11 @@ getSRPars_randomSamp <- function(pars,
   srSamp<-NULL
   if (!is.null(stks)) {
     pars <- pars %>%
-      filter(stk %in% stks)
+      dplyr::filter(stk %in% stks)
   }
   if (!is.null(pars$CU)) {
     pars <- pars %>%
-      select(-CU)
+      dplyr::select(-CU)
   }
 
   stkKey <- unique(pars$stk)
