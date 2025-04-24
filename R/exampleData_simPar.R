@@ -83,7 +83,9 @@
 #'   \item{adjustAge}{scalar on `tauCatch`}       
 #'   \item{adjustForecast}{Scalar to adjust the sigma used to simulate population forecast}  
 #'   \item{agePpnConst}{Logical. If TRUE set age proportion to be constant among CUs}     
-#'   \item{assessType}{Type of assessment model, default is the simple linear model, rwa relies on samEst to estimate random walk time-varying alpha model }     
+#'   \item{assessType}{Type of assessment model= c("default","autocorr","rwa", "both") default is 
+#' the simple linear model, autocorr and rwa rely on samEst to estimate autocorr and random walk
+#' time-varying alpha model, both uses the simple linear model for abundance benchmarks and rwa for umsy }     
 #'   \item{rCap}{Cap on recruitment magnitude, default is 5, i.e., maximum recruitment is 5x Srep or Sinit (if available) }
 #'   \item{assessFreq}{How often are assessments run and reference points updated}  
 #'   \item{bmERAdj}{how much to change ER (a straight multiplier) when the S < escapement goal}  

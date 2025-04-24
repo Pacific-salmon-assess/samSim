@@ -17,7 +17,8 @@ A dataframe with 45 columns used as input to define simulation scenarios and MP:
   \item{cvER}{Variation in exploitation rates among CUs.} 
   \item{usERScalar}{Scalar used to specify if any CUs should have US ERs scaled above or below the MU-level average specified in simPars}
   \item{canERScalar}{Scalar used to specify if any CUs should have Canadian ERs scaled above or below the MU-level average specified in simPars} 
-  \item{tauCycAge}{multivariate logistic average variation in proportions of returns by age, see Schnute and Richards 1995, eqns.S.9 and S.10}
+  \item{tauCycAge}{multivariate logistic average variation in proportions of returns by age, see Schnute and Richards 1995, eqns.S.9 and S.10, 
+   recommended reasonable value of 0.2, if escapement brood age composition is available use `getTau`}
   \item{alpha}{Productivity parameter for stock recruitment relationship based on Ricker of the form R <- S * exp(a - b * S) }
   \item{beta0}{Density-dependance parameter for Ricker models based on Ricker of the form R <- S * exp(a - b * S)}
   \item{sigma}{recruitment variation for Ricker models}	

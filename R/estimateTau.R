@@ -1,4 +1,78 @@
-#' Calculate multivariate logistric proportions
+
+
+
+#' MLE for multivariate logistic proportions 
+#'
+#' This function provides MLE estimates for the multivariate logistic likelihood
+#' function describe by Schunute and Richards 1995. Originally coded by Paul van Dam-Bates
+#' 
+#'
+#' @param agePropData matrix of proportions at age
+#' 
+#'
+#' @return List of parameter estimates for variance (tau) and mean proportions at age (pa).
+#' @export
+#'
+#' 
+#'
+mvLogisticLL <- function(agePropData){
+
+  if(sum(round(apply(agePropData,1,sum),2)!=1.00)){
+    stop(paste("line(s)",which(apply(agePropData,1,sum)>1), 
+      "do not sum up to 1. please review your proportions at age data"))
+  }
+  
+
+  A <- ncol(agePropData)
+  fit_schnute <- nlminb(numeric(A), negll_schnute, props = t(agePropData))
+  tau<-exp(fit_schnute$par[A])
+  pa<-trans(fit_schnute$par[1:(A-1)])
+
+  return(list(tau=tau,
+   pa=pa))
+}
+
+
+
+
+
+
+
+#' negative log likelihood function for multivariate logistic likelihood
+#'
+#' This function provides MLE estimates for the multivariate logistic likelihood
+#' function describe by Schunute and Richards 1995. Originally coded by Paul van Dam-Bates
+#' 
+#'
+#' @param pars parameters to be estimates (initial guesses) mean proportion at age and variance. 
+#' Make sure vector is compatible with observed proportions
+#' @param props matrix of observed proportions at age 
+#'
+#' @return negative log likelihood value
+#' @export
+#'
+#' 
+#'
+negll_schnute <- function(pars, props){
+  np <- length(pars)
+  mu <- trans(pars[1:(np-1)])
+  sigma <- exp(pars[np])
+  nll <- 0
+  for( i in 1:ncol(props)){
+    keep <- props[,i] > 0
+    pinz <- props[keep,i]
+    y <- log(pinz) - mean(log(pinz))
+    mean <- log(mu[props[,i] > 0]) - mean(log(mu[props[,i] > 0])) ## It normalizes itself
+    nll <- nll - sum(dnorm(y, mean, sigma, log = TRUE)) 
+  }
+  return(nll)
+}
+
+
+
+
+
+#' Utility transformation function
 #'
 #' This is a component function within getTau used to calculate log proportions.
 #' Originally written by B. Dorner and C. Holt so C. Freshwater unable to
@@ -10,7 +84,29 @@
 #' @return Vector of simulated proportion data based on specified tau and means.
 #' @export
 #'
-#' @examples
+trans <- function (alpha){
+ expa <- exp(alpha)
+ c(expa , 1+numeric(1))/(1+sum(expa))
+}
+
+
+
+#=========================================================
+
+
+#' Calculate multivariate logistic proportions
+#'
+#' This is a component function within getTau used to calculate log proportions.
+#' Originally written by B. Dorner and C. Holt so C. Freshwater unable to
+#' fully verify documentation.
+#'
+#' @param tau Value for tau to test
+#' @param logProps Log-transformed vector of mean proportion data
+#'
+#' @return Vector of simulated proportion data based on specified tau and means.
+#' @export
+#'
+#' 
 #'
 mvLogisticLogProp <- function(tau, logProps){
   p <- logProps[!is.na(logProps)]
@@ -44,7 +140,20 @@ mvLogisticLogProp <- function(tau, logProps){
 #'
 #' @examples
 #'
-getTau <- function(ppnMat, plotTaus = TRUE){
+#'
+#' ppnMat<-matrix(0,nrow=40,ncol=4)
+#' for(i in 1:40){
+#'   ppnMat[i,]<-ppnAgeErr(c(0.1,0.3,0.4,0.2), 0.25,
+#'        error = runif(4, 0.0001, 0.9999)) 
+#' }
+#'
+#' #estimate and recover tau
+#' getTau(ppnMat, plotTaus = TRUE)
+#'
+#'
+#'
+#'
+getTau <- function(ppnMat, gridstep = 0.01, plotTaus = TRUE){
   targetFun <- function(tau, expLogProp, targetSD, n=10000) {
     cat(". ")
     Tau <- rep(tau, n)
@@ -61,13 +170,13 @@ getTau <- function(ppnMat, plotTaus = TRUE){
   ppnMat[ppnMat == 0] <- 1e-10
 
   ## Grid search for best tau:
-  tau <- seq(from = 0, to = 3, by = 0.1)
+  tau <- seq(from = 0, to = 3, by = gridstep)
   result <- data.frame(tau=tau, objective=rep(NA, length(tau)))
   cat("finding scale parameter for variability in relative recruit
       proportions:\n")
-  for(t in tau){
+  for(ti in seq_along(tau)){
     cat(". ")
-    result[t*10+1, "objective"] <- targetFun(t, apply(log(ppnMat), 2, mean),
+    result[ti, "objective"] <- targetFun(tau[ti], apply(log(ppnMat), 2, mean),
                                              apply(ppnMat, 2, sd))
   }
   cat("\n")

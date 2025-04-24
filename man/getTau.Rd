@@ -4,7 +4,7 @@
 \alias{getTau}
 \title{Estimate tau}
 \usage{
-getTau(ppnMat, plotTaus = TRUE)
+getTau(ppnMat, gridstep = 0.01, plotTaus = TRUE)
 }
 \arguments{
 \item{ppnMat}{Matrix of proportion data to apply grid search for tau to.}
@@ -23,4 +23,20 @@ Uses an objective function to minimize difference between sum of squares of
 observed vs. simulated standard deviations for proportions data. Note that
 objective function is constrained to sample between 0 and 3 at intervals of
 0.1; however that should be sufficient for most proportion data.
+}
+\examples{
+
+
+ppnMat<-matrix(0,nrow=40,ncol=4)
+for(i in 1:40){
+  ppnMat[i,]<-ppnAgeErr(c(0.1,0.3,0.4,0.2), 0.25,
+       error = runif(4, 0.0001, 0.9999)) 
+}
+
+#estimate and recover tau
+getTau(ppnMat, plotTaus = TRUE)
+
+
+
+
 }
