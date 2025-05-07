@@ -11,6 +11,18 @@ mvLogisticLL(agePropData)
 }
 \value{
 List of parameter estimates for variance (tau) and mean proportions at age (pa).
+
+
+
+truepa<-c(0.07052628, 0.32951836, 0.48814346, 0.11181190)
+truetau<-0.6
+
+ppnMat<-matrix(0,nrow=40,ncol=4)
+ for(i in 1:40){
+   ppnMat[i,]<-ppnAgeErr(truepa, truetau,
+       error = runif(4, 0.0001, 0.9999)) 
+ }
+ans<-mvLogisticLL(agePropData=ppnMat)
 }
 \description{
 This function provides MLE estimates for the multivariate logistic likelihood
