@@ -1,6 +1,8 @@
 #=========================================
 #test the multivariate logistic routines for age comps
 #=====================================
+
+#remotes::install_github("Pacific-salmon-assess/samSim", ref="sbccnk", force=TRUE)
 #library(samSim)
 library(ggplot2)
 
@@ -28,6 +30,112 @@ abline(h=0.25, lty=2, col="darkred", lwd=2)
 
 
 #============================
+
+
+
+
+
+#test with schunute simulation and Paul's estimatio
+
+dmvlogit <- function(x, mean, sd, log = FALSE){
+  np <- length(x)
+  ans <- sum( dnorm(log( x[-np]/x[np] ), mean, sd, log = TRUE) ) - sum(log(x))
+  # ans <- -(np-1)/2*log(2*pi*sd^2) - 0.5*sum((log( x[-np]/x[np] ) - mean)^2)/sd^2 - sum(log(x)) 
+  if(log) return(ans)
+  else return(exp(ans))
+}
+
+negll <- function(pars, obs){
+  np <- length(pars)
+  mu <- pars[1:(np-1)]
+  sigma <- exp(pars[np])
+
+  nll <- 0
+  for( i in 1:ncol(obs)){
+    nll <- nll - dmvlogit(obs[,i], mu, sigma, log = TRUE)
+  }
+  return(nll)
+}
+
+
+
+
+
+A <- 4
+ 
+nsim=100
+est_tau_grid<-rep(0,nsim)
+est_tau_nll_paul<-rep(0,nsim)
+est_tau_nll_samsim<-rep(0,nsim)
+
+
+est_pa_nll_paul<-matrix(0,nrow=nsim,ncol=4)
+est_pa_nll_samsim<-matrix(0,nrow=nsim,ncol=4)
+truepa<-c(0.07052628, 0.32951836, 0.48814346, 0.11181190)
+
+
+truetau<-0.6
+
+
+
+for(u in 1:nsim){
+  print(paste("u is: ",u))
+
+  ppnMat<-matrix(0,nrow=40,ncol=4)
+  for(i in 1:40){
+    ppnMat[i,]<-ppnAgeErr(truepa, truetau,
+        error = runif(4, 0.0001, 0.9999)) 
+  }
+
+   #estimate and recover tau
+
+   #grid
+   estgrid<-getTau(ppnMat, plotTaus = TRUE)
+   est_tau_grid[u]<-estgrid$bestTau
+
+   #paul
+   fit <- nlminb(numeric(A), negll, obs = t(ppnMat))
+   phat <- c(exp(fit$par[1:(A-1)]),1)/(1+sum(exp(fit$par[1:(A-1)])))
+   est_tau_nll_paul[u]<-exp(fit$par[A])
+   est_pa_nll_paul[u,]<-c(exp(fit$par[1:(A-1)]),1)/(1+sum(exp(fit$par[1:(A-1)])))
+   
+
+   #fit samsim (schnute)
+   ans<-mvLogisticLL(agePropData=ppnMat)
+   est_tau_nll_samsim[u]<-ans$tau
+   est_pa_nll_samsim[u,]<-ans$pa
+
+}
+
+taudf
+
+taudf<-data.frame(estmod=rep(c("grid","paul","samsim"),nsim),
+                  value=c(est_tau_grid,est_tau_nll_paul,est_tau_nll_samsim))
+
+avgdf<-aggregate(taudf$value,by=list(estmod=taudf$estmod), mean)
+
+
+ggplot(taudf)+
+geom_boxplot(aes(x=estmod,y=value))+
+geom_hline(aes(yintercept=truetau))+
+geom_hline(data=avgdf,aes(yintercept=x,color=estmod))+
+theme_bw(15)
+
+
+padf<-data.frame(estmod=rep(c("paul","schnute","samsim"),nsim*A),
+
+                  value=c(est_pa_nll_paul,est_pa_nll,est_pa_nll_samsim),
+                  age=rep(rep(1:4, each=nsim),3))
+
+ggplot()+
+geom_boxplot(data=padf,aes(x=as.factor(age),y=value,fill=estmod))+
+geom_line(aes(x=1:4,y=truepa))+
+geom_point(aes(x=1:4,y=truepa))+
+theme_bw(15)
+
+
+#==============
+#try with different numbers
 #test code from Paul
 
 A <- 4
@@ -60,111 +168,6 @@ for( i in 1:T ) {
 }
  
 
-
-
-dmvlogit <- function(x, mean, sd, log = FALSE){
-  np <- length(x)
-  ans <- sum( dnorm(log( x[-np]/x[np] ), mean, sd, log = TRUE) ) - sum(log(x))
-  # ans <- -(np-1)/2*log(2*pi*sd^2) - 0.5*sum((log( x[-np]/x[np] ) - mean)^2)/sd^2 - sum(log(x)) 
-  if(log) return(ans)
-  else return(exp(ans))
-}
-
-negll <- function(pars, obs){
-  np <- length(pars)
-  mu <- pars[1:(np-1)]
-  sigma <- exp(pars[np])
-
-  nll <- 0
-  for( i in 1:ncol(obs)){
-    nll <- nll - dmvlogit(obs[,i], mu, sigma, log = TRUE)
-  }
-  return(nll)
-}
-
-
-
-
-
-
-#test with schunute simulation and Paul's estimation
-nsim=500
-est_tau_grid<-rep(0,nsim)
-est_tau_nll<-rep(0,nsim)
-est_tau_nll_paul<-rep(0,nsim)
-est_tau_nll_samsim<-rep(0,nsim)
-
-est_pa_nll<-matrix(0,nrow=nsim,ncol=4)
-est_pa_nll_paul<-matrix(0,nrow=nsim,ncol=4)
-est_pa_nll_samsim<-matrix(0,nrow=nsim,ncol=4)
-truepa<-c(0.07052628, 0.32951836, 0.48814346, 0.11181190)
-
-
-truetau<-0.6
-
-
-
-for(u in 1:nsim){
-  print(paste("u is: ",u))
-
-  for(i in 1:40){
-    ppnMat[i,]<-ppnAgeErr(truepa, truetau,
-        error = runif(4, 0.0001, 0.9999)) 
-  }
-
-   #estimate and recover tau
-
-   #grid
-   estgrid<-getTau(ppnMat, plotTaus = TRUE)
-   est_tau_grid[u]<-estgrid$bestTau
-
-   #paul
-   fit <- nlminb(numeric(A), negll, obs = t(ppnMat))
-   phat <- c(exp(fit$par[1:(A-1)]),1)/(1+sum(exp(fit$par[1:(A-1)])))
-   est_tau_nll_paul[u]<-exp(fit$par[A])
-   est_pa_nll_paul[u,]<-c(exp(fit$par[1:(A-1)]),1)/(1+sum(exp(fit$par[1:(A-1)])))
-   
-   #schnute
-   fit_schnute <- nlminb(numeric(A), negll_schnute, props = t(ppnMat))
-   est_tau_nll[u]<-exp(fit_schnute$par[A])
-   est_pa_nll[u,]<-trans(alpha=fit$par[1:(A-1)])
-
-   #fit samsim
-   ans<-mvLogisticLL(agePropData=ppnMat)
-   est_tau_nll_samsim[u]<-ans$tau
-   est_pa_nll_samsim[u,]<-ans$pa
-
-}
-
-
-
-taudf<-data.frame(estmod=rep(c("grid","paul","schnute","samsim"),nsim),
-                  value=c(est_tau_grid,est_tau_nll_paul,est_tau_nll,est_tau_nll_samsim))
-
-avgdf<-aggregate(taudf$value,by=list(estmod=taudf$estmod), mean)
-
-
-ggplot(taudf)+
-geom_boxplot(aes(x=estmod,y=value))+
-geom_hline(aes(yintercept=truetau))+
-geom_hline(data=avgdf,aes(yintercept=x,color=estmod))+
-theme_bw(15)
-
-
-padf<-data.frame(estmod=rep(c("paul","schnute","samsim"),nsim*A),
-
-                  value=c(est_pa_nll_paul,est_pa_nll,est_pa_nll_samsim),
-                  age=rep(rep(1:4, each=nsim),3))
-
-ggplot()+
-geom_boxplot(data=padf,aes(x=as.factor(age),y=value,fill=estmod))+
-geom_line(aes(x=1:4,y=truepa))+
-geom_point(aes(x=1:4,y=truepa))+
-theme_bw(15)
-
-
-#==============
-#try with different numbers
 
 
 

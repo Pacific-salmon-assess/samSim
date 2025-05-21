@@ -19,7 +19,9 @@ genericRecoverySim(
   uniqueProd = TRUE,
   uniqueSurv = FALSE,
   random = FALSE,
-  outDir
+  outDir,
+  aggDatOut = FALSE,
+  lrpDatOut = FALSE
 )
 }
 \arguments{
@@ -54,6 +56,8 @@ A detailed descrption of the contents of the `simPar` file can be found by acces
 \item{random}{If random = TRUE then each simulation will start at a different point}
 
 \item{outDir}{directories where results are stored}
+
+\item{aggDatOut}{logical, indicating if aggregated data output is saved, Default is FALSE}
 }
 \value{
 TO BE DEFINED
