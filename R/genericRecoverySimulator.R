@@ -479,7 +479,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   expRateAg <- matrix(NA, nrow = nYears, ncol = nTrials)
   obsExpRateAg <- matrix(NA, nrow = nYears, ncol = nTrials)
   spwnrArray <- array(NA, dim = c(nYears, nCU, nTrials))
-  hatcheryspwnrArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  hatcheryspwnrArray <- array(0, dim = c(nYears, nCU, nTrials))
   recArray <- array(NA, dim = c(nYears, nCU, nTrials))
   obsSpwnrArray <- array(NA, dim = c(nYears, nCU, nTrials))
   obsRecArray <- array(NA, dim = c(nYears, nCU, nTrials))
