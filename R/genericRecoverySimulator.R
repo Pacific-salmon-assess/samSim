@@ -40,18 +40,18 @@
 #'
 #'@examples
 #'
-#'genericRecoverySim(simPar=simParexample, 
-#'                        cuPar=cuParexample, 
-#'                        catchDat=NULL, 
+#'genericRecoverySim(simPar=simParexample,
+#'                        cuPar=cuParexample,
+#'                        catchDat=NULL,
 #'                        srDat=NULL,
-#'                        variableCU=FALSE, 
-#'                        ricPars=NULL, 
-#'                        larkPars=NULL, 
+#'                        variableCU=FALSE,
+#'                        ricPars=NULL,
+#'                        larkPars=NULL,
 #'                        cuCustomCorrMat= NULL,
-#'                        outDir="test", 
-#'                        nTrials=10, 
-#'                        makeSubDirs=TRUE, 
-#'                        random=FALSE, 
+#'                        outDir="test",
+#'                        nTrials=10,
+#'                        makeSubDirs=TRUE,
+#'                        random=FALSE,
 #'                        uniqueProd=TRUE,
 #'                        uniqueSurv=FALSE)
 #'
@@ -63,7 +63,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                variableCU=FALSE, makeSubDirs=TRUE, ricPars,
                                larkPars=NULL, cuCustomCorrMat=NULL,
                                erCorrMat=NULL, nTrials=100, uniqueProd=TRUE,
-                               uniqueSurv=FALSE, random=FALSE, outDir, 
+                               uniqueSurv=FALSE, random=FALSE, outDir,
                                aggDatOut=FALSE,lrpDatOut=FALSE) {
   # If random = TRUE then each simulation will start at a different point
   # i.e. should ALWAYS be FALSE except for convenience when running independent
@@ -131,6 +131,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   # Should BMs be fixed at normative period?; if yes, then BMs aren't updated during sim period
   normPeriod <- ifelse(is.null(simPar$normPeriod), TRUE, simPar$normPeriod)
 
+
   ## CU-specific parameters
   cuPar$stkName <- abbreviate(cuPar$stkName, minlength = 4)
   cuPar <- with(cuPar, cuPar[order(as.numeric(stk)), ]) #temporary subset of CUs to examine
@@ -167,6 +168,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   # American ER
   amER <- rep(simPar$usER * usERScalar, length.out = nCU)
 
+  #CU-specific hatchery inputs
+  hatchery.scalar=cuPar$hatchery.scalar
+  shape.hatch=cuPar$shape.hatch
+  scale.hatch=cuPar$scale.hatch
 
 
   # # En-route mortality
@@ -474,6 +479,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   expRateAg <- matrix(NA, nrow = nYears, ncol = nTrials)
   obsExpRateAg <- matrix(NA, nrow = nYears, ncol = nTrials)
   spwnrArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  hatcheryspwnrArray <- array(NA, dim = c(nYears, nCU, nTrials))
   recArray <- array(NA, dim = c(nYears, nCU, nTrials))
   obsSpwnrArray <- array(NA, dim = c(nYears, nCU, nTrials))
   obsRecArray <- array(NA, dim = c(nYears, nCU, nTrials))
@@ -892,6 +898,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     # Set up empty vectors and matrices for each MC trial
     ## Population dynamics
     S <- matrix(NA, nrow = nYears, ncol = nCU)
+    SHatchery <- matrix(NA, nrow = nYears, ncol = nCU)
     alphaMat <- matrix(NA, nrow = nYears, ncol = nCU)
     betaMat <- matrix(NA, nrow = nYears, ncol = nCU)
     sigmaMat <- matrix(NA, nrow = nYears, ncol = nCU)
@@ -2149,14 +2156,19 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                       trendCanER.iter[y,]  + amER,
                                       sum(totalTAC[y, ]) / recRYAg[y, n])
 
-
       S[y, ] <- recRY[y, ] * (1 - expRate[y, ])
 
-      for (k in 1:nCU) {
+##Add additional spawners from hatchery
+    for (k in 1:nCU) {
+      if(hatchery.scalar[k]==TRUE){
+        SHatchery[y,k]<- S[y,k]*rgamma(1,shape=shape.hatch[k],scale=scale.hatch[k])
+        S[y,k] <- S[y,k]+S_hatchery[y,k]
+      }
         if (S[y, k] < extinctThresh) {
           S[y, k] <- 0
         }
       }
+  }
       sAg[y, n] <- sum(S[y, ])
 
 
@@ -2309,7 +2321,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           }
           estRicB_tv[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estSlope_tv[y, k, n])
           estRicA_tv[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estYi_tv[y, k, n])
-       
+
         }
         estRicB[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estSlope[y, k, n])
         estRicA[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estYi[y, k, n])
@@ -2364,7 +2376,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                      1 - gsl::lambert_W0(exp(
                                        1 - estRicA[y, k, n])))
           }
-          
+
           if (is.na(estRicB[y, k, n]) == FALSE) {
             if ( estRicB[y, k, n]> 0) {
               if ((1 / estRicB[y, k, n]) <= max(obsS[,k], na.rm = TRUE) * 4) {
@@ -2749,6 +2761,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     # Store diagnostic outputs
     spwnrArray[ , , n] <- S # these arrays generated to pass to synch list
     obsSpwnrArray[ , , n] <- obsS # these arrays generated to pass to synch list
+    hatcheryspwnrArray[ , , n] <- SHatchery # these arrays generated to pass to synch list
     recArray[ , , n] <- recBY
     obsRecArray[ , , n] <- obsRecBY
     alphaArray[ , , n] <- alphaMat
@@ -3002,7 +3015,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                      paste(nameOM, nameMP, "aggDat.csv", sep = "_"))
     write.csv(aggDat, file = paste(here(outDir,"SamSimOutputs/simData"), dirPath, fileName, sep = "/"), row.names = FALSE)
   }
-  
+
 
   # Create LRP data for output
   if(lrpDatOut){
@@ -3031,6 +3044,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
     # spwnrArray = df of number of columns = number of Cus
     spnDat.i<-as.data.frame(spwnrArray[,,i])
+    HspnDat.i<-as.data.frame(hatcheryspwnrArray[,,i])
     recDat.i<-as.data.frame(recArray[,,i])
     obsSpnDat.i<-as.data.frame(obsSpwnrArray[,,i])
     obsRecDat.i<-as.data.frame(obsRecArray[,,i])
@@ -3050,6 +3064,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
     if(nCU==1){
       names(spnDat.i)<-paste0("V",1:nCU)
+      names(HspnDat.i)<-paste0("V",1:nCU)
       names(recDat.i)<-paste0("V",1:nCU)
       names(obsSpnDat.i)<-paste0("V",1:nCU)
       names(obsRecDat.i)<-paste0("V",1:nCU)
@@ -3087,7 +3102,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
     recDat_long.i <- recDat.i %>%
       tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="recruits")
-
+    HspnDat_long.i <- HspnDat.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="HatcherySpawners")
     obsSpnDat_long.i <- obsSpnDat.i %>%
         tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="obsSpawners")
     obsRecDat_long.i <- obsRecDat.i %>%
@@ -3118,6 +3134,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
     srDat_long.i <- spnDat_long.i %>% tibble::add_column(recruits=recDat_long.i$recruits) %>%
         tibble::add_column(obsSpawners=obsSpnDat_long.i$obsSpawners) %>%
+        tibble::add_column(hatcherySpawners=HspnDat_long.i$HatcherySpawners) %>%
+        tibble::add_column(wildSpawners=spnDat_long.i$spawners-HspnDat_long.i$HatcherySpawners) %>%
         tibble::add_column(obsRecruits=obsRecDat_long.i$obsRecruits) %>%
         tibble::add_column(beta=betaDat_long.i$beta) %>%
         tibble::add_column(alpha=alphaDat_long.i$alpha) %>%
