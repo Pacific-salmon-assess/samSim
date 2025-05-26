@@ -169,9 +169,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   amER <- rep(simPar$usER * usERScalar, length.out = nCU)
 
   #CU-specific hatchery inputs
-  hatchery.scalar=cuPar$hatchery.scalar
   shape.hatch=cuPar$shape.hatch
   scale.hatch=cuPar$scale.hatch
+  max.hatchery.spawners=cuPar$max.hatchery.spawners
 
 
   # # En-route mortality
@@ -2160,8 +2160,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
 ##Add additional spawners from hatchery
     for (k in 1:nCU) {
-      if(hatchery.scalar[k]==TRUE){
-        SHatchery[y,k]<- S[y,k]*rgamma(1,shape=shape.hatch[k],scale=scale.hatch[k])
+      if(is.na(max.hatchery.spawners[k])==FALSE){
+        #hatchery spawners drawn as a gamma deviate expansion factor - with a cap based on the max. observed hatchery spawners
+        SHatchery[y,k]<- min(S[y,k]*rgamma(1,shape=shape.hatch[k],scale=scale.hatch[k]),max.hatchery.spawners[k])
         S[y,k] <- S[y,k]+S_hatchery[y,k]
       }
         if (S[y, k] < extinctThresh) {
