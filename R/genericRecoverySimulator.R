@@ -2169,7 +2169,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           S[y, k] <- 0
         }
       }
-  }
+
       sAg[y, n] <- sum(S[y, ])
 
 
