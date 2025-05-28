@@ -153,7 +153,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   # maxER exploitation rate applied
   maxER <- cuPar$maxER
   # Annual variation in exploitation rate
-  cvERSMU <- simPar$cvERSMU
+  cvERSMU <- ifelse(is.null(simPar$cvERSMU),NULL, simPar$cvERSMU)
   # Variation in exploitation rates among CUs.
   cvER <- cuPar$cvER
   # Is there annual variability in among-CU deviations in exploitation rates
@@ -1932,7 +1932,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #adjust Canadian ER downward if obsspawners below upper benchmark, but allow a minimum of 0.05 ER
       for (k in 1:nCU) {
         if(HCRtype=='fixed'){
-          trendCanER.iter[y,k]<-trendCanER.iter[y,k]
+          trendCanER.iter[y,k]<-trendCanER[y,k]
         }
         if(HCRtype=='abundance')
         if(counterLowerObsBM[y-1, k]==0&counterUpperObsBM[y-1, k]==0){
