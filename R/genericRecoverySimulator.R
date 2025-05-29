@@ -1934,7 +1934,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         if(HCRtype=='fixed'){
           trendCanER.iter[y,k]<-trendCanER[y,k]
         }
-        if(HCRtype=='abundance')
+        if(HCRtype=='abundance'){
         if(counterLowerObsBM[y-1, k]==0&counterUpperObsBM[y-1, k]==0){
           #red status
           if(!is.na(redStatusER)){
@@ -1949,6 +1949,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           #CW changed this mar 25
           #trendCanER.iter[y,k] <- max(trendCanER[y,k],trendCanER[y-1,k],na.rm=T)
           trendCanER.iter[y,k] <- max(trendCanER[y,k],0.05,na.rm=T)
+        }
         }
         #this is where the harvest control rules should go
         if(HCRtype=='umsy'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
