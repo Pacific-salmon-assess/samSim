@@ -2423,11 +2423,12 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
       # Get marine rvival covariate (only used for rickerSurv SR model)
       ## - all CUs have the same marine survival (only option available at present)
+      if (model[k] == "rickerSurv") {
       if (y == nPrime+1) mSurvAge4[1:nPrime, n] <- rep(mu_logCoVar,nPrime)
       mSurvAge4[y, n]<-rnorm(1,mu_logCoVar,sig_logCoVar)
       if (mSurvAge4[y, n] > max_logCoVar) mSurvAge4[y, n] <- max_logCoVar
       if (mSurvAge4[y, n] < min_logCoVar) mSurvAge4[y, n] <- min_logCoVar
-
+}
       for (k in 1:nrow(ageStruc)) {
         # If age proportions are NOT constant among CUs, assume variable among CUs
         if(is.null(agePpnConst)){
