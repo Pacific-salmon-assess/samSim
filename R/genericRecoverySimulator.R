@@ -123,8 +123,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   HCRtype=simPar$HCRtype
   fERAdj=simPar$fERAdj
   assessFreq <- simPar$assessFreq
-  fixedUBM<- simPar$fixedUpperBenchmark
-  fixedLBM<- simPar$fixedLowerBenchmark
+  fixedUBM<- cuPar$fixedUpperBenchmark
+  fixedLBM<- cuPar$fixedLowerBenchmark
   bmERAdj<- ifelse(is.null(simPar$bmERAdj),1,simPar$bmERAdj)
   redStatusER <- ifelse(is.null(simPar$redStatusER),NA,simPar$redStatusER)
 
