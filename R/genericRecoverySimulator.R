@@ -2165,7 +2165,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       if(is.na(max.hatchery.spawners[k])==FALSE){
         #hatchery spawners drawn as a gamma deviate expansion factor - with a cap based on the max. observed hatchery spawners
         SHatchery[y,k]<- min(S[y,k]*rgamma(1,shape=shape.hatch[k],scale=scale.hatch[k]),max.hatchery.spawners[k])
-        S[y,k] <- S[y,k]+S_hatchery[y,k]
+        S[y,k] <- S[y,k]+Shatchery[y,k]
       }
         if (S[y, k] < extinctThresh) {
           S[y, k] <- 0
