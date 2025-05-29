@@ -32,7 +32,7 @@ calcCanEROU_fixedER <- function(canER,  cvERSMU, randomVar=T, maxER) {
     # get realized ER
     canEROU<-sapply(1:length(sigCanER),sampBeta)
     # if any CUs have a CV of 0, set to mean canER
-    canEROU[sigCanER ==0]<-canER
+    canEROU[sigCanER==0]<-canER
   }
   if(!is.null(maxER)){
     canEROU <- pmin(canEROU,maxER)

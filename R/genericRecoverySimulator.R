@@ -2108,13 +2108,12 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         #  migMortRate[y, ] <- enRouteMR * migMortErr
         # migMort1 <- remRec2 * (preFMigMort * migMortRate[y, ])
         #  remRec3 <- pmax(remRec2 - migMort1 - extinctThresh, 0)
-        if(remRec2>extinctThresh){
-          singCatch[y, ] <- calcRealCatch(remRec2, singTAC[y, ],
+
+        singCatch[y, ] <- calcRealCatch(remRec2, singTAC[y, ],
                                         sigma = singOUSig, setSeedInput =n * y, maxER=maxER)
-                                          #round(runif(1,1,10000),0))#n * y
-        }else{
-          singCatch[y, ] <- 0
-        }
+        for(k in 1:nCU){
+          if(remRec2[k]<extinctThresh){singCatch[y,k] <- 0}
+        }                                  #round(runif(1,1,10000),0))#n * y
 
       } else {
         amCatch[y, ] <- calcRealCatch(recRY[y, ], amTAC[y, ], sigma = mixOUSig,
@@ -2126,12 +2125,12 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         #  migMortRate[y, ] <- enRouteMR * migMortErr
         #  migMort1 <- remRec2 * (preFMigMort * migMortRate[y, ])
         #  remRec3 <- pmax(remRec2 - migMort1 - extinctThresh, 0)
-        if(remRec2>extinctThresh){
-          singCatch[y, ] <- calcRealCatch(remRec2, singTAC[y, ],
-                                        sigma = singOUSig, random = TRUE, maxER=maxER)
-        }else{
-          singCatch[y, ] <- 0
-        }
+        singCatch[y, ] <- calcRealCatch(remRec2, singTAC[y, ],
+                                        sigma = singOUSig, setSeedInput =n * y, maxER=maxER)
+        for(k in 1:nCU){
+          if(remRec2[k]<extinctThresh){singCatch[y,k] <- 0}
+        }                                  #round(runif(1,1,10000),0))#n * y
+
 
       }
 
