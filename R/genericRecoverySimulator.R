@@ -2601,6 +2601,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             lowerObsBM[y, k] <- lowerBM[y, k]
 
           }
+          if(bm == "none"){next}
         }
         #only save status for Larkin stocks on dom cycle otherwise use prev status
         if (model[k] == "larkin" & cycle[y] != domCycle[k]) {
