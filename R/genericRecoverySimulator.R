@@ -153,7 +153,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   # maxER exploitation rate applied
   maxER <- cuPar$maxER
   # Annual variation in exploitation rate
-  cvERSMU <- ifelse(is.null(simPar$cvERSMU),NULL, simPar$cvERSMU)
+  cvERSMU <- simPar$cvERSMU
   # Variation in exploitation rates among CUs.
   cvER <- cuPar$cvER
   # Is there annual variability in among-CU deviations in exploitation rates
@@ -631,8 +631,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     if(harvContRule == "fixedER"){
 
       trendCanER<-rep(canER,nYears) %*%  t(canERScalar)
-
-
 
     }else if(harvContRule == "trendER"){
 
@@ -1972,7 +1970,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         }
       }
 
-      if(is.null(cvERSMU)) {
+      if(is.na(cvERSMU)) {
 
         tacs <- calcTAC_fixedER(rec = recRYManU[y, ],  canER=trendCanER.iter[y,],
                                 amER = amER, ppnMixVec, cvER = cvER,
@@ -1982,7 +1980,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         if(nCU==1)runif(1)
         # calcTAAC_fixedER uses 2*nCUs random numbers/year when runif=NULL
       }
-      if(!is.null(cvERSMU)) {
+      if(!is.na(cvERSMU)) {
         #Calculate annual deviation of overall ER from canER (takes 2 rand#s)
 
 
