@@ -18,7 +18,7 @@
 #' calcTAC_fixedER(rec=1000, canER=0.3, amER = 0.1, ppnMix = 0.5)
 #'
 #'
-calcTAC_fixedER <- function(rec, canER, amER, ppnMixVec, cvER, randomVar=T, runif=NULL, maxER) {
+calcTAC_fixedER <- function(rec, canER, amER, ppnMixVec, cvERcan,cvERam, randomVar=T, runif=NULL, maxER) {
 
   if (randomVar == F) {
     canTAC <- canER * rec
@@ -32,25 +32,33 @@ calcTAC_fixedER <- function(rec, canER, amER, ppnMixVec, cvER, randomVar=T, runi
 
     #Avoid implausible v high exploitation and NaN in qbeta
     #comment out because of implememtation of maxER formally
-    #canER<-ifelse(canER>=0.95,0.95, canER) 
+    #canER<-ifelse(canER>=0.95,0.95, canER)
 
-    sigCanER<-cvER*canER
+    sigCanER<-cvERcan*canER
 
-    shape1<- canER^2 * (((1-canER)/sigCanER^2)-(1/canER))
-    shape2<-shape1 * (1/canER-1)
+    shape1Can<- canER^2 * (((1-canER)/sigCanER^2)-(1/canER))
+    shape2Can<-shape1Can * (1/canER-1)
 
-    sampBeta<-function(stk) {
+    sigAmER<-cvERam*amER
+
+    shape1Am<- amER^2 * (((1-amER)/sigAmER^2)-(1/amER))
+    shape2Am<-shape1Am * (1/amER-1)
+
+    sampBeta<-function(stk,shape1,shape2) {
       x<-rbeta(1,shape1[stk],shape2[stk])
     }
-    sampBetaRunif<-function(stk) {
+    sampBetaRunif<-function(stk,shape1,shape2) {
       x<-qbeta(runif[stk],shape1[stk],shape2[stk])
     }
 
     # get realized ER
-    if(is.null(runif)) canER.real<-sapply(1:length(sigCanER),sampBeta)
-
+    if(is.null(runif)) {
+      canER.real<-sapply(1:length(sigCanER),sampBeta,shape1=shape1Can,shape2=shape2Can)
+      amER.real<-sapply(1:length(sigAmER),sampBeta,shape1=shape1Am,shape2=shape2Am)
+    }
     if(!is.null(runif)) {
-      canER.real <-  sapply(1:length(sigCanER),sampBetaRunif)
+      canER.real <-  sapply(1:length(sigCanER),sampBetaRunif,shape1=shape1Can,shape2=shape2Can)
+      amER.real <-  sapply(1:length(sigAmER),sampBetaRunif,shape1=shape1Am,shape2=shape2Am)
 
       # Align the random number seeds with the scenario is.null(runif)==TRUE
       # where rbeta is called. runif only uses 1 random seed/call, but rbeta
@@ -60,6 +68,7 @@ calcTAC_fixedER <- function(rec, canER, amER, ppnMixVec, cvER, randomVar=T, runi
 
     # if any CUs have a CV of 0, set to mean canER
     canER.real[sigCanER ==0]<-canER
+    amER.real[sigAmER ==0]<-amER
 
     if(!is.null(maxER)){
       canER.real <- pmin(canER.real,maxER)
@@ -69,18 +78,18 @@ calcTAC_fixedER <- function(rec, canER, amER, ppnMixVec, cvER, randomVar=T, runi
     canTAC <- canER.real * rec
     canMixTAC <- canTAC * ppnMixVec
     canSingTAC <- (canTAC * (1 -  ppnMixVec))
-    amTAC<- amER * rec
+    amTAC<- amER.real * rec
 
   }
 
   #browser()
 
-  tacList <- list(canTAC, canMixTAC, canSingTAC, amTAC, canER.real)
+  tacList <- list(canTAC, canMixTAC, canSingTAC, amTAC, canER.real,amER.real)
   tacList <- lapply(tacList, function (x){ #replace NAs with 0s
     x[is.na(x)] <- 0
     return(x)
   })
-  names(tacList) <- c("canTAC", "canMixTAC", "canSingTAC", "amTAC", "canER.real")
+  names(tacList) <- c("canTAC", "canMixTAC", "canSingTAC", "amTAC", "canER.real","amER.real")
   return(tacList)
 
 }

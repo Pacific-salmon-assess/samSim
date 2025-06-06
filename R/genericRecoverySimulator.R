@@ -155,7 +155,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   # Annual variation in exploitation rate
   cvERSMU <- simPar$cvERSMU
   # Variation in exploitation rates among CUs.
-  cvER <- cuPar$cvER
+  cvERcan <- cuPar$cvERcan
+  cvERam <- cuPar$cvERam
   # Is there annual variability in among-CU deviations in exploitation rates
   annualcvERCU <- simPar$annualcvERCU
   # Are age proportions same across CUs?
@@ -1973,7 +1974,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       if(is.na(cvERSMU)) {
 
         tacs <- calcTAC_fixedER(rec = recRYManU[y, ],  canER=trendCanER.iter[y,],
-                                amER = amER, ppnMixVec, cvER = cvER,
+                                amER = amER, ppnMixVec, cvERcan = cvERcan,cvERam=cvERam,
                                 randomVar=T, maxER=maxER)
 
         # re-align random numbers
@@ -2005,7 +2006,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         # and a CU-specific deviation from that annul overall ER that is
         # constant over time, specified by cuERnormDevs
         tacs <- calcTAC_fixedER(rec = recRYManU[y, ],  canER=canEROU,
-                                amER = amER, ppnMixVec, cvER = cvER,
+                                amER = amER, ppnMixVec,cvERcan = cvERcan,cvERam=cvERam,
                                 randomVar=T, runif=cuERnormDevs, maxER=maxER)
         #Within  if(!is.null(cvERSMU)), there is a call to 2+nCU random
         # numbers/yr, compared to 2*nCU random numbers within
