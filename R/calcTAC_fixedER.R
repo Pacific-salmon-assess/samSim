@@ -5,7 +5,8 @@
 #' @param amER A numeric representing the target American exploitation rate
 #' @param ppnMixVec A numeric representing the proportion of the Canadian TAC
 #' allocated to mixed stock fisheries
-#' @param cvER A numeric representing annual variability in ER
+#' @param cvERcan A numeric representing annual variability in domestic ER
+#' @param cvERam A numeric representing annual variability in US interceptions
 #' @param randomVar A TRUE/FALSE variable indicating whether the Canadian ER should have
 #' annual implementation error around the target
 #' @param runif A vector of random numbers of length equal to the number of CUs

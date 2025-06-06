@@ -9,7 +9,8 @@ calcTAC_fixedER(
   canER,
   amER,
   ppnMixVec,
-  cvER,
+  cvERcan,
+  cvERam,
   randomVar = T,
   runif = NULL,
   maxER
@@ -25,7 +26,9 @@ calcTAC_fixedER(
 \item{ppnMixVec}{A numeric representing the proportion of the Canadian TAC
 allocated to mixed stock fisheries}
 
-\item{cvER}{A numeric representing annual variability in ER}
+\item{cvERcan}{A numeric representing annual variability in domestic ER}
+
+\item{cvERam}{A numeric representing annual variability in US interceptions}
 
 \item{randomVar}{A TRUE/FALSE variable indicating whether the Canadian ER should have
 annual implementation error around the target}
