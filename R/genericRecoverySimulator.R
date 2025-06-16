@@ -118,6 +118,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   infBetaPrior <- ifelse(is.null(simPar$infBetaPrior),FALSE,simPar$infBetaPrior)
 
   #MAnagement procedure
+  NoAssess<- ifelse(is.null(simPar$Noassess),FALSE,simPar$Noassess)
   assessType <- ifelse(is.null(simPar$assessType),"default",simPar$assessType)
 
   HCRtype=simPar$HCRtype
@@ -2220,7 +2221,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
       #___________________________________________________________________
       ### Assessment submodel
-
+      if(NoAssess==FALSE){
       #Build SRR (even with normative period useful for diagnostics)
       for (k in 1:nCU) {
 
@@ -2416,7 +2417,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         }
       } #end if normPeriod = FALSE
 
-
+}
       #___________________________________________________________________
       ### Population dynamics submodel
 
