@@ -2225,9 +2225,17 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       for (k in 1:nCU) {
 
         if(assessType=="default"){
+
+          assessdat <- data.frame(
+            S=obsS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
+            R=obsRecBY[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
+            logRS=obsLogRS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k])
+
+          srMod= samEst::ricker_TMB(data=assessdat,priors_flag = 0)
+
           srMod <- quickLm(xVec = obsS[, k], yVec = obsLogRS[, k])
-          estYi[y, k, n] <- srMod[[1]]
-          estSlope[y, k, n] <- -srMod[[2]]
+          estYi[y, k, n] <- srMod$logalpha
+          estSlope[y, k, n] <- -srMod$beta
 
         }else if(assessType=="rwa"){
 
