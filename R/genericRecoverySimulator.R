@@ -2233,7 +2233,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
           srMod= samEst::ricker_TMB(data=assessdat,priors_flag = 0)
 
-          srMod <- quickLm(xVec = obsS[, k], yVec = obsLogRS[, k])
           estYi[y, k, n] <- srMod$logalpha
           estSlope[y, k, n] <- -srMod$beta
 
