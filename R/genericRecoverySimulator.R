@@ -1854,11 +1854,14 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         # Calculate obs log R/S:
         obsLogRS[y - obsBYLag, ] <- log(obsRecBY[y - obsBYLag, ] /
                                           obsS[y - obsBYLag, ])
-        # -- and, force obs log R/S to 0 when obsS is 0
-        obsLogRS[y - obsBYLag, which(obsS[y - obsBYLag, ] == 0)] <- 0
+        # -- and, force obs log R/S to NA when obsS is 0
+        obsLogRS[y - obsBYLag, which(obsS[y - obsBYLag, ] == 0)] <- NA
 
         # calculate aggregate obsRecBY over all CUs
         obsRecBYAg[y - obsBYLag, n] <- sum(obsRecBY[y - obsBYLag, ])
+
+        # -- and, force obs log R/S to NA when obsRec is 0
+        obsLogRS[y - obsBYLag, which(obsRecBYAg[y - obsBYLag, ] == 0)] <- NA
 
 
       } # end of if (y > (nPrime + obsBYLag))
@@ -2207,16 +2210,24 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       for (k in 1:nCU) {
 
         if(assessType=="default"){
-          srMod <- quickLm(xVec = obsS[, k], yVec = obsLogRS[, k])
+          assessdat <- data.frame(
+            S=obsS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
+            R=obsRecBY[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
+            logRS=obsLogRS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k])
+
+          asessdat<- assessdat[complete.cases(assessdat),]
+
+          srMod <- quickLm(xVec = assessdat$S, yVec = assessdat$logRS)
           estYi[y, k, n] <- srMod[[1]]
           estSlope[y, k, n] <- -srMod[[2]]
 
         }else if(assessType=="rwa"){
 
           assessdat <- data.frame(
-                      S=obsS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
+                     S=obsS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
                      R=obsRecBY[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
                      logRS=obsLogRS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k])
+          asessdat<- assessdat[complete.cases(assessdat),]
 
           #priors
           if(infBetaPrior==TRUE){
@@ -2242,9 +2253,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         }else if(assessType=="autocorr"){
 
           assessdat <- data.frame(
-                     S=obsS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
-                     R=obsRecBY[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
-                     logRS=obsLogRS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k])
+            S=obsS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
+            R=obsRecBY[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
+            logRS=obsLogRS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k])
+          asessdat<- assessdat[complete.cases(assessdat),]
 
           #priors
           if(infBetaPrior==TRUE){
@@ -2271,7 +2283,14 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
         }else if(assessType=="both"){
 
-          srMod <- quickLm(xVec = obsS[, k], yVec = obsLogRS[, k])
+
+          assessdat <- data.frame(
+            S=obsS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
+            R=obsRecBY[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
+            logRS=obsLogRS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k])
+          asessdat<- assessdat[complete.cases(assessdat),]
+
+          srMod <- quickLm(xVec = assessdat$S, yVec = assessdat$logRS)
           estYi[y, k, n] <- srMod[[1]]
           estSlope[y, k, n] <- -srMod[[2]]
 
@@ -2283,6 +2302,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                       S=obsS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
                      R=obsRecBY[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
                      logRS=obsLogRS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k])
+          asessdat<- assessdat[complete.cases(assessdat),]
 
           #priors
           if(infBetaPrior==TRUE){
