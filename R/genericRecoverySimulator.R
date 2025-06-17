@@ -1072,7 +1072,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           }
           expRate[y, k] <- ifelse(is.null(catchDat)==FALSE, recOut[[k]]$totalER[y], 0)
           logRS[y, k] <- log(recBY[y, k] / S[y, k])
-
         } # end of CU loop
 
         totalCatch[y, ] <- amCatch[y, ] + mixCatch[y, ] + singCatch[y, ]
@@ -1088,15 +1087,15 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       }# End of if(!is.null(recOut))
 
 
-        # Aggregated recruitment by return year (recRY) over all CUs in year y of trial n
-        if (y > 6) { # note: 6 is used because max number of age classes is 6
-          recRY2[y, ] <- recBY[y - 2, ] * ppnAges[y - 2, , 1]
-          recRY3[y, ] <- recBY[y - 3, ] * ppnAges[y - 3, , 2]
-          recRY4[y, ] <- recBY[y - 4, ] * ppnAges[y - 4, , 3]
-          recRY5[y, ] <- recBY[y - 5, ] * ppnAges[y - 5, , 4]
-          recRY6[y, ] <- recBY[y - 6, ] * ppnAges[y - 6, , 5]
-          recRY[y, ]<- recRY2[y, ] + recRY3[y, ] + recRY4[y, ] + recRY5[y, ] + recRY6[y, ]
-        }
+      # Aggregated recruitment by return year (recRY) over all CUs in year y of trial n
+      if (y > 6) { # note: 6 is used because max number of age classes is 6
+        recRY2[y, ] <- recBY[y - 2, ] * ppnAges[y - 2, , 1]
+        recRY3[y, ] <- recBY[y - 3, ] * ppnAges[y - 3, , 2]
+        recRY4[y, ] <- recBY[y - 4, ] * ppnAges[y - 4, , 3]
+        recRY5[y, ] <- recBY[y - 5, ] * ppnAges[y - 5, , 4]
+        recRY6[y, ] <- recBY[y - 6, ] * ppnAges[y - 6, , 5]
+        recRY[y, ]<- recRY2[y, ] + recRY3[y, ] + recRY4[y, ] + recRY5[y, ] + recRY6[y, ]
+      }
 
       if(!is.null(recOut)){
         if(sum(is.na(recDat$totalRec)) < length(recDat$totalRec)) {
@@ -1107,124 +1106,120 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
       # If there are no recruitment data, initialize at Seq and project 3 gens
       if(is.null(recOut) ||
-         sum(is.na(recDat$totalRec)) == length(recDat$totalRec)){
+        sum(is.na(recDat$totalRec)) == length(recDat$totalRec)){
 
-            if (y <= 6) {
-              if(is.null(cuPar$Sinit)) S[y,] <- refAlpha/beta
-              if(!is.null(cuPar$Sinit)) S[y,] <- cuPar$Sinit
-              }
+        if (y <= 6) {
+          if(is.null(cuPar$Sinit)) S[y,] <- refAlpha/beta
+          if(!is.null(cuPar$Sinit)) S[y,] <- cuPar$Sinit
+        }
 
-            expRate[y,] <- canER
+        expRate[y,] <- canER
 
-            if(y >= 7){
-              S[y, ] <- recRY[y, ] * (1 - expRate[y, ])
-            }
+        if(y >= 7){
+          S[y, ] <- recRY[y, ] * (1 - expRate[y, ])
+        }
 
-            for (k in 1:nCU) {
-              if (S[y, k] < extinctThresh) {
-                S[y, k] <- 0
-              }
-            }
-            sAg[y, n] <- sum(S[y, ])
+        for (k in 1:nCU) {
+          if (S[y, k] < extinctThresh) {
+            S[y, k] <- 0
+          }
+        }
+        sAg[y, n] <- sum(S[y, ])
 
 
-            errorCU[y, ] <- sn::rmst(n = 1, xi = rep(0, nCU),
+        errorCU[y, ] <- sn::rmst(n = 1, xi = rep(0, nCU),
                                      alpha = rep(0, nCU), nu = 10000,
                                      Omega = covMat)
 
-            for (k in 1:nrow(ageStruc)) {
-              if(is.null(agePpnConst)){
-                ppnAges[y, k, ] <- ppnAgeErr(ageStruc[k, ], tauAge[k],
+        for (k in 1:nrow(ageStruc)) {
+          if(is.null(agePpnConst)){
+            ppnAges[y, k, ] <- ppnAgeErr(ageStruc[k, ], tauAge[k],
                                              error = runif(nAges, 0.0001, 0.9999))
-               } # End of if(is.null(agePpnConst))
-              # If age proportions are constant among CUs
-              if(!is.null(agePpnConst)){
-                if(agePpnConst){
-                  if(k==1){
-                    #Draw random seed for that year and use for all k CUs
-                    runif_age <- runif(nAges, 0.0001, 0.9999)
-                  }
-                  #Use up random draws to align with scenario with variability among CUs
-                  if(k>1) {runif(nAges)}
+          } # End of if(is.null(agePpnConst))
+          # If age proportions are constant among CUs
+          if(!is.null(agePpnConst)){
+            if(agePpnConst){
+              if(k==1){
+                #Draw random seed for that year and use for all k CUs
+                runif_age <- runif(nAges, 0.0001, 0.9999)
+              }
+              #Use up random draws to align with scenario with variability among CUs
+              if(k>1) {runif(nAges)}
 
-                  ppnAges[y, k, ] <- ppnAgeErr(ageStruc[k, ], tauAge[k],
+              ppnAges[y, k, ] <- ppnAgeErr(ageStruc[k, ], tauAge[k],
                                                error = runif_age)
-                }# End of if(agePpnConst){
-                #If agePpnConstant is FALSE, assume it's drawn randomly among CUs
-                if(!agePpnConst){
-                  ppnAges[y, k, ] <- ppnAgeErr(ageStruc[k, ], tauAge[k],
+            }# End of if(agePpnConst){
+            #If agePpnConstant is FALSE, assume it's drawn randomly among CUs
+            if(!agePpnConst){
+              ppnAges[y, k, ] <- ppnAgeErr(ageStruc[k, ], tauAge[k],
                                                error = runif(nAges, 0.0001, 0.9999))
-                }
-              }# End of if(!is.null(agePpnConst)){
+            }
+          }# End of if(!is.null(agePpnConst)){
+        }# End of for (k in 1:nrow(ageStruc)) {
 
+        for (k in 1:nCU) {
+          if (S[y, k] > 0) {
+            if (model[k] == "ricker") {
 
-            }# End of for (k in 1:nrow(ageStruc)) {
-
-            for (k in 1:nCU) {
-              if (S[y, k] > 0) {
-                if (model[k] == "ricker") {
-
-                    if (y == 1) dum <- rickerModel(S[y, k], refAlpha[k], beta[k],
+              if (y == 1) dum <- rickerModel(S[y, k], refAlpha[k], beta[k],
                                                    error = errorCU[y, k],
                                                    rho = rho, prevErr = 0,
                                                    sig = ricSig[k],
                                                    biasCor = biasCor)
-                    if (y > 1) dum <- rickerModel(S[y, k], refAlpha[k], beta[k],
+              if (y > 1) dum <- rickerModel(S[y, k], refAlpha[k], beta[k],
                                                   error = errorCU[y, k],
                                                   rho = rho,
                                                   prevErr = laggedError[y - 1, k],
                                                   sig = ricSig[k],
                                                   biasCor = biasCor)
 
-                  laggedError[y, k] <- dum[[2]]
+              laggedError[y, k] <- dum[[2]]
 
-                  #Keep recruitment below CU-specific cap, here specified as Seq x 5
-                  if (is.null(rCap)) CapScalar <- 5
-                  if (!is.null(rCap)) CapScalar <- rCap
-                  if(is.null(cuPar$Sinit)) recCap <- CapScalar * refAlpha / beta
-                  if(!is.null(cuPar$Sinit)) recCap <- CapScalar * cuPar$Sinit
+              #Keep recruitment below CU-specific cap, here specified as Seq x 5
+              if (is.null(rCap)) CapScalar <- 5
+              if (!is.null(rCap)) CapScalar <- rCap
+              if(is.null(cuPar$Sinit)) recCap <- CapScalar * refAlpha / beta
+              if(!is.null(cuPar$Sinit)) recCap <- CapScalar * cuPar$Sinit
 
-                  recBY[y, k] <- min(dum[[1]], recCap[k])
-                }
+              recBY[y, k] <- min(dum[[1]], recCap[k])
+            }
 
-                if (model[k] == "rickerSurv") {
-                  mSurvAge4[y, n] <- rnorm(1,mu_logCoVar,sig_logCoVar)
-                  if (mSurvAge4[y, n] > max_logCoVar) { mSurvAge4[y, n] <-
-                    max_logCoVar }
-                  if (mSurvAge4[y, n] < min_logCoVar) {mSurvAge4[y, n] <-
-                    min_logCoVar }
+            if (model[k] == "rickerSurv") {
+              mSurvAge4[y, n] <- rnorm(1,mu_logCoVar,sig_logCoVar)
+              if (mSurvAge4[y, n] > max_logCoVar) {mSurvAge4[y, n] <- max_logCoVar }
+              if (mSurvAge4[y, n] < min_logCoVar) {mSurvAge4[y, n] <- min_logCoVar }
 
-                  if (y < 3) {dum <- rickerSurvModel(S = S[y, k],
-                                                     a = refAlpha[k],
-                                                     b = beta[k],
-                                                     ppnAges = ppnAges[y,k,],
-                                                     gamma = gamma[k],
-                                                     mSurvAtAge=c(mSurvAge4[y,n],
-                                                                  mSurvAge4[y,n],
-                                                                  mSurvAge4[y,n],
-                                                                  0,0),
-                                                     error = errorCU[y, k],
-                                                     sig = ricSig[k],
-                                                     biasCor = biasCor) }
+              if (y < 3) {dum <- rickerSurvModel(S = S[y, k],
+                                                 a = refAlpha[k],
+                                                 b = beta[k],
+                                                 ppnAges = ppnAges[y,k,],
+                                                 gamma = gamma[k],
+                                                 mSurvAtAge=c(mSurvAge4[y,n],
+                                                              mSurvAge4[y,n],
+                                                              mSurvAge4[y,n],
+                                                              0,0),
+                                                 error = errorCU[y, k],
+                                                 sig = ricSig[k],
+                                                 biasCor = biasCor) }
 
-                  # mSurvAtAge is a vector of marine survival rates that will be experienced by fish recruiting from brood year y.
-                  #  It contains marine survival rates for recruits at ages 2:6.
-                  #  mSurvAtAge is currently filled based on the dominant life history types from Interior Fraser Coho.
-                  #  Fish with a 3-year life cycle differ from those with a 4-year life cycle in the number of years spent in
-                  #  freshwater as juveniles; both life cycles spend 18 months at sea before returning to spawn.
-                  #  Fish with a 2-year life cycle spend only 6 months at sea before returning as jacks.
-                  # -> Therefore:
-                  # --- Age 3 recruits from brood year y will enter the ocean at the same time as age 4 recruits from
-                  #     brood year y-1, and will this have the same marine survival rate as age 4 recruits from year y - 1
-                  # --- Age 2 recruits from brood year y will enter the ocean at the same
-                  #     time as age 3 recruits from brood year y, which is the same as age 4 recruits from brood year y - 1
+              # mSurvAtAge is a vector of marine survival rates that will be experienced by fish recruiting from brood year y.
+              #  It contains marine survival rates for recruits at ages 2:6.
+              #  mSurvAtAge is currently filled based on the dominant life history types from Interior Fraser Coho.
+              #  Fish with a 3-year life cycle differ from those with a 4-year life cycle in the number of years spent in
+              #  freshwater as juveniles; both life cycles spend 18 months at sea before returning to spawn.
+              #  Fish with a 2-year life cycle spend only 6 months at sea before returning as jacks.
+              # -> Therefore:
+              # --- Age 3 recruits from brood year y will enter the ocean at the same time as age 4 recruits from
+              #     brood year y-1, and will this have the same marine survival rate as age 4 recruits from year y - 1
+              # --- Age 2 recruits from brood year y will enter the ocean at the same
+              #     time as age 3 recruits from brood year y, which is the same as age 4 recruits from brood year y - 1
 
-                  if (y >= 3) {mSurvAtAge <- c(mSurvAge4[y-1,n], # msurv for recruits returning at age 2
+              if (y >= 3) {mSurvAtAge <- c(mSurvAge4[y-1,n], # msurv for recruits returning at age 2
                                                mSurvAge4[y-1,n], # msurv for recruits returning at age 3
                                                mSurvAge4[y,n],  # msurv for recruits returning at age 4
                                                mSurvAge4[y,n], mSurvAge4[y,n])} # msurv for recruits returning at ages 5 and 6 (placeholder values; this does no occur)
 
-                  if (y >= 3) {dum <- rickerSurvModel(S = S[y, k],
+              if (y >= 3) {dum <- rickerSurvModel(S = S[y, k],
                                                       a = refAlpha[k],
                                                       b = beta[k],
                                                       ppnAges = ppnAges[y,k,],
@@ -1233,59 +1228,56 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                                       error = errorCU[y, k],
                                                       sig = ricSig[k],
                                                       biasCor = biasCor) }
-                  #Keep recruitment below CU-specific cap, here specified as Seq x 5
-                  if (is.null(rCap)) CapScalar <- 5
-                  if (!is.null(rCap)) CapScalar <- rCap
+              #Keep recruitment below CU-specific cap, here specified as Seq x 5
+              if (is.null(rCap)) CapScalar <- 5
+              if (!is.null(rCap)) CapScalar <- rCap
 
-                  if(is.null(cuPar$Sinit)) recCap <- CapScalar * refAlpha / beta
-                  if(!is.null(cuPar$Sinit)) recCap <- CapScalar * cuPar$Sinit
+              if(is.null(cuPar$Sinit)) recCap <- CapScalar * refAlpha / beta
+              if(!is.null(cuPar$Sinit)) recCap <- CapScalar * cuPar$Sinit
 
-                  #keep recruitment below CU-specific cap
-                  recBY[y, k] <- min(dum[[6]], recCap[k])
+              #keep recruitment below CU-specific cap
+              recBY[y, k] <- min(dum[[6]], recCap[k])
 
-                } #end of rickerSurv
+            } #end of rickerSurv
 
-                # Add Larkin here...
+            # Add Larkin here...
 
-                logRS[y, k] <- log(recBY[y, k] / S[y, k])
-              } #end if(S[y, k]>0)
+            logRS[y, k] <- log(recBY[y, k] / S[y, k])
+          } #end if(S[y, k]>0)
 
-              if (is.na(laggedError[y, k])) {
-                laggedError[y, k] <- 0
-              }
-              if (S[y, k] == 0) {
-                recBY[y, k] <- 0
-                logRS[y, k] <- 0
-              }
-              if (recBY[y, k] <= extinctThresh) {
-                recBY[y, k] <- 0
-              }
-            } #end for(k in 1:nCU)
+          if (is.na(laggedError[y, k])) {
+            laggedError[y, k] <- 0
+          }
+          if (S[y, k] == 0) {
+            recBY[y, k] <- 0
+            logRS[y, k] <- 0
+          }
+          if (recBY[y, k] <= extinctThresh) {
+            recBY[y, k] <- 0
+          }
+        } #end for(k in 1:nCU)
 
-            recBYAg[y, n] <- sum(recBY[y, ])
+        recBYAg[y, n] <- sum(recBY[y, ])
 
-            if (is.na(laggedError[y, k])) {
-              laggedError[y, k] <- 0
-            }
-            if (is.infinite(laggedError[y, k])) {
-              laggedError[y, k] <- 0
-            }
+        if (is.na(laggedError[y, k])) {
+          laggedError[y, k] <- 0
+        }
+        if (is.infinite(laggedError[y, k])) {
+          laggedError[y, k] <- 0
+        }
 
-        }# End if(is.null(recOut) || sum(is.na(recDat$totalRec)) == length(rec..
+      }# End if(is.null(recOut) || sum(is.na(recDat$totalRec)) == length(rec..
 
-
-
-
-        ## Calculate benchmark submodel: calculate BMs during last 2 gen
-        # necessary to estimate  to prime single CU fishery and Larkin BMs which
-        # depend on dom cycle line
-        # (note that DL CUs will still be at 0, realistic for precautionary app)
+      ## Calculate benchmark submodel: calculate BMs during last 2 gen
+      # necessary to estimate  to prime single CU fishery and Larkin BMs which
+      # depend on dom cycle line
+      # (note that DL CUs will still be at 0, realistic for precautionary app)
 
 
-        ## Management and assessment submodels: calculate BMs during last 2 gen
-        # necessary to estimate  to prime single CU fishery and Larkin BMs which
-        # depend on dom cycle line
-        # (note that DL CUs will still be at 0, realistic for precautionary app)
+      ## Management and assessment submodels: calculate BMs during last 2 gen
+      # necessary to estimate  to prime single CU fishery and Larkin BMs which
+      # depend on dom cycle line
+      # (note that DL CUs will still be at 0, realistic for precautionary app)
       if(NoAssess==FALSE){
         if (y > (nPrime - 2 * gen)) {
           for (k in 1:nCU) {
@@ -1353,7 +1345,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
           for (k in 1:nCU) {
             if (model[k] == "ricker" | model[k] == "rickerSurv" |
-                model[k] == "larkin" & cycle[y] == domCycle[k]) {
+              model[k] == "larkin" & cycle[y] == domCycle[k]) {
               if (bm == "stockRecruit"||bm == "fixed") {
                 upperBM[y, k] <- ifelse(!is.na(sMSY[y, k, n]),
                                         0.8 * sMSY[y, k, n],
@@ -1396,7 +1388,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             }#end if(!is.na(S[y, k]))
           }#end for (k in 1:nCU)
         }#end if (y > (nPrime - 2 * gen))
-}
+      }
 
          ## Observation submodel: to prime simulation assume that observed are
       #equal to true
@@ -1419,8 +1411,13 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       lowerObsBM[y, ] <- lowerBM[y, ]
       counterUpperObsBM[y, ] <-counterUpperBM[y, ] #obs = true during priming
       counterLowerObsBM[y, ] <- counterLowerBM[y, ]
-
-      } # end of year loop 1 (y = 1:nPrime)
+      
+      if(y>gen){
+        extinct[y, ] <- extinctionCheck(y = y, gen = gen,
+                                        extinctThresh = extinctThresh,
+                                        spwnMat = S)
+      }
+    } # end of year loop 1 (y = 1:nPrime)
 
     #__________________________________________________________________________________________________
     ### Loop 2: Infilling of last 12 years
@@ -1471,6 +1468,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       obsRecBY[y, ] <- recBY[y, ]
       obsRecRY[y, ] <- recRY[y, ]
       obsLogRS[y, ] <- log(obsRecBY[y, ] / obsS[y, ])
+    
+      extinct[y, ] <- extinctionCheck(y = y, gen = gen,
+                                        extinctThresh = extinctThresh,
+                                        spwnMat = S)
     } #end loop 2
 
     #prime AR error
@@ -2145,7 +2146,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
       S[y, ] <- recRY[y, ] * (1 - expRate[y, ])
 
-##Add additional spawners from hatchery
+    ##Add additional spawners from hatchery
     for (k in 1:nCU) {
       if(is.na(max.hatchery.spawners[k])==FALSE){
         #hatchery spawners drawn as a gamma deviate expansion factor - with a cap based on the max. observed hatchery spawners
@@ -2504,7 +2505,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           if (model[k] == "rickerSurv") {
             # K.Holt - current set-up assumes ageMaxRec == 4 (i.e., IF coho); will need to update for other stocks
 
-
             mSurvAtAge<-c(mSurvAge4[y-2,n],mSurvAge4[y-1,n],mSurvAge4[y,n],0,0)
 
             dum <- rickerSurvModel(S=S[y, k], a=alphaMat[y, k], b=beta[k],
@@ -2536,10 +2536,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         if (recBY[y, k] <= extinctThresh) {
           recBY[y, k] <- 0
         }
-        extinct[y, ] <- extinctionCheck(y = y, gen = gen,
+        
+      } #end for(k in 1:nCU)
+      extinct[y, ] <- extinctionCheck(y = y, gen = gen,
                                         extinctThresh = extinctThresh,
                                         spwnMat = S)
-      } #end for(k in 1:nCU)
 
       recBYAg[y, n] <- sum(recBY[y, ])
 
