@@ -83,18 +83,18 @@ structure, survey design, and variable exploitation rules.
 }
 \examples{
 
-genericRecoverySim(simPar=simParexample, 
-                       cuPar=cuParexample, 
-                       catchDat=NULL, 
+genericRecoverySim(simPar=simParexample,
+                       cuPar=cuParexample,
+                       catchDat=NULL,
                        srDat=NULL,
-                       variableCU=FALSE, 
-                       ricPars=NULL, 
-                       larkPars=NULL, 
+                       variableCU=FALSE,
+                       ricPars=NULL,
+                       larkPars=NULL,
                        cuCustomCorrMat= NULL,
-                       outDir="test", 
-                       nTrials=10, 
-                       makeSubDirs=TRUE, 
-                       random=FALSE, 
+                       outDir="test",
+                       nTrials=10,
+                       makeSubDirs=TRUE,
+                       random=FALSE,
                        uniqueProd=TRUE,
                        uniqueSurv=FALSE)
 
