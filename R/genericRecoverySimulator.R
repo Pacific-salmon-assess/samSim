@@ -1286,6 +1286,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         # necessary to estimate  to prime single CU fishery and Larkin BMs which
         # depend on dom cycle line
         # (note that DL CUs will still be at 0, realistic for precautionary app)
+      if(NoAssess==FALSE){
         if (y > (nPrime - 2 * gen)) {
           for (k in 1:nCU) {
             # calculate percentile BMs
@@ -1406,7 +1407,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             }#end if(!is.na(S[y, k]))
           }#end for (k in 1:nCU)
         }#end if (y > (nPrime - 2 * gen))
-
+}
 
          ## Observation submodel: to prime simulation assume that observed are
       #equal to true
