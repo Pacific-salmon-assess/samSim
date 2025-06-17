@@ -1856,12 +1856,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                           obsS[y - obsBYLag, ])
         # -- and, force obs log R/S to NA when obsS is 0
         obsLogRS[y - obsBYLag, which(obsS[y - obsBYLag, ] == 0)] <- NA
+        # -- and, force obs log R/S to NA when obsRec is 0
+        obsLogRS[y - obsBYLag, which(obsRecBY[y - obsBYLag,] == 0)] <- NA
 
         # calculate aggregate obsRecBY over all CUs
         obsRecBYAg[y - obsBYLag, n] <- sum(obsRecBY[y - obsBYLag, ])
-
-        # -- and, force obs log R/S to NA when obsRec is 0
-        obsLogRS[y - obsBYLag, which(obsRecBYAg[y - obsBYLag, ] == 0)] <- NA
 
 
       } # end of if (y > (nPrime + obsBYLag))
