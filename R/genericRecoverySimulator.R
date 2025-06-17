@@ -115,6 +115,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   biasCor <- simPar$biasCor # logical describing if log-normal bias correction
   #is included in forward projections of stock-recruitment model
   rCap <- simPar$rCap
+  CapScalar <- 5
   infBetaPrior <- ifelse(is.null(simPar$infBetaPrior),FALSE,simPar$infBetaPrior)
 
   #MAnagement procedure
@@ -1411,7 +1412,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       lowerObsBM[y, ] <- lowerBM[y, ]
       counterUpperObsBM[y, ] <-counterUpperBM[y, ] #obs = true during priming
       counterLowerObsBM[y, ] <- counterLowerBM[y, ]
-      
+
       if(y>gen){
         extinct[y, ] <- extinctionCheck(y = y, gen = gen,
                                         extinctThresh = extinctThresh,
@@ -1468,7 +1469,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       obsRecBY[y, ] <- recBY[y, ]
       obsRecRY[y, ] <- recRY[y, ]
       obsLogRS[y, ] <- log(obsRecBY[y, ] / obsS[y, ])
-    
+
       extinct[y, ] <- extinctionCheck(y = y, gen = gen,
                                         extinctThresh = extinctThresh,
                                         spwnMat = S)
@@ -2535,7 +2536,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         if (recBY[y, k] <= extinctThresh) {
           recBY[y, k] <- 0
         }
-        
+
       } #end for(k in 1:nCU)
       extinct[y, ] <- extinctionCheck(y = y, gen = gen,
                                         extinctThresh = extinctThresh,
