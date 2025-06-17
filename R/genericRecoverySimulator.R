@@ -1303,9 +1303,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               sEqVar[y, k, n] <- refAlpha[k] / beta[k]
               sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha[k]))) /
                 beta[k]
-              sGen[y, k, n] <- as.numeric(sGenSolver(
-                theta = c(refAlpha[k], refAlpha[k] / sEqVar[y, k, n], ricSig[k]),
-                sMSY = sMSY[y, k, n]))
+              sGen[y, k, n] <- max(samEst::sgenCalcDirect(refAlpha[k], beta[k]),0)
               uMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 -  refAlpha[k]))) #changed to lambertW rather than approximation
             }
             if (model[k] == "rickerSurv") {
@@ -1314,10 +1312,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               sEqVar[y, k, n] <- refAlpha_prime / beta[k]
               sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha_prime))) /
                 beta[k]
-              sGen[y, k, n] <- as.numeric(sGenSolver(
-                theta = c(refAlpha_prime, refAlpha_prime / sEqVar[y, k, n], ricSig[k]),
-                sMSY = sMSY[y, k, n]
-              ))
+              sGen[y, k, n] <- max(samEst::sgenCalcDirect(refAlpha_prime, beta[k]),0)
+
             }
             if (model[k] == "larkin") {
               #modified alpha used to estimate Larkin BMs
@@ -1334,12 +1330,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               #   stop("Benchmark calculation is NA")
               # }
               cycleSGen[y, k] <- ifelse(alphaPrimeMat[y, k] > 0,
-                                        as.numeric(sGenSolver(
-                                          theta = c(alphaPrimeMat[y, k],
-                                                    alphaPrimeMat[y, k] /
-                                                      sEqVar[y, k, n],
-                                                    larSig[k]),
-                                          sMSY = cycleSMSY[y, k])),
+                                        samEst::sgenCalcDirect(alphaPrimeMat[y, k], beta[k]),
                                         NA)
               #calculate annual benchmarks as medians within cycle line
               sMSY[y, k, n] <- median(cycleSMSY[seq(cycle[y], y, 4), k],
@@ -1379,9 +1370,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                 # this gives same result as stockRecruit for nPrime period
                 sMSY_habitat[y, k, n] <-
                   (1 - gsl::lambert_W0(exp(1 - refAlpha[k]))) / beta[k]
-                sGen_habitat[y, k, n] <- as.numeric(sGenSolver(
-                  theta = c(refAlpha[k], beta[k], ricSig[k]),
-                  sMSY = sMSY_habitat[y, k, n] ))
+                sGen_habitat[y, k, n] <- max(samEst::sgenCalcDirect(refAlpha[k], beta[k]),0)
 
                 upperBM[y, k] <- ifelse(!is.na(sMSY_habitat[y, k, n]),
                                         0.8 * sMSY_habitat[y, k, n],
@@ -1623,10 +1612,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           } else if (normPeriod == FALSE) {
             sEqVar[y, k, n] <- alphaMat[y,k]/betaMat[y,k] #refAlpha[k] / beta[k]
             sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 -  alphaMat[y,k]))) / betaMat[y,k]
-            sGen[y, k, n] <- as.numeric(sGenSolver(
-              theta = c(alphaMat[y,k], alphaMat[y,k] / sEqVar[y, k, n], ricSig[k]),
-              sMSY = sMSY[y, k, n]
-            ))
+            sGen[y, k, n] <- max(samEst::sgenCalcDirect(alphaMat[y,k], betaMat[y,k]),0)
             uMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 -  alphaMat[y,k])))
           }
         } #end if model == ricker
@@ -1638,10 +1624,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             refAlpha_prime<- refAlpha[k] + (gamma[k]*log(coVarInit[k]))
             sEqVar[y, k, n] <- refAlpha_prime / beta[k]
             sMSY[y, k, n] <- (1 - gsl::lambert_W0(exp(1 - refAlpha_prime))) / beta[k]
-            sGen[y, k, n] <- as.numeric(sGenSolver(
-              theta = c(refAlpha_prime, refAlpha_prime / sEqVar[y, k, n], ricSig[k]),
-              sMSY = sMSY[y, k, n]
-            ))
+            sGen[y, k, n] <- max(samEst::sgenCalcDirect(refAlpha_prime,beta[k]),0)
           }
         } #end if model == rickerSurv
         if (model[k] == "larkin") {
@@ -1663,12 +1646,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                         1 - alphaPrimeMat[y, k]))) / beta[k],
                                       NA)
             cycleSGen[y, k] <- ifelse(alphaPrimeMat[y, k] > 0,
-                                      as.numeric(sGenSolver(
-                                        theta = c(alphaPrimeMat[y, k],
-                                                  alphaPrimeMat[y, k] /
-                                                    sEqVar[y, k, n],
-                                                  larSig[k]),
-                                        sMSY = cycleSMSY[y, k])),
+                                      max(samEst::sgenCalcDirect(alphaPrimeMat[y, k],  beta[k]),0),
                                       NA)
             #calculate annual benchmarks as medians within cycle line
             sMSY[y, k, n] <- median(cycleSMSY[seq(cycle[y], y, 4), k],
@@ -2385,9 +2363,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           if (is.na(estRicB[y, k, n]) == FALSE) {
             if ( estRicB[y, k, n]> 0) {
               if ((1 / estRicB[y, k, n]) <= max(obsS[,k], na.rm = TRUE) * 4) {
-                estSGen[y, k, n] <- as.numeric(sGenSolver(
-                  theta = c(estRicA[y, k, n], estRicB[y, k, n], ricSig[k]),
-                  sMSY = estSMSY[y, k, n]))
+                estSGen[y, k, n] <-max(samEst::sgenCalcDirect(estRicA[y, k, n],estRicB[y, k, n]),0)
               } else {
                 #if a BM cannot be estimated set it to the last estimated value
                 estSGen[y, k, n] <- estSGen[max(which(!is.na(
