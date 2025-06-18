@@ -115,7 +115,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   biasCor <- simPar$biasCor # logical describing if log-normal bias correction
   #is included in forward projections of stock-recruitment model
   rCap <- simPar$rCap
+
   CapScalar <- 5
+
   infBetaPrior <- ifelse(is.null(simPar$infBetaPrior),FALSE,simPar$infBetaPrior)
 
   #MAnagement procedure
@@ -1470,9 +1472,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       obsRecRY[y, ] <- recRY[y, ]
       obsLogRS[y, ] <- log(obsRecBY[y, ] / obsS[y, ])
 
-      extinct[y, ] <- extinctionCheck(y = y, gen = gen,
-                                        extinctThresh = extinctThresh,
-                                        spwnMat = S)
+ #     extinct[y, ] <- extinctionCheck(y = y, gen = gen,
+  #                                      extinctThresh = extinctThresh,
+  #                                      spwnMat = S)
     } #end loop 2
 
     #prime AR error
