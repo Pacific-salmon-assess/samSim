@@ -158,10 +158,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   # maxER exploitation rate applied
   maxER <- cuPar$maxER
   # Annual variation in exploitation rate
-  cvERSMU <- simPar$cvERSMU
+  cvERSMU <- ifelse(is.null(simPar$cvERSMU),NA,simPar$cvERSMU)
   # Variation in exploitation rates among CUs.
-  cvERcan <- cuPar$cvERcan
-  cvERam <- cuPar$cvERam
+  cvERcan <- ifelse(is.null(cuPar$cvERcan),NA,cuPar$cvERcan)
+  cvERam <- ifelse(is.null(cuPar$cvERam),NA,cuPar$cvERam)
   # Is there annual variability in among-CU deviations in exploitation rates
   annualcvERCU <- simPar$annualcvERCU
   # Are age proportions same across CUs?
