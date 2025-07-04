@@ -175,9 +175,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   amER <- rep(simPar$usER * usERScalar, length.out = nCU)
 
   #CU-specific hatchery inputs
-  shape.hatch=cuPar$shape.hatch
-  scale.hatch=cuPar$scale.hatch
-  max.hatchery.spawners=cuPar$max.hatchery.spawners
+  shape.hatch <- ifelse(is.null(cuPar$shape.hatch), NA, cuPar$shape.hatch)
+  scale.hatch <- ifelse(is.null(cuPar$scale.hatch), NA, cuPar$scale.hatch)
+  max.hatchery.spawners <- ifelse(is.null(cuPar$max.hatchery.spawners), NA, cuPar$max.hatchery.spawners)
 
 
   # # En-route mortality
