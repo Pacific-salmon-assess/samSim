@@ -131,6 +131,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   fixedLBM<- cuPar$fixedLowerBenchmark
   bmERAdj<- ifelse(is.null(simPar$bmERAdj),1,simPar$bmERAdj)
   redStatusER <- ifelse(is.null(simPar$redStatusER),NA,simPar$redStatusER)
+  amberStatusER <- ifelse(is.null(simPar$amberStatusER),NA,simPar$amberStatusER)
 
   # Should BMs be fixed at normative period?; if yes, then BMs aren't updated during sim period
   normPeriod <- ifelse(is.null(simPar$normPeriod), TRUE, simPar$normPeriod)
@@ -1954,7 +1955,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
           }else if(counterLowerObsBM[y-1, k]==1&counterUpperObsBM[y-1, k]==0){
             #amber status
-            trendCanER.iter[y,k] <-  max(trendCanER.iter[y,k]*bmERAdj,0.05,na.rm=T)
+            if(is.na(amberStatusER)==F){
+              trendCanER.iter[y,k]<- amberStatusER
+            }else{
+              trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,0.05,na.rm=T)
+            }
           }
         }
       }
