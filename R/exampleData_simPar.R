@@ -89,7 +89,8 @@
 #'   \item{rCap}{Cap on recruitment magnitude, default is 5, i.e., maximum recruitment is 5x Srep or Sinit (if available) }
 #'   \item{assessFreq}{How often are assessments run and reference points updated}  
 #'   \item{bmERAdj}{how much to change ER (a straight multiplier) when the S < escapement goal}  
-#'   \item{redStatusER}{I believe this sets a specific ER for red status specifically}  
+#'   \item{redStatusER}{Specific ER for red status , independent from UMSY or pre-determined ER}  
+#'   \item{amberStatusER}{Specific ER for amber status , independent from UMSY or pre-determined ER}  
 #'   \item{normPeriod}{Logical indicating if benchmarls should be fixed to those in the normative period} 
 #'   \item{infBetaPrior}{Logical. Should informative priors be used in samEst estimation models } 
 #'   \item{fERAdj}{multiplier for harvest Target (xUMSY)} 
