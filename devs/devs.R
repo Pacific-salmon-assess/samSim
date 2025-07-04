@@ -1,6 +1,7 @@
 
 
 devtools::document()
+
 devtools::load_all()
 
 #install samsim 
