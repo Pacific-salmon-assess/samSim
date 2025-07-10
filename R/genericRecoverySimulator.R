@@ -2372,22 +2372,40 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           estS25th[y, k, n] <- sort(obsSNoNA)[obsN25th]
           estS50th[y, k, n] <- sort(obsSNoNA)[obsN50th]
           #Calculate SR BMs
+
           if(assessType == "both"){
-            estSMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
-                                     (1 - gsl::lambert_W0(exp(
-                                       1 - estRicA[y, k, n]))) /
-                                       estRicB[y, k, n])
-            estUMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
+            if(is.na(estRicA_tv[y, k, n])){
+              estSMSY[y, k, n] <- estSMSY[y-1, k, n]
+              estUMSY[y, k, n] <- estUMSY[y-1, k, n]
+            }else{
+              estUMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
                                      1 - gsl::lambert_W0(exp(
                                        1 - estRicA_tv[y, k, n])))
-          }else{
-            estSMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
+            }
+
+            if(is.na(estRicA[y, k, n])){
+              estSMSY[y, k, n] <- estSMSY[y-1, k, n]
+              estUMSY[y, k, n] <- estUMSY[y-1, k, n]
+            }else{
+              estSMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
                                      (1 - gsl::lambert_W0(exp(
                                        1 - estRicA[y, k, n]))) /
                                        estRicB[y, k, n])
-            estUMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
+            }
+          }else{
+            if(is.na(estRicA[y, k, n])){
+              estSMSY[y, k, n] <- estSMSY[y-1, k, n]
+              estUMSY[y, k, n] <- estUMSY[y-1, k, n]
+            }else{
+              estSMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
+                                     (1 - gsl::lambert_W0(exp(
+                                       1 - estRicA[y, k, n]))) /
+                                       estRicB[y, k, n])
+              estUMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
                                      1 - gsl::lambert_W0(exp(
                                        1 - estRicA[y, k, n])))
+            }
+            
           }
 
           if (is.na(estRicB[y, k, n]) == FALSE) {

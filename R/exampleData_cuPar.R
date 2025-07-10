@@ -11,7 +11,8 @@
 #'   \item{domCycle}{Optional. integer to identify the dominant cycle line in Larkin stocks (1, 2, 3, 4 or NA)}
 #'   \item{minER}{minimum Canadian Exploitation rate- currently not implemented}
 #'   \item{maxER}{maximum cap on Canadian Exploitation rate}
-#'   \item{cvER}{Variation in exploitation rates among CUs.} 
+#'   \item{cvERcan}{Variation in exploitation rates among CUs for canadian fisheries.} 
+#'   \item{cvERam}{Variation in exploitation rates among CUs for US fisheries.} 
 #'   \item{usERScalar}{Scalar used to specify if any CUs should have US ERs scaled above or below the MU-level average specified in simPars}
 #'   \item{canERScalar}{Scalar used to specify if any CUs should have Canadian ERs scaled above or below the MU-level average specified in simPars} 
 #'   \item{tauCycAge}{multivariate logistic average variation in proportions of returns by age, see Schnute and Richards 1995, eqns.S.9 and S.10, 
