@@ -2430,14 +2430,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               #if ((1 / estRicB[y, k, n]) <= max(obsS[,k], na.rm = TRUE) * 4) {
               #  estSGen[y, k, n] <-as.numeric(max(samEst::sgenCalcDirect(estRicA[y, k, n],estRicB[y, k, n]),0))
               #} else {
-                #if a BM cannot be estimated set it to the last estimated value
-                estSGen[y, k, n] <- estSGen[max(which(!is.na(
-                  estSGen[, k, n]))), k, n]
-                estSMSY[y, k, n] <- estSMSY[max(which(!is.na(
-                  estSMSY[, k, n]))), k, n]
-                estUMSY[y, k, n] <- estUMSY[max(which(!is.na(
-                  estUMSY[, k, n]))), k, n]
-                fb1[y, k] <- 1
+              #if a BM cannot be estimated set it to the last estimated value
+              estSGen[y, k, n] <- estSGen[max(which(!is.na(estSGen[, k, n]))), k, n]
+              estSMSY[y, k, n] <- estSMSY[max(which(!is.na(estSMSY[, k, n]))), k, n]
+              estUMSY[y, k, n] <- estUMSY[max(which(!is.na(estUMSY[, k, n]))), k, n]
+              fb1[y, k] <- 1
               #}
             }# End of if(estRicB[y, n]>0)
           } else{
@@ -2836,6 +2833,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     upperObsBMArray[ , , n] <- upperObsBM
     lowerObsBMArray[ , , n] <- lowerObsBM
 
+   
     #need to better define this target ER without implementation and observation error
     #does not vary by
     HCRERArray[ , , n] <- t(t(trendCanER.iter) + amER)
@@ -3101,6 +3099,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     capDat.i<-as.data.frame(capArray[,,i])
     sigmaDat.i<-as.data.frame(sigmaArray[,,i])
 
+
     HCRERDat.i<-as.data.frame(HCRERArray[,,i])
     expRateDat.i<-as.data.frame(expRateArray[,,i])
     obsExpRateDat.i<-as.data.frame(obsExpRateArray[,,i])
@@ -3277,6 +3276,15 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       tibble::add_column(iteration=rep(i,nrow(estSGen)))
     uMSyEst.i<-uMSyEst.i %>% tibble::add_column(year=1:nrow(estUMSY)) %>%
       tibble::add_column(iteration=rep(i,nrow(estUMSY)))
+    RicAEst.i<-tibble::add_column(year=1:nrow(estRicA)) %>%
+      tibble::add_column(iteration=rep(i,nrow(estRicA)))
+    RicBEst.i<-tibble::add_column(year=1:nrow(estRicB)) %>%
+      tibble::add_column(iteration=rep(i,nrow(estRicB)))
+    RicAtvEst.i<-tibble::add_column(year=1:nrow(estRicA_tv)) %>%
+      tibble::add_column(iteration=rep(i,nrow(estRicA_tv)))
+    RicBtvEst.i<-tibble::add_column(year=1:nrow(estRicB_tv)) %>%
+      tibble::add_column(iteration=rep(i,nrow(estRicB_tv)))
+    
 
     lowerBM.i<-lowerBM.i %>% tibble::add_column(year=1:nrow(lowerBMArray)) %>%
       tibble::add_column(iteration=rep(i,nrow(lowerBMArray)))
@@ -3314,6 +3322,15 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     uMSyEst_long.i <- uMSyEst.i %>%
       tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="uMSyEst")
 
+    RicAEst_long.i <- RicAEst.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="ricAEst")
+    RicBEst_long.i <- RicBEst.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="ricBEst")
+    RicAtvEst_long.i <- RicAtvEst.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="ricAtvEst")
+    RicBEst_long.i <- RicBtvEst.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="ricBtvEst")
+
     lowerBM_long.i <- lowerBM.i %>%
       tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="lowerBM")
     upperBM_long.i <- upperBM.i %>%
@@ -3336,6 +3353,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         tibble::add_column(sMSYEst=sMSYEst_long.i$sMSYEst) %>%
         tibble::add_column(sGenEst=sGenEst_long.i$sGenEst)%>%
         tibble::add_column(uMSyEst=uMSyEst_long.i$uMSyEst)%>%
+        tibble::add_column(ricAEst=RicAEst_long.i$ricAEst)%>%
+        tibble::add_column(ricBEst=RicBEst_long.i$ricBEst)%>%
+        tibble::add_column(ricAtvEst=RicAtvEst_long.i$ricAtvEst)%>%
+        tibble::add_column(ricBtvEst=RicBtvEst_long.i$ricBtvEst)%>%
         tibble::add_column(lowerBM=lowerBM_long.i$lowerBM) %>%
         tibble::add_column(upperBM=upperBM_long.i$upperBM) %>%
         tibble::add_column(lowerObsBM=lowerObsBM_long.i$lowerObsBM) %>%
