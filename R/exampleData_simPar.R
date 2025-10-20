@@ -4,28 +4,41 @@
 #'
 #' @format A dataframe with 45 columns used as input to define simulation scenarios and MP:
 #' \describe{
-#'   \item{scenario}{scenario name. Used in subdirectories names as well as naming CUsrDat output file} 
-#'   \item{nameOM}{operating model name. Used in naming simulation oyutput directories and many output files}
+#'   \item{scenario}{scenario name. Used in subdirectories names as well as naming CUsrDat output
+#'  file} 
+#'   \item{nameOM}{operating model name. Used in naming simulation oyutput directories and many
+#'  output files}
 #'   \item{nameMP}{management procedure name, used in naming output files}
-#'   \item{keyVar}{focal variable of the analysis; subjective since typically multiple variables will differ 
-#'                 among scenarios, but should be a focal point of main figures. Currently can be one of the following arguments: `prodRegime`, 
-#'                 `synch`, `expRate`, `ppnMix`, `sigma`, `endYear`, `adjustAge`, `mixOUSig`, `adjustForecast`, `adjustEnRoute`, `obsSig`, 
+#'   \item{keyVar}{focal variable of the analysis; subjective since typically multiple variables
+#'  will differ 
+#'                 among scenarios, but should be a focal point of main figures. Currently can be
+#'  one of the following arguments: `prodRegime`, 
+#'                 `synch`, `expRate`, `ppnMix`, `sigma`, `endYear`, `adjustAge`, `mixOUSig`, 
+#' `adjustForecast`, `adjustEnRoute`, `obsSig`, 
 #'                 `obsMixCatch` (**NOTE these should eventually be defined explicitly**)}
-#'   \item{plotOrder}{order in which grouped scenarios will be plotted (useful when keyVar is not an ordinal or numeric variable)}
-#'   \item{species}{lower case species name (chum, sockeye and coho have been tested robustly; pink has not; chinook should be 
-#'                  used with extreme caution since most stocks do not meet assumptions of the model- I am not sure this still holds)} 
+#'   \item{plotOrder}{order in which grouped scenarios will be plotted (useful when keyVar is not an
+#'  ordinal or numeric variable)}
+#'   \item{species}{lower case species name (chum, sockeye and coho have been tested robustly; pink
+#'  has not; chinook should be 
+#'                  used with extreme caution since most stocks do not meet assumptions of the 
+#' model- I am not sure this still holds)} 
 #'   \item{simYears}{length of the simulation period (excluding priming period)}
-#'   \item{harvContRule}{harvest control rule (`TAM`(deprecated), `fixedER`, `genPA`(deprecated),`trendER`, `shiftER`} 
-#'   \item{benchmark}{biological benchmark used to assess conservation status (`stockRecruit`, `percentile`)}
+#'   \item{harvContRule}{harvest control rule (`TAM`(deprecated), `fixedER`, `genPA`(deprecated),
+#' `trendER`, `shiftER`} 
+#'   \item{benchmark}{biological benchmark used to assess conservation status (`stockRecruit`, 
+#' `percentile`)}
 #'   \item{canER}{initial Canadian exploitation rate} 
 #'   \item{finalCanER}{final Canadian exploitation rate}
 #'   \item{ERStartYear}{Year in which ER trend starts}
 #'   \item{EREndYear}{Year in which ER trend ends}
-#'   \item{usER}{ American exploitation rate (note can also be supplied as CU-specific value in `cuPars`)}
+#'   \item{usER}{ American exploitation rate (note can also be supplied as CU-specific value in 
+#' `cuPars`)}
 #'   \item{cvERSMU}{Annual variation in exploitation rate for the SMU}  
-#'   \item{propMixHigh}{proportion of Canadian catch allocated to mixed-stock fisheries (can range from 0 to 1)}  
+#'   \item{propMixHigh}{proportion of Canadian catch allocated to mixed-stock fisheries (can range 
+#' from 0 to 1)}  
 #'   \item{singleHCR}{single stock harvest control rule (`FALSE`, `retro`, `forecast`)}  
-#'   \item{moveTAC}{if `TRUE` and single stock quota from low-abundance CUs is re-allocated to other CUs}   
+#'   \item{moveTAC}{if `TRUE` and single stock quota from low-abundance CUs is re-allocated to other
+#'  CUs}   
 #'   \item{prodRegime}{productivity regime. Options are: `low` multiply alpha by 0.65,
 #'                    `lowStudT` same as `low` and use student-t for SR error distribution,
 #'                    `med` constant and unchanged alpha,
@@ -36,43 +49,65 @@
 #'                    `decline` linear decline trend with final alpha is 0.65 times initial value,
 #'                    `increase` linear increase trend with final alpha is 1.35 times initial value,
 #'                    `divergent` productivity for CUs have decline of increasing trends,
-#'                    `oneUp` one CU picked at random has an increasing trend final alpha is 1.35 times initial value,
-#'                    `oneDown` one CU picked at random has an increasing trend final alpha is 0.65 times initial value, 
-#'                    `sine` sine trend in productivity requiring further parameters ampSinProd and sinCycleLen),
+#'                    `oneUp` one CU picked at random has an increasing trend final alpha is 1.35 
+#' times initial value,
+#'                    `oneDown` one CU picked at random has an increasing trend final alpha is 0.65 
+#' times initial value, 
+#'                    `sine` sine trend in productivity requiring further parameters ampSinProd
+#'  and sinCycleLen),
 #'                    `regime` regime shifts based on prodPpnChange and prodRegimeLen,
 #'                    `randomwalk` . }   
-#'   \item{prodPpnChange}{Scalar to modify productivity parameter, values >1 indicate increase linear trend and <1 declining linear trend}  
-#'   \item{prodTrendLength}{Length of the trend in productivity parameter in years, if prodStartYear not defined, then trend happens in the beginning of the simulation time series}    
-#'   \item{prodStartYear}{indicates when a productivity decline (if specified by `prodRegime == "decline"`) should start -- not implemented}       
-#'   \item{prodEndYear}{indicates when a productivity decline (if specified by `prodRegime == "decline"`) should end}          
-#'   \item{prodRegimeLen}{Length of each productivity regime, when prodRegime is "regime".  Default is 10}
+#'   \item{prodPpnChange}{Scalar to modify productivity parameter, values >1 indicate increase
+#'  linear trend and <1 declining linear trend}  
+#'   \item{prodTrendLength}{Length of the trend in productivity parameter in years, if prodStartYear
+#'  not defined, then trend happens in the beginning of the simulation time series}    
+#'   \item{prodStartYear}{indicates when a productivity decline (if specified by 
+#' `prodRegime == "decline"`) should start -- not implemented}       
+#'   \item{prodEndYear}{indicates when a productivity decline (if specified by 
+#' `prodRegime == "decline"`) should end}          
+#'   \item{prodRegimeLen}{Length of each productivity regime, when prodRegime is "regime".  Default
+#'  is 10}
 #'   \item{ampSinProd}{Amplitude of variability in productivity if sine pattern is used}
 #'   \item{sinCycleLen}{length of one comple sine cycle}
-#'   \item{capRegime}{type of SR capacity (Smax) regime, current options are `linear` linear trend where the end value is adjusted by prodPpnChange,
+#'   \item{capRegime}{type of SR capacity (Smax) regime, current options are `linear` linear trend
+#'  where the end value is adjusted by prodPpnChange,
 #'  `regime` regime shifts based on capPpnChange and capRegimeLen,
 #'  `decline` linear decline trend with final alpha is 0.65 times initial value, 
-#'  `increase` linear decline trend with final alpha is 1.35 times initial value. Any other string is treated as stable without warning}        
-#'   \item{capPpnChange}{Scalar to modify Smax parameter, values >1 indicate increase linear trend and <1 declining linear trend}  
-#'   \item{capRegimeLen}{Length of capacity regimes (when "regime" is used for capRegime), default is 10}
-#'   \item{capTrendLength}{Length of the trend in capacity parameter in years, trend happens in the beginning of the simulation time series}    
-#'   \item{capStartYear}{indicates when a productivity decline (if specified by `prodRegime == "decline"`) should start -- not implemented}       
-#'   \item{capEndYear}{indicates when a productivity decline (if specified by `prodRegime == "decline"`) should end}     
-#'   \item{sigRegime}{type of recruitment residuals standard deviation regime, current options are "stable", "scalar" (modify for entire time-series), 
+#'  `increase` linear decline trend with final alpha is 1.35 times initial value. Any other string
+#'  is treated as stable without warning}        
+#'   \item{capPpnChange}{Scalar to modify Smax parameter, values >1 indicate increase linear trend
+#'  and <1 declining linear trend}  
+#'   \item{capRegimeLen}{Length of capacity regimes (when "regime" is used for capRegime), default
+#'  is 10}
+#'   \item{capTrendLength}{Length of the trend in capacity parameter in years, trend happens in the
+#'  beginning of the simulation time series}    
+#'   \item{capStartYear}{indicates when a productivity decline (if specified by 
+#' `prodRegime == "decline"`) should start -- not implemented}       
+#'   \item{capEndYear}{indicates when a productivity decline (if specified by 
+#' `prodRegime == "decline"`) should end}     
+#'   \item{sigRegime}{type of recruitment residuals standard deviation regime, current options are
+#'  "stable", "scalar" (modify for entire time-series), 
 #' or "shift" (shift in sigShiftYear) . ny other string is treated as stable without warning}
 #'   \item{sigShiftYear}{Year in which sigma changes if sigRegime is "shift"} 
 #'   \item{rho}{temporal autocorrelation coefficient in recruitment deviations}   
-#'   \item{arSigTransform}{if `TRUE` estimates of sigma from input are transformed so that they account for temporal autocorrelation}   
+#'   \item{arSigTransform}{if `TRUE` estimates of sigma from input are transformed so that they
+#'  account for temporal autocorrelation}   
 #'   \item{biasCor}{if TRUE, apply bias correction to lognormal distribution (sig^2)/2}    
 #'   \item{correlCU}{the correlation among CUs in recruitment deviations}   
-#'   \item{corrMat}{if `TRUE` a custom correlation matrix is required to be passed as an input and is used to specify the covariance matrix for recruitment deviations}    
+#'   \item{corrMat}{if `TRUE` a custom correlation matrix is required to be passed as an input and
+#'  is used to specify the covariance matrix for recruitment deviations}    
 #'   \item{mu_logCovar1}{mean of lognormal distribution for annual SR covariate (e.g., marine survival)}    
 #'   \item{sig_logCovar1}{log-normal variation for annual SR covariate}   
-#'   \item{sampCU_coef1}{TRUE/FALSE indicating whether CU-specific coefficients for the SR covariate should be sampled}    
-#'   \item{sigCU_coef1}{among-CU variation in coefficients for the SR covariate (only applied if sampCU_coef1 == TRUE)}      
+#'   \item{sampCU_coef1}{TRUE/FALSE indicating whether CU-specific coefficients for the SR covariate
+#'  should be sampled}    
+#'   \item{sigCU_coef1}{among-CU variation in coefficients for the SR covariate (only applied if 
+#' sampCU_coef1 == TRUE)}      
 #'   \item{tauCatch}{multivariate logistic variation in CU-specific catches}        
 #'   \item{obsSig}{log-normal variation in spawner observation error}          
-#'   \item{mixOUSig}{beta-distributed variation in mixed-stock fishery outcome uncertainty; input parameter represents the standard deviation used to calculate the location parameter}       
-#'   \item{singOUSig}{beta-distributed variation in single-stock fishery outcome uncertainty; input parameter represents the standard deviation used to calculate the location parameter}      
+#'   \item{mixOUSig}{beta-distributed variation in mixed-stock fishery outcome uncertainty; input 
+#' parameter represents the standard deviation used to calculate the location parameter}       
+#'   \item{singOUSig}{beta-distributed variation in single-stock fishery outcome uncertainty; input 
+#' parameter represents the standard deviation used to calculate the location parameter}      
 #'   \item{obsMixCatchSig}{log-normal variation in mixed-stock catch observation error}  
 #'   \item{obsSingCatchSig}{log-normal variation in single-stock catch observation error}  
 #'   \item{obsAgeErr}{logistic variation in observed age error}       
@@ -85,18 +120,25 @@
 #'   \item{agePpnConst}{Logical. If TRUE set age proportion to be constant among CUs}     
 #'   \item{assessType}{Type of assessment model= c("default","autocorr","rwa", "both") default is 
 #' the simple linear model, autocorr and rwa rely on samEst to estimate autocorr and random walk
-#' time-varying alpha model, both uses the simple linear model for abundance benchmarks and rwa for umsy }     
-#'   \item{rCap}{Cap on recruitment magnitude, default is 5, i.e., maximum recruitment is 5x Srep or Sinit (if available) }
+#' time-varying alpha model, both uses the simple linear model for abundance benchmarks and rwa 
+#' for umsy }     
+#'   \item{rCap}{Cap on recruitment magnitude, default is 5, i.e., maximum recruitment is 5x 
+#' Srep or Sinit (if available) }
 #'   \item{assessFreq}{How often are assessments run and reference points updated}  
 #'   \item{bmERAdj}{how much to change ER (a straight multiplier) when the S < escapement goal}  
 #'   \item{redStatusER}{Specific ER for red status , independent from UMSY or pre-determined ER}  
 #'   \item{amberStatusER}{Specific ER for amber status , independent from UMSY or pre-determined ER}  
-#'   \item{normPeriod}{Logical indicating if benchmarls should be fixed to those in the normative period} 
+#'   \item{normPeriod}{Logical indicating if benchmarls should be fixed to those in the normative 
+#' period} 
 #'   \item{infBetaPrior}{Logical. Should informative priors be used in samEst estimation models } 
 #'   \item{fERAdj}{multiplier for harvest Target (xUMSY)} 
 #'   \item{HCRtype}{One of umsy/abundance/both} 
-#'   \item{fixedLowerBenchmark}{set value for a fixed LowerBenchmark, note the 'benchmark' column  must equal 'fixed'} 
-#'   \item{fixedUpperBenchmark}{set value for a fixed UpperBenchmark, note the 'benchmark' column  must equal 'fixed'} 
+#'   \item{fixedLowerBenchmark}{set value for a fixed LowerBenchmark, note the 'benchmark' column 
+#'  must equal 'fixed'} 
+#'   \item{fixedUpperBenchmark}{set value for a fixed UpperBenchmark, note the 'benchmark' column  
+#' must equal 'fixed'} 
+#'   \item{arSimpleAssess}{Whether or not to consider AR erros in the simple assessment model, when 
+#' considering assessType ="autocorr" or "both", default is true}
 #' }
 "simParexample"
 

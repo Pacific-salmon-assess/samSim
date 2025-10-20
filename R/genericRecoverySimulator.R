@@ -117,8 +117,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   rCap <- simPar$rCap
 
   CapScalar <- 5
-
+  
   infBetaPrior <- ifelse(is.null(simPar$infBetaPrior),FALSE,simPar$infBetaPrior)
+  arSimpleAssess <- ifelse(is.null(simPar$arSimpleAssess),TRUE,simPar$arSimpleAssess)
 
   #MAnagement procedure
   NoAssess<- ifelse(is.null(simPar$NoAssess),FALSE,simPar$NoAssess)
@@ -443,13 +444,12 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   estYi <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   # estYi2 <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   estSlope <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
-  if(assessType=="both"){
-     estYi_tv <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
-     estSlope_tv <-  estSlope <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
-
-     estRicA_tv <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
-     estRicB_tv <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
-  }
+  
+  estYi_tv <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  estSlope_tv <-  array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  estRicA_tv <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  estRicB_tv <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
+  
   estSMSY <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   estSGen <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
   estUMSY <- array(NA, dim = c(nYears, nCU, nTrials), dimnames = NULL)
@@ -2251,11 +2251,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           tva<- samEst::ricker_rw_TMB(data=assessdat,tv.par="a",logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig,AICc_type="marginal",newton_stp=FALSE)
 
           if(tva$model$convergence==0){
-            estYi[y, k, n] <- mean(tail(tva$logalpha,n=ageMaxRec))
-            estSlope[y, k, n] <- tva$beta[1]
+            estYi_tv[y, k, n] <- mean(tail(tva$logalpha,n=ageMaxRec))
+            estSlope_tv[y, k, n] <- tva$beta[1]
           }else{
-            estYi[y, k, n] <- NA
-            estSlope[y, k, n] <- NA
+            estYi_tv[y, k, n] <- NA
+            estSlope_tv[y, k, n] <- NA
           }
 
         }else if(assessType=="autocorr"){
@@ -2278,7 +2278,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           logbeta_pr_sig <- sqrt(log(1+((1/ Smax_sd)*(1/ Smax_sd))/((1/Smax_mean)*(1/Smax_mean))))
           logbeta_pr <- log(1/(Smax_mean))-0.5*logbeta_pr_sig^2
 
-          est_ar<- samEst::ricker_TMB(data=assessdat, AC=TRUE,logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig)
+          est_ar<- samEst::ricker_TMB(data=assessdat, AC=arSimpleAssess,logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig)
 
 
           if(est_ar$model$convergence==0){
@@ -2291,20 +2291,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
         }else if(assessType=="both"){
 
-
-          assessdat <- data.frame(
-            S=obsS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
-            R=obsRecBY[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
-            logRS=obsLogRS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k])
-          asessdat<- assessdat[complete.cases(assessdat),]
-
-          srMod <- quickLm(xVec = assessdat$S, yVec = assessdat$logRS)
-          estYi[y, k, n] <- srMod[[1]]
-          estSlope[y, k, n] <- -srMod[[2]]
-
-          if(estSlope[y, k, n]<0){
-            estSlope[y, k, n] <- NA
-          }
 
           assessdat <- data.frame(
                       S=obsS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
@@ -2322,8 +2308,19 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           }
           logbeta_pr_sig <- sqrt(log(1+((1/ Smax_sd)*(1/ Smax_sd))/((1/Smax_mean)*(1/Smax_mean))))
           logbeta_pr <- log(1/(Smax_mean))-0.5*logbeta_pr_sig^2
+          
+          est_ar<- samEst::ricker_TMB(data=assessdat, AC=arSimpleAssess,logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig)   
+          
+          if(est_ar$model$convergence==0){
+            estYi[y, k, n] <- est_ar$logalpha
+            estSlope[y, k, n] <- est_ar$beta
+          }else{
+            estYi[y, k, n] <- NA
+            estSlope[y, k, n] <- NA
+          }
 
-          tva<- samEst::ricker_rw_TMB(data=assessdat,tv.par="a",logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig,AICc_type="marginal",newton_stp=FALSE)
+          tva<- samEst::ricker_rw_TMB(data=assessdat,tv.par="a",logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig,
+            AICc_type="marginal",newton_stp=FALSE)
 
           if(tva$model$convergence==0){
             estYi_tv[y, k, n] <- mean(tail(tva$logalpha,n=ageMaxRec))
@@ -2332,10 +2329,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             estYi_tv[y, k, n] <- NA
             estSlope_tv[y, k, n] <- NA
           }
-          estRicB_tv[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estSlope_tv[y, k, n])
-          estRicA_tv[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estYi_tv[y, k, n])
-
+         
         }
+        
+        estRicB_tv[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estSlope_tv[y, k, n])
+        estRicA_tv[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estYi_tv[y, k, n])
         estRicB[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estSlope[y, k, n])
         estRicA[y, k, n] <- ifelse(extinct[y, k] == 1, NA, estYi[y, k, n])
       }
@@ -2374,28 +2372,45 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           #Calculate SR BMs
 
           if(assessType == "both"){
-            if(is.na(estRicA_tv[y, k, n])){
+            if(is.na(estRicA_tv[y, k, n])|is.na(estRicA[y, k, n])){
               estSMSY[y, k, n] <- estSMSY[y-1, k, n]
               estUMSY[y, k, n] <- estUMSY[y-1, k, n]
             }else{
+              #time-varying Umsy
               estUMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
                                      1 - gsl::lambert_W0(exp(
                                        1 - estRicA_tv[y, k, n])))
-            }
-
-            if(is.na(estRicA[y, k, n])){
-              estSMSY[y, k, n] <- estSMSY[y-1, k, n]
-              estUMSY[y, k, n] <- estUMSY[y-1, k, n]
-            }else{
+              
+              #stationary biomass benchmarks
               estSMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
                                      (1 - gsl::lambert_W0(exp(
                                        1 - estRicA[y, k, n]))) /
                                        estRicB[y, k, n])
+              estSGen[y, k, n] <-as.numeric(max(samEst::sgenCalcDirect(estRicA[y, k, n],estRicB[y, k, n]),0))
             }
+
+            
+          }else if(assessType == "rwa"){
+            if(is.na(estRicA_tv[y, k, n])){
+              estSMSY[y, k, n] <- estSMSY[y-1, k, n]
+              estUMSY[y, k, n] <- estUMSY[y-1, k, n]
+              estSGen[y, k, n] <- estSGen[y-1, k, n]
+            }else{
+              estUMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
+                                     1 - gsl::lambert_W0(exp(
+                                       1 - estRicA_tv[y, k, n])))
+              estSMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
+                                     (1 - gsl::lambert_W0(exp(
+                                       1 - estRicA_tv[y, k, n]))) /
+                                       estRicB_tv[y, k, n])
+              estSGen[y, k, n] <-as.numeric(max(samEst::sgenCalcDirect(estRicA_tv[y, k, n],estRicB_tv[y, k, n]),0))
+            }
+
           }else{
             if(is.na(estRicA[y, k, n])){
               estSMSY[y, k, n] <- estSMSY[y-1, k, n]
               estUMSY[y, k, n] <- estUMSY[y-1, k, n]
+              estSGen[y, k, n] <- estSGen[y-1, k, n]
             }else{
               estSMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
                                      (1 - gsl::lambert_W0(exp(
@@ -2404,15 +2419,17 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               estUMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
                                      1 - gsl::lambert_W0(exp(
                                        1 - estRicA[y, k, n])))
+              estSGen[y, k, n] <-as.numeric(max(samEst::sgenCalcDirect(estRicA[y, k, n],estRicB[y, k, n]),0))
+
             }
             
           }
 
           if (is.na(estRicB[y, k, n]) == FALSE) {
             if ( estRicB[y, k, n]> 0) {
-              if ((1 / estRicB[y, k, n]) <= max(obsS[,k], na.rm = TRUE) * 4) {
-                estSGen[y, k, n] <-as.numeric(max(samEst::sgenCalcDirect(estRicA[y, k, n],estRicB[y, k, n]),0))
-              } else {
+              #if ((1 / estRicB[y, k, n]) <= max(obsS[,k], na.rm = TRUE) * 4) {
+              #  estSGen[y, k, n] <-as.numeric(max(samEst::sgenCalcDirect(estRicA[y, k, n],estRicB[y, k, n]),0))
+              #} else {
                 #if a BM cannot be estimated set it to the last estimated value
                 estSGen[y, k, n] <- estSGen[max(which(!is.na(
                   estSGen[, k, n]))), k, n]
@@ -2421,7 +2438,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                 estUMSY[y, k, n] <- estUMSY[max(which(!is.na(
                   estUMSY[, k, n]))), k, n]
                 fb1[y, k] <- 1
-              }
+              #}
             }# End of if(estRicB[y, n]>0)
           } else{
             estSGen[y, k, n] <- estSGen[max(which(!is.na(estSGen[, k, n]))), k, n]
