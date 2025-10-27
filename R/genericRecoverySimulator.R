@@ -3227,6 +3227,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     sMSYEst.i  <- as.data.frame(estSMSY[,,i])
     sGenEst.i  <- as.data.frame(estSGen[,,i])
     uMSyEst.i  <- as.data.frame(estUMSY[,,i])
+    RicAEst.i  <- as.data.frame(estRicA[,,i])
+    RicBEst.i <- as.data.frame(estRicB[,,i])
+    RicAtvEst.i <- as.data.frame(estRicA_tv[,,i])
+    RicBtvEst.i <- as.data.frame(estRicB_tv[,,i])
 
     lowerBM.i<-as.data.frame(lowerBMArray[,,i])
     upperBM.i<-as.data.frame(upperBMArray[,,i])
@@ -3247,6 +3251,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       names(sMSYEst.i)<-paste0("V",1:nCU)
       names(sGenEst.i)<-paste0("V",1:nCU)
       names(uMSyEst.i)<-paste0("V",1:nCU)
+      names(RicAEst.i)<-paste0("V",1:nCU)
+      names(RicBEst.i)<-paste0("V",1:nCU)
+      names(RicAtvEst.i)<-paste0("V",1:nCU)
+      names(RicBtvEst.i)<-paste0("V",1:nCU)
       names(lowerBM.i)<-paste0("V",1:nCU)
       names(upperBM.i)<-paste0("V",1:nCU)
       names(lowerObsBM.i)<-paste0("V",1:nCU)
@@ -3276,13 +3284,14 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       tibble::add_column(iteration=rep(i,nrow(estSGen)))
     uMSyEst.i<-uMSyEst.i %>% tibble::add_column(year=1:nrow(estUMSY)) %>%
       tibble::add_column(iteration=rep(i,nrow(estUMSY)))
-    RicAEst.i<-tibble::add_column(year=1:nrow(estRicA)) %>%
+    #check these
+    RicAEst.i<-RicAEst.i %>% tibble::add_column(year=1:nrow(estRicA)) %>%
       tibble::add_column(iteration=rep(i,nrow(estRicA)))
-    RicBEst.i<-tibble::add_column(year=1:nrow(estRicB)) %>%
+    RicBEst.i<-RicBEst.i %>% tibble::add_column(year=1:nrow(estRicB)) %>%
       tibble::add_column(iteration=rep(i,nrow(estRicB)))
-    RicAtvEst.i<-tibble::add_column(year=1:nrow(estRicA_tv)) %>%
+    RicAtvEst.i<-RicAtvEst.i %>% tibble::add_column(year=1:nrow(estRicA_tv)) %>%
       tibble::add_column(iteration=rep(i,nrow(estRicA_tv)))
-    RicBtvEst.i<-tibble::add_column(year=1:nrow(estRicB_tv)) %>%
+    RicBtvEst.i<- RicBtvEst.i %>% tibble::add_column(year=1:nrow(estRicB_tv)) %>%
       tibble::add_column(iteration=rep(i,nrow(estRicB_tv)))
     
 
@@ -3328,7 +3337,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="ricBEst")
     RicAtvEst_long.i <- RicAtvEst.i %>%
       tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="ricAtvEst")
-    RicBEst_long.i <- RicBtvEst.i %>%
+    RicBtvEst_long.i <- RicBtvEst.i %>%
       tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="ricBtvEst")
 
     lowerBM_long.i <- lowerBM.i %>%
