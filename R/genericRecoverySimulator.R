@@ -18,7 +18,7 @@
 #' structure, survey design, and variable exploitation rules.
 #' @importFrom here here
 #' @importFrom dplyr group_by summarise
-#' @importFrom samEst ricker_rw_TMB
+#' @importFrom samEst ricker_rw_TMB ricker_TMB
 #' @param simPar is a .csv file that contains the input parameters that
 #' characterize a specific simulation run, but which are *shared* among CUs.
 #' A detailed descrption of the contents of the `simPar` file can be found by accessing ?simParexample
@@ -2338,7 +2338,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           logbeta_pr_sig <- sqrt(log(1+((1/ Smax_sd)*(1/ Smax_sd))/((1/Smax_mean)*(1/Smax_mean))))
           logbeta_pr <- log(1/(Smax_mean))-0.5*logbeta_pr_sig^2
 
-          tva<- samEst::ricker_rw_TMB(data=assessdat,tv.par="a",logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig,AICc_type="marginal",newton_stp=FALSE)
+          tva<- samEst::ricker_rw_TMB(data=assessdat,tv.par="a", Smax_mean=Smax_mean,Smax_sd=Smax_sd,AICc_type="marginal",newton_stp=FALSE)
 
           if(tva$model$convergence==0){
             estYi_tv[y, k, n] <- mean(tail(tva$logalpha,n=ageMaxRec))
@@ -2365,10 +2365,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             Smax_sd <- Smax_mean
           }
 
-          logbeta_pr_sig <- sqrt(log(1+((1/ Smax_sd)*(1/ Smax_sd))/((1/Smax_mean)*(1/Smax_mean))))
-          logbeta_pr <- log(1/(Smax_mean))-0.5*logbeta_pr_sig^2
 
-          est_ar<- samEst::ricker_TMB(data=assessdat, AC=arSimpleAssess,logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig)
+          est_ar<- samEst::ricker_TMB(data=assessdat, AC=arSimpleAssess,Smax_mean=Smax_mean,
+                                      Smax_sd=Smax_sd)
 
 
           if(est_ar$model$convergence==0){
@@ -2396,10 +2395,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             Smax_mean <- (max(assessdat$S)*.5)
             Smax_sd <- Smax_mean
           }
-          logbeta_pr_sig <- sqrt(log(1+((1/ Smax_sd)*(1/ Smax_sd))/((1/Smax_mean)*(1/Smax_mean))))
-          logbeta_pr <- log(1/(Smax_mean))-0.5*logbeta_pr_sig^2
+          
 
-          est_ar<- samEst::ricker_TMB(data=assessdat, AC=arSimpleAssess,logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig)
+          est_ar<- samEst::ricker_TMB(data=assessdat, AC=arSimpleAssess,Smax_mean=Smax_mean,Smax_sd=Smax_sd)
 
           if(est_ar$model$convergence==0){
             estYi[y, k, n] <- est_ar$logalpha
@@ -2409,7 +2407,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             estSlope[y, k, n] <- NA
           }
 
-          tva<- samEst::ricker_rw_TMB(data=assessdat,tv.par="a",logb_p_mean=logbeta_pr,logb_p_sd=logbeta_pr_sig,
+          tva<- samEst::ricker_rw_TMB(data=assessdat,tv.par="a",Smax_mean=Smax_mean,Smax_sd=Smax_sd,
             AICc_type="marginal",newton_stp=FALSE)
 
           if(tva$model$convergence==0){
