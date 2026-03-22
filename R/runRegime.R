@@ -17,5 +17,6 @@
 #'
 #' 
 #' @export
-runRegime <- function(a1,a2,y,reglen=10)( rep( c(rep(a1,reglen),rep(a2,reglen)),
-                                       ceiling(y/(reglen*2)) )[1:y] )
+runRegime <- function(a1,a2,y,reglen=10){
+   rep( c(rep(a1,reglen),rep(a2,reglen)),
+                ceiling(y/(reglen*2)) )[1:y] }

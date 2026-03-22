@@ -2366,7 +2366,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           }
 
 
-          est_ar<- samEst::ricker_TMB(data=assessdat, AC=arSimpleAssess,Smax_mean=Smax_mean,
+          est_ar<- samEst::ricker_TMB(data=assessdat, ac=arSimpleAssess,Smax_mean=Smax_mean,
                                       Smax_sd=Smax_sd)
 
 
@@ -2397,7 +2397,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           }
           
 
-          est_ar<- samEst::ricker_TMB(data=assessdat, AC=arSimpleAssess,Smax_mean=Smax_mean,Smax_sd=Smax_sd)
+          est_ar<- samEst::ricker_TMB(data=assessdat, ac=arSimpleAssess,Smax_mean=Smax_mean,Smax_sd=Smax_sd)
 
           if(est_ar$model$convergence==0){
             estYi[y, k, n] <- est_ar$logalpha
