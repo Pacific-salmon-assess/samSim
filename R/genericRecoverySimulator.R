@@ -2378,8 +2378,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             estSlope[y, k, n] <- NA
           }
 
-        }else if(assessType=="both"){
-
+        }else if(assessType%in%c("both","both_tv_u","both_tv_u_smsy")){
 
           assessdat <- data.frame(
                       S=obsS[(nPrime-(10+obsBYLag)):(y-obsBYLag), k],
@@ -2459,7 +2458,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           estS50th[y, k, n] <- sort(obsSNoNA)[obsN50th]
           #Calculate SR BMs
 
-          if(assessType == "both"){
+          if(assessType == "both_tv_u"|assessType == "both"){
             if(is.na(estRicA_tv[y, k, n])|is.na(estRicA[y, k, n])){
               estSMSY[y, k, n] <- estSMSY[y-1, k, n]
               estUMSY[y, k, n] <- estUMSY[y-1, k, n]
@@ -2476,8 +2475,24 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                                        estRicB[y, k, n])
               estSGen[y, k, n] <-as.numeric(max(samEst::sgenCalcDirect(estRicA[y, k, n],estRicB[y, k, n]),0))
             }
+          }else if(assessType == "both_tv_u_smsy"){
+            if(is.na(estRicA_tv[y, k, n])|is.na(estRicA[y, k, n])){
+              estSMSY[y, k, n] <- estSMSY[y-1, k, n]
+              estUMSY[y, k, n] <- estUMSY[y-1, k, n]
+            }else{
+              #time-varying Umsy
+              estUMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
+                                     1 - gsl::lambert_W0(exp(
+                                       1 - estRicA_tv[y, k, n])))
 
-
+              #time-varying upper biomass benchmark
+              estSMSY[y, k, n] <- ifelse(extinct[y, k] == 1, NA,
+                                     (1 - gsl::lambert_W0(exp(
+                                       1 - estRicA_tv[y, k, n]))) /
+                                       estRicB_tv[y, k, n])
+              #stationary lower biomass benchmark
+              estSGen[y, k, n] <-as.numeric(max(samEst::sgenCalcDirect(estRicA[y, k, n],estRicB[y, k, n]),0))
+            }
           }else if(assessType == "rwa"){
             if(is.na(estRicA_tv[y, k, n])){
               estSMSY[y, k, n] <- estSMSY[y-1, k, n]
