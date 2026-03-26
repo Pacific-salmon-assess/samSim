@@ -1929,7 +1929,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
           trendCanER.iter[y,k] <- bmUMSY[y-1,k,n]
         }
         #abundance-based targets - run size either based on forecast or retrospective (last years escapement)
-        if(is.na(forecastMean)==TRUE){ #retrospective branch
+        if(singleHCR=="retro"){ #retrospective branch
           if(HCRtype=='abundance'){ #for HCRs without a ramp between benchmarks = ie. set in red/amber/green zones
             if(counterLowerObsBM[y-1, k]==0&counterUpperObsBM[y-1, k]==0){
               #red status
@@ -1994,7 +1994,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             }
           }
         }
-        else if(is.na(forecastMean)==FALSE){#forecast branch
+        else if(singleHCR=="forecast"){#forecast branch
           if(HCRtype=='abundance'){ #for HCRs without a ramp between benchmarks = ie. set in red/amber/green zones
             if(foreRecRY[y, k]<lowerObsBM[y-1,k]){
               #red status
@@ -2394,7 +2394,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             Smax_mean <- (max(assessdat$S)*.5)
             Smax_sd <- Smax_mean
           }
-          
+
 
           est_ar<- samEst::ricker_TMB(data=assessdat, ac=arSimpleAssess,Smax_mean=Smax_mean,Smax_sd=Smax_sd)
 
