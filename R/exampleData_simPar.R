@@ -60,7 +60,8 @@
 #'   \item{prodPpnChange}{Scalar to modify productivity parameter, values >1 indicate increase
 #'  linear trend and <1 declining linear trend}  
 #'   \item{prodTrendLength}{Length of the trend in productivity parameter in years, if prodStartYear
-#'  not defined, then trend happens in the beginning of the simulation time series}    
+#'  not defined, then trend happens in the beginning of the simulation time series. If prodStartYear 
+#' and prodEndYear are defined, prodTrendLength get overwritten}    
 #'   \item{prodStartYear}{indicates when a productivity decline (if specified by 
 #' `prodRegime == "decline"`) should start -- not implemented}       
 #'   \item{prodEndYear}{indicates when a productivity decline (if specified by 
@@ -139,6 +140,7 @@
 #' must equal 'fixed'} 
 #'   \item{arSimpleAssess}{Whether or not to consider AR erros in the simple assessment model, when 
 #' considering assessType ="autocorr" or "both", default is true}
+#' \item{useRamp}{TRUE/FALSE. If TRUE then harvest control rule is ramped and the amberStatusER'is ignored}
 #' }
 "simParexample"
 

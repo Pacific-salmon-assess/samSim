@@ -755,7 +755,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     if(!is.na(prodEndYear)&!is.na(prodStartYear)){
       prodTrendLength <- prodEndYear-prodStartYear + 1
     }else{
-      prodTrendLength <- simPar$prodTrendLength #3 * gen
+      prodTrendLength <- ifelse(!is.na(simPar$prodTrendLength)|is.null(simPar$prodTrendLength),
+        simPar$prodTrendLength,(nPrime + 1):nYears)
+
     }
 
 
