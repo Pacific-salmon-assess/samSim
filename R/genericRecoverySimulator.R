@@ -756,7 +756,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       prodTrendLength <- prodEndYear-prodStartYear + 1
     }else{
       prodTrendLength <- ifelse(!is.na(simPar$prodTrendLength)|is.null(simPar$prodTrendLength),
-        simPar$prodTrendLength,(nPrime + 1):nYears)
+        simPar$prodTrendLength, simYears)
 
     }
 
@@ -807,7 +807,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     if(!is.na(capEndYear)&!is.na(capStartYear)){
       capTrendLength <- capEndYear-capStartYear + 1
     }else{
-      capTrendLength <- simPar$capTrendLength #3 * gen
+      capTrendLength <-ifelse(!is.na(simPar$capTrendLength)|is.null(simPar$capTrendLength),
+        simPar$capTrendLength,simYears)
     }
 
     cap <- simPar$capRegime
