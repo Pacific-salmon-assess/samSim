@@ -1945,7 +1945,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               if(is.na(amberStatusER)==F){
                 trendCanER.iter[y,k]<- amberStatusER
               }else{
-                trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,0.05,na.rm=T)
+                trendCanER.iter[y,k] <- max(trendCanER[y,k]*bmERAdj,0.05,na.rm=T)
               }
             }else if(counterLowerObsBM[y-1, k]==1&counterUpperObsBM[y-1, k]==0&is.null(rampER)==FALSE){
               if(!is.na(redStatusER)==F){
