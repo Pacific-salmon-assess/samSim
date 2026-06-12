@@ -2924,6 +2924,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     capArray[ , , n] <- capMat
     sigmaArray[ , , n] <- sigmaMat
     returnArray[ , , n] <- recRY
+    forecastArray[, , n] <- foreRecRY
     logRSArray[ , , n] <- logRS
     obsTotalCatch <- obsAmCatch + obsMixCatch + obsSingCatch
     recDevArray[ , , n] <- errorCU
@@ -3204,6 +3205,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     recDat.i<-as.data.frame(recArray[,,i])
     obsSpnDat.i<-as.data.frame(obsSpwnrArray[,,i])
     obsRecDat.i<-as.data.frame(obsRecArray[,,i])
+    returnDat.i<-as.data.frame(returnArray[,,i])
+    forecastDat.i<-as.data.frame(forecastArray[,,i])
     alphaDat.i<-as.data.frame(alphaArray[,,i])
     betaDat.i<-as.data.frame(betaArray[,,i])
     capDat.i<-as.data.frame(capArray[,,i])
@@ -3225,6 +3228,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       names(recDat.i)<-paste0("V",1:nCU)
       names(obsSpnDat.i)<-paste0("V",1:nCU)
       names(obsRecDat.i)<-paste0("V",1:nCU)
+      names(returnDat.i)<-paste0("V",1:nCU)
+      names(forecastDat.i)<-paste0("V",1:nCU)
       names(alphaDat.i)<-paste0("V",1:nCU)
       names(betaDat.i)<-paste0("V",1:nCU)
       names(capDat.i)<-paste0("V",1:nCU)
@@ -3265,6 +3270,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="obsSpawners")
     obsRecDat_long.i <- obsRecDat.i %>%
         tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="obsRecruits")
+    returnDat_long.i <- returnDat.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="Runsize")
+    forecastDat_long.i <- forecastDat.i %>%
+      tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="forecastRunsize")
     alphaDat_long.i <- alphaDat.i %>%
         tidyr::pivot_longer(tidyr::starts_with("V"),names_to="CU", values_to="alpha")
     betaDat_long.i <- betaDat.i %>%
@@ -3294,6 +3303,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         tibble::add_column(hatcherySpawners=HspnDat_long.i$HatcherySpawners) %>%
         tibble::add_column(wildSpawners=spnDat_long.i$spawners-HspnDat_long.i$HatcherySpawners) %>%
         tibble::add_column(obsRecruits=obsRecDat_long.i$obsRecruits) %>%
+        tibble::add_column(obsRecruits=returnDat_long.i$Runsize) %>%
+        tibble::add_column(obsRecruits=forecastDat_long.i$forecastRunsize) %>%
         tibble::add_column(beta=betaDat_long.i$beta) %>%
         tibble::add_column(alpha=alphaDat_long.i$alpha) %>%
         tibble::add_column(capacity=capDat_long.i$capacity) %>%
