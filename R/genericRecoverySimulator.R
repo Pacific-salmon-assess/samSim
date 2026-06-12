@@ -495,6 +495,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   capArray <- array(NA, dim = c(nYears, nCU, nTrials))
   sigmaArray <- array(NA, dim = c(nYears, nCU, nTrials))
   returnArray <- array(NA, dim = c(nYears, nCU, nTrials))
+  forecastArray <- array(NA, dim = c(nYears, nCU, nTrials))
   logRSArray <- array(NA, dim = c(nYears, nCU, nTrials))
   recDevArray <- array(NA, dim = c(nYears, nCU, nTrials))
   prodDevArray <- array(NA, dim = c(nYears, nCU, nTrials))
