@@ -3304,8 +3304,8 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
         tibble::add_column(hatcherySpawners=HspnDat_long.i$HatcherySpawners) %>%
         tibble::add_column(wildSpawners=spnDat_long.i$spawners-HspnDat_long.i$HatcherySpawners) %>%
         tibble::add_column(obsRecruits=obsRecDat_long.i$obsRecruits) %>%
-        tibble::add_column(obsRecruits=returnDat_long.i$Runsize) %>%
-        tibble::add_column(obsRecruits=forecastDat_long.i$forecastRunsize) %>%
+        tibble::add_column(Runsize=returnDat_long.i$Runsize) %>%
+        tibble::add_column(forecastRunsize=forecastDat_long.i$forecastRunsize) %>%
         tibble::add_column(beta=betaDat_long.i$beta) %>%
         tibble::add_column(alpha=alphaDat_long.i$alpha) %>%
         tibble::add_column(capacity=capDat_long.i$capacity) %>%
