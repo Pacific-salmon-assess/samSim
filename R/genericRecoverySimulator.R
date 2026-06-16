@@ -156,7 +156,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
   }) #which cycle line is dominant? (for CUs with Larkin model only)
 
   # Minimum exploitation rate applied
-  minER <- cuPar$minER
+  minER <- ifelse(is.null(cuPar$minER),0.05,cuPar$minER)
   # maxER exploitation rate applied
   maxER <- cuPar$maxER
   # Annual variation in exploitation rate
@@ -1940,13 +1940,13 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               if(!is.na(redStatusER)){
                 trendCanER.iter[y,k] <- redStatusER
               }else{
-                trendCanER.iter[y,k] <- max(trendCanER[y,k]*bmERAdj,0.05,na.rm=T)
+                trendCanER.iter[y,k] <- max(trendCanER[y,k]*bmERAdj,minER,na.rm=T)
               }
             }else if(counterLowerObsBM[y-1, k]==1&counterUpperObsBM[y-1, k]==0&!rampER){
               if(is.na(amberStatusER)==F){
                 trendCanER.iter[y,k]<- amberStatusER
               }else{
-                trendCanER.iter[y,k] <- max(trendCanER[y,k]*bmERAdj,0.05,na.rm=T)
+                trendCanER.iter[y,k] <- max(trendCanER[y,k]*bmERAdj,minER,na.rm=T)
               }
             }else if(counterLowerObsBM[y-1, k]==1&counterUpperObsBM[y-1, k]==0&rampER){
               if(!is.na(redStatusER)==F){
@@ -1956,11 +1956,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                 ER.temp=trendCanER[y,k]*((obsS[y-1, k]-lowerObsBM[y-1,k])/(upperObsBM[y-1,k]-lowerObsBM[y-1,k]))
               }
               trendCanER.iter[y,k] <- min(trendCanER[y,k],ER.temp,na.rm=T)
-              trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],0.05,na.rm=T)
+              trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],minER,na.rm=T)
               }
             else{
               
-              trendCanER.iter[y,k] <- max(trendCanER[y,k],0.05,na.rm=T)
+              trendCanER.iter[y,k] <- max(trendCanER[y,k],minER,na.rm=T)
             }
           }
           if(HCRtype=='both'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
@@ -1971,7 +1971,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               if(is.na(redStatusER)==F){
                 trendCanER.iter[y,k]<- redStatusER
               }else{
-                trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,0.05,na.rm=T)
+                trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,minER,na.rm=T)
               }
 
             }else if(counterLowerObsBM[y-1, k]==1&counterUpperObsBM[y-1, k]==0&!rampER){
@@ -1979,7 +1979,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               if(is.na(amberStatusER)==F){
                 trendCanER.iter[y,k]<- amberStatusER
               }else{
-                trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,0.05,na.rm=T)
+                trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,minER,na.rm=T)
               }
             }
             #harvest ramp option based on retroactive spawner abundance
@@ -1991,17 +1991,17 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                 ER.temp=trendCanER.iter[y,k]*((obsS[y-1, k]-lowerObsBM[y-1,k])/(upperObsBM[y-1,k]-lowerObsBM[y-1,k]))
               }
               trendCanER.iter[y,k] <- min(trendCanER.iter[y,k],ER.temp,na.rm=T)
-              trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],0.05,na.rm=T)
+              trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],minER,na.rm=T)
             }
             else{
-              trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],0.05,na.rm=T)
+              trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],minER,na.rm=T)
             }
           }
         }
         else if(singleHCR=="forecast"){#forecast branch
           if(HCRtype=='abundance'){ #for HCRs without a ramp between benchmarks = ie. set in red/amber/green zones
-            if(is.na(amberStatusER)){amberStatusER<-max(trendCanER[y,k]*bmERAdj,0.05,na.rm=T)}
-            if(is.na(redStatusER)){redStatusER<-max(trendCanER[y,k]*bmERAdj,0.05,na.rm=T)}
+            if(is.na(amberStatusER)){amberStatusER<-max(trendCanER[y,k]*bmERAdj,minER,na.rm=T)}
+            if(is.na(redStatusER)){redStatusER<-max(trendCanER[y,k]*bmERAdj,minER,na.rm=T)}
             
             if((foreRecRY[y, k]*(1-amberStatusER))<lowerObsBM[y-1,k]){
               #red status
@@ -2024,10 +2024,10 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                 ER.temp=trendCanER[y,k]*(((foreRecRY[y, k]*(1-trendCanER[y,k]))-lowerObsBM[y-1,k])/(upperObsBM[y-1,k]-lowerObsBM[y-1,k]))
               }
               trendCanER.iter[y,k] <- min(trendCanER[y,k],ER.temp,na.rm=T)
-              trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],0.05,na.rm=T)
+              trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],minER,na.rm=T)
             }
             else{
-              trendCanER.iter[y,k] <- max(trendCanER[y,k],0.05,na.rm=T)
+              trendCanER.iter[y,k] <- max(trendCanER[y,k],minER,na.rm=T)
             }
           }
           if(HCRtype=='both'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
@@ -2037,14 +2037,14 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               if(is.na(redStatusER)==F){
                 trendCanER.iter[y,k]<- redStatusER
               }else{
-                trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,0.05,na.rm=T)
+                trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,minER,na.rm=T)
               }
             }else if((foreRecRY[y, k]*(1-trendCanER[y,k]))>lowerObsBM[y-1,k]&(foreRecRY[y, k]*(1-trendCanER[y,k]))<upperObsBM[y-1,k]&!rampER){
               #amber status
               if(is.na(amberStatusER)==F){
                 trendCanER.iter[y,k]<- amberStatusER
               }else{
-                trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,0.05,na.rm=T)
+                trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,minER,na.rm=T)
               }
               #ramped harvest rate option - based on forecast return
             }else if((foreRecRY[y, k]*(1-trendCanER[y,k]))>lowerObsBM[y-1,k]&(foreRecRY[y, k]*(1-trendCanER[y,k]))<upperObsBM[y-1,k]&rampER){ #forecast between lower & upper benchmarks
@@ -2055,9 +2055,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
                 ER.temp=trendCanER.iter[y,k]*(((foreRecRY[y, k]*(1-trendCanER[y,k]))-lowerObsBM[y-1,k])/(upperObsBM[y-1,k]-lowerObsBM[y-1,k]))
               }
               trendCanER.iter[y,k] <- min(trendCanER.iter[y,k],ER.temp,na.rm=T)
-              trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],0.05,na.rm=T)
+              trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],minER,na.rm=T)
             }else{
-              trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],0.05,na.rm=T)
+              trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],minER,na.rm=T)
             }
           }
         }

@@ -9,7 +9,7 @@
 #'   \item{stk}{CU identification number (can be assigned arbitrarily or based on previous modeling exercises)}
 #'   \item{model}{stock recruitment model to be used. Options are `ricker`, `rickerSurv` and `larkin`}
 #'   \item{domCycle}{Optional. integer to identify the dominant cycle line in Larkin stocks (1, 2, 3, 4 or NA)}
-#'   \item{minER}{minimum Canadian Exploitation rate- currently not implemented}
+#'   \item{minER}{minimum Canadian Exploitation rate, default is 0.05 }
 #'   \item{maxER}{maximum cap on Canadian Exploitation rate}
 #'   \item{cvERcan}{Variation in exploitation rates among CUs for canadian fisheries.} 
 #'   \item{cvERam}{Variation in exploitation rates among CUs for US fisheries.} 
