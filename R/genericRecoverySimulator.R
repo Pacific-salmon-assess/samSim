@@ -95,6 +95,9 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
   ppnMix <- simPar$propMixHigh #ppn of Canadian harvest allocated to mixed stock fisheries when abundance is high (default)
   singleHCR <- ifelse(is.null(simPar$singleHCR), FALSE, simPar$singleHCR) #if TRUE single stock TAC is only harvested when BMs met
+  HCRmetric <- ifelse(is.null(simPar$HCRmetric), singleHCR, simPar$HCRmetric) #metric used for abundance-based management retrospective or forecast
+  if(singleHCR %in% c("forecast","retro")|is.null(simPar$HCRmetric)){warning("forecast/retro neeeds to be defined in simPar$HCRmetric, simPar$singleHCR should take TRUE/FALSE values only")}
+
   moveTAC <- ifelse(is.null(simPar$moveTAC), FALSE, simPar$moveTAC) #if TRUE single stock TAC for low abundance CUs is re-allocated
   rho <- simPar$rho #autocorrelation coefficient in recruitment residuals
   correlCU <- simPar$correlCU #correlation among CUs in recruitment deviations
@@ -1415,7 +1418,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       estSMSY[y, , n] <- sMSY[y, , n]
       estSGen[y, , n] <- sGen[y, , n]
       estUMSY[y, , n] <- uMSY[y, , n]
-      bmUMSY[y, , n] <- rep(canER,nCU) #initial benchmark (before nPrime based on start ER)
+      bmUMSY[y, , n] <- estUMSY[y, , n]#rep(canER,nCU) #initial benchmark (before nPrime based on start ER)
       upperObsBM[y, ] <- upperBM[y, ] #obs = true during priming
       lowerObsBM[y, ] <- lowerBM[y, ]
       counterUpperObsBM[y, ] <-counterUpperBM[y, ] #obs = true during priming
@@ -1922,146 +1925,307 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
       #                 overlapConstraint = overlapConstraint[y, ],
       #                 constrainMix = constrainMix)
 
-      #adjust Canadian ER downward if obsspawners below upper benchmark, but allow a minimum of 0.05 ER
       for (k in 1:nCU) {
-        #fixed ER target, independent of run size
+
+
+        #fixed ER target, independent of run size, note it doesn't matter if forecast or retro management is used
         if(HCRtype=='fixed'){
+          
           trendCanER.iter[y,k]<-trendCanER[y,k]
-        }
-        #estimated UMSY-based target, independent of run size
-        if(HCRtype=='umsy'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
+        
+        }else if(HCRtype=='umsy'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
+          
+          #estimated UMSY-based target, independent of run size,note it doesn't matter if forecast or retro management is used
           trendCanER.iter[y,k] <- bmUMSY[y-1,k,n]
-        }
-        #abundance-based targets - run size either based on forecast or retrospective (last years escapement)
-        if(singleHCR=="retro"){ #retrospective branch
-          if(HCRtype=='abundance'){ #for HCRs without a ramp between benchmarks = ie. set in red/amber/green zones
+        
+        }else if(HCRtype=='abundance'){ #for HCRs with fixer exploitation rates for each abundance zone (independent of estimates UMSY)
+          
+          if(is.na(redStatusER)){
+            tmpredStatusER<-max(trendCanER[y,k]*bmERAdj,minER,na.rm=T)
+          }else{
+            tmpredStatusER <- redStatusER
+          }
+          
+          if(is.na(amberStatusER)){
+            tmpamberStatusER<-max(trendCanER[y,k]*bmERAdj,minER,na.rm=T)
+          }else{
+            tmpamberStatusER <- amberStatusER
+          }
+
+          #abundance-based targets - run size either based on forecast or retrospective (last years escapement)
+          if(HCRmetric=="retro"){ #retrospective branch 
+            
             if(counterLowerObsBM[y-1, k]==0&counterUpperObsBM[y-1, k]==0){
               #red status
+              trendCanER.iter[y,k]<- tmpredStatusER           
+            }else if(counterLowerObsBM[y-1, k]==1&counterUpperObsBM[y-1, k]==0&!rampER){#amber status constant ER
+              #amber status
+              trendCanER.iter[y,k]<- tmpamberStatusER
+            }else if(counterLowerObsBM[y-1, k]==1&counterUpperObsBM[y-1, k]==0&rampER){#amber status ramp ER
+              #use redStatusER instead oftemp to ensure thatramp goes to zero (minER) if desired
               if(!is.na(redStatusER)){
-                trendCanER.iter[y,k] <- redStatusER
-              }else{
-                trendCanER.iter[y,k] <- max(trendCanER[y,k]*bmERAdj,minER,na.rm=T)
-              }
-            }else if(counterLowerObsBM[y-1, k]==1&counterUpperObsBM[y-1, k]==0&!rampER){
-              if(is.na(amberStatusER)==F){
-                trendCanER.iter[y,k]<- amberStatusER
-              }else{
-                trendCanER.iter[y,k] <- max(trendCanER[y,k]*bmERAdj,minER,na.rm=T)
-              }
-            }else if(counterLowerObsBM[y-1, k]==1&counterUpperObsBM[y-1, k]==0&rampER){
-              if(!is.na(redStatusER)==F){
-                ER.temp=redStatusER+trendCanER[y,k]*((obsS[y-1, k]-lowerObsBM[y-1,k])/(upperObsBM[y-1,k]-lowerObsBM[y-1,k]))
+                ER.temp=redStatusER+(trendCanER[y,k]-redStatusER)*((obsS[y-1, k]-lowerObsBM[y-1,k])/(upperObsBM[y-1,k]-lowerObsBM[y-1,k]))
                 #scale trandCanER by the benchmark adjustment and a ratio of the run forecast excess (above lower Obs BM) vs. the upper/lower obs BM
               }else{
                 ER.temp=trendCanER[y,k]*((obsS[y-1, k]-lowerObsBM[y-1,k])/(upperObsBM[y-1,k]-lowerObsBM[y-1,k]))
               }
               trendCanER.iter[y,k] <- min(trendCanER[y,k],ER.temp,na.rm=T)
               trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],minER,na.rm=T)
-              }
-            else{
-              
+            }else{
+            #green status       
               trendCanER.iter[y,k] <- max(trendCanER[y,k],minER,na.rm=T)
             }
-          }
-          if(HCRtype=='both'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
-            trendCanER.iter[y,k] <- bmUMSY[y-1,k,n]
 
-            if(counterLowerObsBM[y-1, k]==0&counterUpperObsBM[y-1, k]==0){
+          }else if(HCRmetric=="forecast"){#forecast branch
+            
+            if((foreRecRY[y, k]*(1-trendCanER[y,k]))>=upperObsBM[y-1,k]){
+              #green status
+              trendCanER.iter[y,k]<- trendCanER[y,k]
+
+            }else if(foreRecRY[y, k]*(1-redStatusER)<=lowerObsBM[y-1,k]){
               #red status
-              if(is.na(redStatusER)==F){
-                trendCanER.iter[y,k]<- redStatusER
-              }else{
-                trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,minER,na.rm=T)
-              }
-
-            }else if(counterLowerObsBM[y-1, k]==1&counterUpperObsBM[y-1, k]==0&!rampER){
+              trendCanER.iter[y,k]<- tmpredStatusER              
+            }else{
               #amber status
-              if(is.na(amberStatusER)==F){
-                trendCanER.iter[y,k]<- amberStatusER
+              if(rampER){
+
+                trendCanER.iter[y,k] <- max(trendCanER[y,k]*(foreRecRY[y, k]*(1-trendCanER[y,k])/(upperObsBM[y-1,k])),tmpredStatusER)
+                if(foreRecRY[y, k]*(1-trendCanER.iter[y,k])<=lowerObsBM[y-1,k]){
+                  trendCanER.iter[y,k] <- tmpredStatusER
+                }
               }else{
-                trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,minER,na.rm=T)
+                if(foreRecRY[y, k]*(1-tmpamberStatusER)<=lowerObsBM[y-1,k]){
+                  trendCanER.iter[y,k] <- max(tmpredStatusER,(foreRecRY[y, k]-lowerObsBM[y-1,k])/foreRecRY[y, k])
+                }else{
+                  trendCanER.iter[y,k] <- max(tmpamberStatusER,(foreRecRY[y, k]-upperObsBM[y-1,k])/foreRecRY[y, k])
+                }
               }
             }
-            #harvest ramp option based on retroactive spawner abundance
-            else if(counterLowerObsBM[y-1, k]==1&counterUpperObsBM[y-1, k]==0&rampER){
-              if(!is.na(redStatusER)==F){
-                ER.temp=redStatusER+trendCanER.iter[y,k]*((obsS[y-1, k]-lowerObsBM[y-1,k])/(upperObsBM[y-1,k]-lowerObsBM[y-1,k]))
+          }     
+        }else if(HCRtype=='both'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
+          
+          trendCanER.iter[y,k] <- bmUMSY[y-1,k,n]
+          if(is.na(redStatusER)){
+            tmpredStatusER<-max(trendCanER.iter[y,k]*bmERAdj,minER,na.rm=T)
+          }else{
+            tmpredStatusER <- redStatusER
+          }
+          
+          if(is.na(amberStatusER)){
+            tmpamberStatusER<-max(trendCanER.iter[y,k]*bmERAdj,minER,na.rm=T)
+          }else{
+            tmpamberStatusER <- amberStatusER
+          }
+
+          
+          if(HCRmetric=="retro"){ 
+            #retrospective branch 
+            if(counterLowerObsBM[y-1, k]==0&counterUpperObsBM[y-1, k]==0){
+              #red status
+                trendCanER.iter[y,k] <- tmpredStatusER
+            }else if(counterLowerObsBM[y-1, k]==1&counterUpperObsBM[y-1, k]==0&!rampER){
+              #amber status
+              #status  
+              trendCanER.iter[y,k] <- tmpamberStatusER
+              
+              #harvest ramp option based on retroactive spawner abundance
+            }else if(counterLowerObsBM[y-1, k]==1&counterUpperObsBM[y-1, k]==0&rampER){
+               
+              if(!is.na(redStatusER)){
+                ER.temp=redStatusER+(trendCanER.iter[y,k]-redStatusER)*((obsS[y-1, k]-lowerObsBM[y-1,k])/(upperObsBM[y-1,k]-lowerObsBM[y-1,k]))
                 #scale trandCanER by the benchmark adjustment and a ratio of the run forecast excess (above lower Obs BM) vs. the upper/lower obs BM
               }else{
                 ER.temp=trendCanER.iter[y,k]*((obsS[y-1, k]-lowerObsBM[y-1,k])/(upperObsBM[y-1,k]-lowerObsBM[y-1,k]))
               }
               trendCanER.iter[y,k] <- min(trendCanER.iter[y,k],ER.temp,na.rm=T)
               trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],minER,na.rm=T)
-            }
-            else{
-              trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],minER,na.rm=T)
-            }
-          }
-        }
-        else if(singleHCR=="forecast"){#forecast branch
-          if(HCRtype=='abundance'){ #for HCRs without a ramp between benchmarks = ie. set in red/amber/green zones
-            if(is.na(amberStatusER)){amberStatusER<-max(trendCanER[y,k]*bmERAdj,minER,na.rm=T)}
-            if(is.na(redStatusER)){redStatusER<-max(trendCanER[y,k]*bmERAdj,minER,na.rm=T)}
-            
-            if((foreRecRY[y, k]*(1-amberStatusER))<lowerObsBM[y-1,k]){
-              #red status
-              trendCanER.iter[y,k] <- redStatusER
-             
-            }else if((foreRecRY[y, k]*(1-trendCanER[y,k])>=lowerObsBM[y-1,k]&
-                      foreRecRY[y, k]*(1-trendCanER[y,k])<upperObsBM[y-1,k])|
-                     (foreRecRY[y, k]*(1-amberStatusER)>=lowerObsBM[y-1,k]&
-                      foreRecRY[y, k]*(1-amberStatusER)<upperObsBM[y-1,k])&
-              !rampER){
-              #amber status
-              trendCanER.iter[y,k]<- amberStatusER
-              
-            }else if((foreRecRY[y, k]*(1-trendCanER[y,k]))>lowerObsBM[y-1,k]&
-              (foreRecRY[y, k]*(1-trendCanER[y,k]))<upperObsBM[y-1,k]&rampER){
-              #scale trandCanER by the benchmark adjustment and a ratio of the run forecast excess (above lower Obs BM) vs. the upper/lower obs BM
-              if(!is.na(redStatusER)==F){
-                ER.temp=redStatusER+trendCanER[y,k]*(((foreRecRY[y, k]*(1-trendCanER[y,k]))-lowerObsBM[y-1,k])/(upperObsBM[y-1,k]-lowerObsBM[y-1,k]))
-              }else{
-                ER.temp=trendCanER[y,k]*(((foreRecRY[y, k]*(1-trendCanER[y,k]))-lowerObsBM[y-1,k])/(upperObsBM[y-1,k]-lowerObsBM[y-1,k]))
-              }
-              trendCanER.iter[y,k] <- min(trendCanER[y,k],ER.temp,na.rm=T)
-              trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],minER,na.rm=T)
-            }
-            else{
-              trendCanER.iter[y,k] <- max(trendCanER[y,k],minER,na.rm=T)
-            }
-          }
-          if(HCRtype=='both'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
-            trendCanER.iter[y,k] <- bmUMSY[y-1,k,n]
-            if((foreRecRY[y, k]*(1-trendCanER[y,k]))<lowerObsBM[y-1,k]){
-              #red status
-              if(is.na(redStatusER)==F){
-                trendCanER.iter[y,k]<- redStatusER
-              }else{
-                trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,minER,na.rm=T)
-              }
-            }else if((foreRecRY[y, k]*(1-trendCanER[y,k]))>lowerObsBM[y-1,k]&(foreRecRY[y, k]*(1-trendCanER[y,k]))<upperObsBM[y-1,k]&!rampER){
-              #amber status
-              if(is.na(amberStatusER)==F){
-                trendCanER.iter[y,k]<- amberStatusER
-              }else{
-                trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,minER,na.rm=T)
-              }
-              #ramped harvest rate option - based on forecast return
-            }else if((foreRecRY[y, k]*(1-trendCanER[y,k]))>lowerObsBM[y-1,k]&(foreRecRY[y, k]*(1-trendCanER[y,k]))<upperObsBM[y-1,k]&rampER){ #forecast between lower & upper benchmarks
-              if(!is.na(redStatusER)==F){
-                ER.temp=redStatusER+trendCanER.iter[y,k]*(((foreRecRY[y, k]*(1-trendCanER[y,k]))-lowerObsBM[y-1,k])/(upperObsBM[y-1,k]-lowerObsBM[y-1,k]))
-                #scale trandCanER by the benchmark adjustment and a ratio of the run forecast excess (above lower Obs BM) vs. the upper/lower obs BM
-              }else{
-                ER.temp=trendCanER.iter[y,k]*(((foreRecRY[y, k]*(1-trendCanER[y,k]))-lowerObsBM[y-1,k])/(upperObsBM[y-1,k]-lowerObsBM[y-1,k]))
-              }
-              trendCanER.iter[y,k] <- min(trendCanER.iter[y,k],ER.temp,na.rm=T)
-              trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],minER,na.rm=T)
             }else{
+              #green status
               trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],minER,na.rm=T)
             }
+          }else if(HCRmetric=="forecast"){#forecast branch
+            if((foreRecRY[y, k]*(1-trendCanER.iter[y,k]))>=upperObsBM[y-1,k]){
+              #green status
+              trendCanER.iter[y,k]<- bmUMSY[y-1,k,n]
+
+            }else if(foreRecRY[y, k]*(1-tmpredStatusER)<=lowerObsBM[y-1,k]){
+              #red status
+              trendCanER.iter[y,k]<- tmpredStatusER              
+            }else{
+              #amber status
+              if(rampER){
+                
+                forecastupperBM<-upperObsBM[y-1,k]/(1-bmUMSY[y-1,k,n])
+                forecastlowerBM<-lowerObsBM[y-1,k]/(1-tmpredStatusER)
+                
+
+                trendCanER.iter[y,k] <-tmpredStatusER+ (foreRecRY[y, k]-forecastlowerBM)*
+                         (bmUMSY[y-1,k,n]-tmpredStatusER)/(forecastupperBM-forecastlowerBM)
+             
+                #if(foreRecRY[y, k]*(1-trendCanER.iter[y,k])<=lowerObsBM[y-1,k]){
+                #  trendCanER.iter[y,k] <- tmpredStatusER
+                #}
+              }else{
+                if(foreRecRY[y, k]*(1-tmpamberStatusER)<=lowerObsBM[y-1,k]){
+                  trendCanER.iter[y,k] <- max(tmpredStatusER,(foreRecRY[y, k]-lowerObsBM[y-1,k])/foreRecRY[y, k])
+                }else{
+                  trendCanER.iter[y,k] <- max(tmpamberStatusER,(foreRecRY[y, k]-upperObsBM[y-1,k])/foreRecRY[y, k])
+                }
+              }
+            }     
           }
         }
       }
+
+
+
+
+
+
+
+   #old code for reference
+
+
+
+    ##  for (k in 1:nCU) {
+    ##    #fixed ER target, independent of run size
+    ##    if(HCRtype=='fixed'){
+    ##      trendCanER.iter[y,k]<-trendCanER[y,k]
+    ##    }
+    ##    #estimated UMSY-based target, independent of run size
+    ##    if(HCRtype=='umsy'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
+    ##      trendCanER.iter[y,k] <- bmUMSY[y-1,k,n]
+    ##    }
+    ##    #abundance-based targets - run size either based on forecast or retrospective (last years escapement)
+    ##    if(singleHCR=="retro"){ #retrospective branch
+    ##      if(HCRtype=='abundance'){ #for HCRs with fixer exploitation rates for each abundance zone (independent of estimates UMSY)
+    ##        if(counterLowerObsBM[y-1, k]==0&counterUpperObsBM[y-1, k]==0){
+    ##          #red status
+    ##          if(!is.na(redStatusER)){
+    ##            trendCanER.iter[y,k] <- redStatusER
+    ##          }else{
+    ##            trendCanER.iter[y,k] <- max(trendCanER[y,k]*bmERAdj,minER,na.rm=T)
+    ##          }
+    ##        }else if(counterLowerObsBM[y-1, k]==1&counterUpperObsBM[y-1, k]==0&!rampER){
+    ##          if(is.na(amberStatusER)==F){
+    ##            trendCanER.iter[y,k]<- amberStatusER
+    ##          }else{
+    ##            trendCanER.iter[y,k] <- max(trendCanER[y,k]*bmERAdj,minER,na.rm=T)
+    ##          }
+    ##        }else if(counterLowerObsBM[y-1, k]==1&counterUpperObsBM[y-1, k]==0&rampER){
+    ##          if(!is.na(redStatusER)==F){
+    ##            ER.temp=redStatusER+trendCanER[y,k]*((obsS[y-1, k]-lowerObsBM[y-1,k])/(upperObsBM[y-1,k]-lowerObsBM[y-1,k]))
+    ##            #scale trandCanER by the benchmark adjustment and a ratio of the run forecast excess (above lower Obs BM) vs. the upper/lower obs BM
+    ##          }else{
+    ##            ER.temp=trendCanER[y,k]*((obsS[y-1, k]-lowerObsBM[y-1,k])/(upperObsBM[y-1,k]-lowerObsBM[y-1,k]))
+    ##          }
+    ##          trendCanER.iter[y,k] <- min(trendCanER[y,k],ER.temp,na.rm=T)
+    ##          trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],minER,na.rm=T)
+    ##          }
+    ##        else{
+    ##          
+    ##          trendCanER.iter[y,k] <- max(trendCanER[y,k],minER,na.rm=T)
+    ##        }
+    ##      }
+    ##      if(HCRtype=='both'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
+    ##        trendCanER.iter[y,k] <- bmUMSY[y-1,k,n]
+    ##   
+    ##        if(counterLowerObsBM[y-1, k]==0&counterUpperObsBM[y-1, k]==0){
+    ##          #red status
+    ##          if(is.na(redStatusER)==F){
+    ##            trendCanER.iter[y,k]<- redStatusER
+    ##          }else{
+    ##            trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,minER,na.rm=T)
+    ##          }
+##
+    ##        }else if(counterLowerObsBM[y-1, k]==1&counterUpperObsBM[y-1, k]==0&!rampER){
+    ##          #amber status
+    ##          if(is.na(amberStatusER)==F){
+    ##            trendCanER.iter[y,k]<- amberStatusER
+    ##          }else{
+    ##            trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,minER,na.rm=T)
+    ##          }
+    ##        }
+    ##        #harvest ramp option based on retroactive spawner abundance
+    ##        else if(counterLowerObsBM[y-1, k]==1&counterUpperObsBM[y-1, k]==0&rampER){
+    ##          if(!is.na(redStatusER)==F){
+    ##            ER.temp=redStatusER+trendCanER.iter[y,k]*((obsS[y-1, k]-lowerObsBM[y-1,k])/(upperObsBM[y-1,k]-lowerObsBM[y-1,k]))
+    ##            #scale trandCanER by the benchmark adjustment and a ratio of the run forecast excess (above lower Obs BM) vs. the upper/lower obs BM
+    ##          }else{
+    ##            ER.temp=trendCanER.iter[y,k]*((obsS[y-1, k]-lowerObsBM[y-1,k])/(upperObsBM[y-1,k]-lowerObsBM[y-1,k]))
+    ##          }
+    ##          trendCanER.iter[y,k] <- min(trendCanER.iter[y,k],ER.temp,na.rm=T)
+    ##          trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],minER,na.rm=T)
+    ##        }
+    ##        else{
+    ##          trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],minER,na.rm=T)
+    ##        }
+    ##      }
+    ##    }
+    ##    else if(singleHCR=="forecast"){#forecast branch
+    ##      if(HCRtype=='abundance'){ #for HCRs without a ramp between benchmarks = ie. set in red/amber/green zones
+    ##        if(is.na(amberStatusER)){amberStatusER<-max(trendCanER[y,k]*bmERAdj,minER,na.rm=T)}
+    ##        if(is.na(redStatusER)){redStatusER<-max(trendCanER[y,k]*bmERAdj,minER,na.rm=T)}
+    ##        
+    ##        if((foreRecRY[y, k]*(1-amberStatusER))<lowerObsBM[y-1,k]){
+    ##          #red status
+    ##          trendCanER.iter[y,k] <- redStatusER
+    ##         
+    ##        }else if((foreRecRY[y, k]*(1-trendCanER[y,k])>=lowerObsBM[y-1,k]&
+    ##                  foreRecRY[y, k]*(1-trendCanER[y,k])<upperObsBM[y-1,k])|
+    ##                 (foreRecRY[y, k]*(1-amberStatusER)>=lowerObsBM[y-1,k]&
+    ##                  foreRecRY[y, k]*(1-amberStatusER)<upperObsBM[y-1,k])&
+    ##          !rampER){
+    ##          #amber status
+    ##          trendCanER.iter[y,k]<- amberStatusER
+    ##          
+    ##        }else if((foreRecRY[y, k]*(1-trendCanER[y,k]))>lowerObsBM[y-1,k]&
+    ##          (foreRecRY[y, k]*(1-trendCanER[y,k]))<upperObsBM[y-1,k]&rampER){
+    ##          #scale trandCanER by the benchmark adjustment and a ratio of the run forecast excess (above lower Obs BM) vs. the upper/lower obs BM
+    ##          if(!is.na(redStatusER)==F){
+    ##            ER.temp=redStatusER+trendCanER[y,k]*(((foreRecRY[y, k]*(1-trendCanER[y,k]))-lowerObsBM[y-1,k])/(upperObsBM[y-1,k]-lowerObsBM[y-1,k]))
+    ##          }else{
+    ##            ER.temp=trendCanER[y,k]*(((foreRecRY[y, k]*(1-trendCanER[y,k]))-lowerObsBM[y-1,k])/(upperObsBM[y-1,k]-lowerObsBM[y-1,k]))
+    ##          }
+    ##          trendCanER.iter[y,k] <- min(trendCanER[y,k],ER.temp,na.rm=T)
+    ##          trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],minER,na.rm=T)
+    ##        }
+    ##        else{
+    ##          trendCanER.iter[y,k] <- max(trendCanER[y,k],minER,na.rm=T)
+    ##        }
+    ##      }
+    ##      if(HCRtype=='both'){ #sets ER based on last umsy benchmark at assessment times the er adjustment
+    ##        trendCanER.iter[y,k] <- bmUMSY[y-1,k,n]
+    ##        if((foreRecRY[y, k]*(1-trendCanER[y,k]))<lowerObsBM[y-1,k]){
+    ##          #red status
+    ##          if(is.na(redStatusER)==F){
+    ##            trendCanER.iter[y,k]<- redStatusER
+    ##          }else{
+    ##            trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,minER,na.rm=T)
+    ##          }
+    ##        }else if((foreRecRY[y, k]*(1-trendCanER[y,k]))>lowerObsBM[y-1,k]&(foreRecRY[y, k]*(1-trendCanER[y,k]))<upperObsBM[y-1,k]&!rampER){
+    ##          #amber status
+    ##          if(is.na(amberStatusER)==F){
+    ##            trendCanER.iter[y,k]<- amberStatusER
+    ##          }else{
+    ##            trendCanER.iter[y,k] <- max(trendCanER.iter[y,k]*bmERAdj,minER,na.rm=T)
+    ##          }
+    ##          #ramped harvest rate option - based on forecast return
+    ##        }else if((foreRecRY[y, k]*(1-trendCanER[y,k]))>lowerObsBM[y-1,k]&(foreRecRY[y, k]*(1-trendCanER[y,k]))<upperObsBM[y-1,k]&rampER){ #forecast between lower & upper benchmarks
+    ##          if(!is.na(redStatusER)==F){
+    ##            ER.temp=redStatusER+trendCanER.iter[y,k]*(((foreRecRY[y, k]*(1-trendCanER[y,k]))-lowerObsBM[y-1,k])/(upperObsBM[y-1,k]-lowerObsBM[y-1,k]))
+    ##            #scale trandCanER by the benchmark adjustment and a ratio of the run forecast excess (above lower Obs BM) vs. the upper/lower obs BM
+    ##          }else{
+    ##            ER.temp=trendCanER.iter[y,k]*(((foreRecRY[y, k]*(1-trendCanER[y,k]))-lowerObsBM[y-1,k])/(upperObsBM[y-1,k]-lowerObsBM[y-1,k]))
+    ##          }
+    ##          trendCanER.iter[y,k] <- min(trendCanER.iter[y,k],ER.temp,na.rm=T)
+    ##          trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],minER,na.rm=T)
+    ##        }else{
+    ##          trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],minER,na.rm=T)
+    ##        }
+    ##      }
+    ##    }
+    ##  }
 
       if(is.na(cvERSMU)) {
 
@@ -2129,13 +2293,13 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
 
         for (k in 1:nCU) {
 
-          if (singleHCR == "forecast") {
+          if (HCRmetric == "forecast") {
             singCUStatus[y, k] <- max(0,
                                       (foreRecRY[y, k]) -
                                         amTAC[y, k] - mixTAC[y, k])
           }
 
-          if (singleHCR == "retro") {
+          if (HCRmetric == "retro") {
 
             if (model[k] == "ricker") {
               #Secondary HCR option 2 uses median obsS abundance over previous gen
@@ -2167,7 +2331,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               }
             } #end if (model[k] == "larkin")
 
-          } # end of if (singleHCR == "retro")
+          } # end of if (HCRmetric == "retro")
 
 
         } #end for k in 1:nCU

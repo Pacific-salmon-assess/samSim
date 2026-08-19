@@ -39,7 +39,8 @@ model- I am not sure this still holds)}
   \item{cvERSMU}{Annual variation in exploitation rate for the SMU}  
   \item{propMixHigh}{proportion of Canadian catch allocated to mixed-stock fisheries (can range 
 from 0 to 1)}  
-  \item{singleHCR}{single stock harvest control rule (`FALSE`, `retro`, `forecast`)}  
+  \item{singleHCR}{Logical single stock harvest control rule,if TRUE single stock TAC is only harvested when BMs met }  
+  \item{HCRmetric}{metric used for abundance-based  harvest control rule ( `retro`, `forecast`). If it is set equal to singleHCR for compatibility and warning is issued}  
   \item{moveTAC}{if `TRUE` and single stock quota from low-abundance CUs is re-allocated to other
  CUs}   
   \item{prodRegime}{productivity regime. Options are: `low` multiply alpha by 0.65,
@@ -136,7 +137,11 @@ Srep or Sinit (if available) }
 period} 
   \item{infBetaPrior}{Logical. Should informative priors be used in samEst estimation models } 
   \item{fERAdj}{multiplier for harvest Target (xUMSY)} 
-  \item{HCRtype}{One of umsy/abundance/both} 
+  \item{HCRtype}{One of the following options:
+  * `"fixed"` - Exploitation is fixed following the trendCanER object. 
+  * `"umsy"` — exploitation rate is set to latest estimates umsy regardless of estimated abundance.
+  * `"abundance"` — ER is set to pre determined redStatusER,amberStatusER and trendCanER.
+  * `"both"` — Combination of using  redStatusER,amberStatusER or bmERAdj and UMSy estimates to set ER when stock is in green zone  } 
   \item{fixedLowerBenchmark}{set value for a fixed LowerBenchmark, note the 'benchmark' column 
  must equal 'fixed'} 
   \item{fixedUpperBenchmark}{set value for a fixed UpperBenchmark, note the 'benchmark' column  
