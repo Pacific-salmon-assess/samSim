@@ -1989,10 +1989,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               #amber status
               if(rampER){
 
-                trendCanER.iter[y,k] <- max(trendCanER[y,k]*(foreRecRY[y, k]*(1-trendCanER[y,k])/(upperObsBM[y-1,k])),tmpredStatusER)
-                if(foreRecRY[y, k]*(1-trendCanER.iter[y,k])<=lowerObsBM[y-1,k]){
-                  trendCanER.iter[y,k] <- tmpredStatusER
-                }
+                slopehcr<-(trendCanER[y,k]-tmpredStatusER)/(upperObsBM[y-1,k]-lowerObsBM[y-1,k])
+
+                trendCanER.iter[y,k] <-(tmpredStatusER+(foreRecRY[y, k]-lowerObsBM[y-1,k])*slopehcr)/
+                                       (1+foreRecRY[y, k]*slopehcr)
+
               }else{
                 if(foreRecRY[y, k]*(1-tmpamberStatusER)<=lowerObsBM[y-1,k]){
                   trendCanER.iter[y,k] <- max(tmpredStatusER,(foreRecRY[y, k]-lowerObsBM[y-1,k])/foreRecRY[y, k])
@@ -2017,7 +2018,6 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
             tmpamberStatusER <- amberStatusER
           }
 
-          
           if(HCRmetric=="retro"){ 
             #retrospective branch 
             if(counterLowerObsBM[y-1, k]==0&counterUpperObsBM[y-1, k]==0){
@@ -2044,6 +2044,7 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               trendCanER.iter[y,k] <- max(trendCanER.iter[y,k],minER,na.rm=T)
             }
           }else if(HCRmetric=="forecast"){#forecast branch
+            #temporary deactivate estimation
             if((foreRecRY[y, k]*(1-trendCanER.iter[y,k]))>=upperObsBM[y-1,k]){
               #green status
               trendCanER.iter[y,k]<- bmUMSY[y-1,k,n]
@@ -2055,16 +2056,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
               #amber status
               if(rampER){
                 
-                forecastupperBM<-upperObsBM[y-1,k]/(1-bmUMSY[y-1,k,n])
-                forecastlowerBM<-lowerObsBM[y-1,k]/(1-tmpredStatusER)
-                
+                slopehcr<-(bmUMSY[y-1,k,n]-tmpredStatusER)/(upperObsBM[y-1,k]-lowerObsBM[y-1,k])
 
-                trendCanER.iter[y,k] <-tmpredStatusER+ (foreRecRY[y, k]-forecastlowerBM)*
-                         (bmUMSY[y-1,k,n]-tmpredStatusER)/(forecastupperBM-forecastlowerBM)
-             
-                #if(foreRecRY[y, k]*(1-trendCanER.iter[y,k])<=lowerObsBM[y-1,k]){
-                #  trendCanER.iter[y,k] <- tmpredStatusER
-                #}
+                trendCanER.iter[y,k] <-(tmpredStatusER+(foreRecRY[y, k]-lowerObsBM[y-1,k])*slopehcr)/
+                                       (1+foreRecRY[y, k]*slopehcr)
+
               }else{
                 if(foreRecRY[y, k]*(1-tmpamberStatusER)<=lowerObsBM[y-1,k]){
                   trendCanER.iter[y,k] <- max(tmpredStatusER,(foreRecRY[y, k]-lowerObsBM[y-1,k])/foreRecRY[y, k])
