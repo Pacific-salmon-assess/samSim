@@ -1441,8 +1441,11 @@ genericRecoverySim <- function(simPar, cuPar, catchDat=NULL, srDat=NULL,
     # if SR data exist (recCap defined above when there are no SR data)
     if(!is.null(recOut)){
       if(sum(is.na(recDat$totalRec)) < length(recDat$totalRec)){
-        recCap <- 2 * apply(recBY[1:nPrime, ], 2, function(x)
-          max(x, na.rm = TRUE))
+        recCap <- 2 * apply(
+          matrix(recBY[1:nPrime, ], ncol=nCU), 
+          2,
+          function(x) max(x, na.rm = TRUE)
+        )
       }
     }
 
